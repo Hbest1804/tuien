@@ -1,0 +1,79 @@
+import { Bell, User, Flame } from 'lucide-react';
+import { TabType } from '../types';
+
+interface NavBarProps {
+  activeTab: TabType;
+  setActiveTab: (tab: TabType) => void;
+}
+
+const navItems: { key: TabType; label: string }[] = [
+  { key: 'home',     label: 'Tông Đỉnh'   },
+  { key: 'map',      label: 'Bản Đồ'      },
+  { key: 'roots',    label: 'Linh Căn'    },
+  { key: 'pavilion', label: 'Tàng Kinh Các' },
+];
+
+export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
+  return (
+    <nav className="fixed top-0 w-full z-50 glass-panel border-b border-primary/15">
+      {/* Top golden line */}
+      <div className="h-[1px] w-full liquid-flow opacity-70" />
+
+      <div className="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-3 max-w-container-max mx-auto">
+
+        {/* Logo */}
+        <div
+          className="flex items-center gap-3 cursor-pointer group"
+          onClick={() => setActiveTab('home')}
+        >
+          <div className="relative w-10 h-10 md:w-11 md:h-11">
+            <div className="absolute inset-0 rounded-xl bg-primary/20 animate-pulse-slow" />
+            <div className="relative w-full h-full rounded-xl border border-primary/40 bg-surface-container-lowest flex items-center justify-center gold-glow group-hover:gold-glow-strong transition-all duration-300">
+              <Flame size={20} className="text-primary group-hover:scale-110 transition-transform" />
+            </div>
+          </div>
+          <span className="font-headline-md text-[18px] font-bold gradient-text-gold tracking-widest uppercase hidden md:block">
+            Linh Thư
+          </span>
+        </div>
+
+        {/* Desktop Nav */}
+        <div className="hidden md:flex items-center gap-1">
+          {navItems.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`relative px-4 py-2 rounded-lg font-body-md font-medium transition-all duration-300 ${
+                activeTab === key
+                  ? 'text-primary bg-primary/10 nav-active-pill'
+                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-container/60'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center gap-2">
+          <button
+            className="text-on-surface-variant hover:text-primary transition-all duration-300 flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-container/60 relative"
+            title="Thông báo"
+          >
+            <Bell size={18} />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          </button>
+          <button
+            className="text-on-surface-variant hover:text-primary transition-all duration-300 flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-container/60"
+            title="Tài khoản"
+          >
+            <User size={18} />
+          </button>
+          <button className="hidden md:flex energy-pulse ornate-corners bg-primary/10 border border-primary/60 text-primary px-5 py-2 rounded-lg font-label-caps uppercase tracking-widest hover:bg-primary/20 hover:border-primary transition-all duration-300 text-[11px]">
+            Tu Luyện
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+}
