@@ -64,7 +64,7 @@ export default function CharacterSetupModal({ onComplete }: Props) {
     }
   };
 
-  const rootInfo = rolledRoot ? SPIRIT_ROOT_COLORS[rolledRoot] : null;
+  const rootInfo = rolledRoot ? (SPIRIT_ROOT_COLORS[rolledRoot] || null) : null;
   const gradeColor = rolledGrade ? GRADE_COLORS[rolledGrade] : '#f2ca50';
   const isLegendary = rolledRoot === 'Hỗn Nguyên' || rolledGrade === 'Thiên';
 
@@ -182,18 +182,25 @@ export default function CharacterSetupModal({ onComplete }: Props) {
               </div>
               {/* Orbiting particles */}
               {['⚡','🔥','💧','🌿','⚔️','❄️','🌪️'].map((e, i) => (
+                // Outer div: giữ góc phân bố ban đầu (không bị animation ghi đè)
+                // Inner div: chạy animation orbit
                 <div
                   key={i}
-                  className="absolute text-lg"
+                  className="absolute"
                   style={{
-                    animation: `orbit${i % 2 === 0 ? '' : '-r'} ${2 + i * 0.3}s linear infinite`,
-                    transformOrigin: 'center',
                     left: '50%',
                     top: '50%',
-                    transform: `rotate(${i * 51}deg) translateX(70px)`,
+                    transform: `translate(-50%, -50%) rotate(${i * 51}deg)`,
                   }}
                 >
-                  {e}
+                  <div
+                    className="text-lg"
+                    style={{
+                      animation: `orbit${i % 2 === 0 ? '' : '-r'} ${2 + i * 0.3}s linear infinite`,
+                    }}
+                  >
+                    {e}
+                  </div>
                 </div>
               ))}
             </div>
@@ -332,18 +339,20 @@ export default function CharacterSetupModal({ onComplete }: Props) {
   );
 }
 
+// Module-level constant — chỉ khởi tạo một lần, tránh re-allocation mỗi lần render
+const SPIRIT_ROOT_DESCRIPTIONS: Record<string, string> = {
+  'Hỗn Nguyên': '🌌 Hỗn Nguyên Linh Căn — Vạn Cổ Độc Nhất! Ngươi mang trong mình khí tức hỗn độn từ thuở khai thiên lập địa. Vô số đại năng sẽ thèm muốn linh căn của ngươi!',
+  'Kim':  '⚔️ Kim Linh Căn — Sắc bén như kiếm, cứng như thép. Công kích vô song!',
+  'Mộc':  '🌿 Mộc Linh Căn — Sinh mệnh lực mạnh mẽ, hồi phục thần tốc.',
+  'Thủy': '💧 Thủy Linh Căn — Nhu hòa như nước, vô hình vô tướng. Pháp thuật biến hóa vô cùng.',
+  'Hỏa':  '🔥 Hỏa Linh Căn — Bách chiến bách thắng, nhiệt huyết không tắt. Hủy diệt tất cả!',
+  'Thổ':  '⛰️ Thổ Linh Căn — Vĩnh hằng như đất, phòng thủ kiên cố như thành trì.',
+  'Lôi':  '⚡ Lôi Linh Căn — Sức mạnh thiên lôi trong tay ngươi!',
+  'Băng': '❄️ Băng Linh Căn — Lạnh giá vạn vật, khống chế địch nhân.',
+  'Phong':'🌪️ Phong Linh Căn — Nhanh như gió, không ai có thể bắt kịp ngươi!',
+};
+
 function getRootDescription(root: string, grade: string): string {
-  const descriptions: Record<string, string> = {
-    'Hỗn Nguyên': '🌌 Hỗn Nguyên Linh Căn — Vạn Cổ Độc Nhất! Ngươi mang trong mình khí tức hỗn độn từ thuở khai thiên lập địa. Vô số đại năng sẽ thèm muốn linh căn của ngươi!',
-    'Kim':  '⚔️ Kim Linh Căn — Sắc bén như kiếm, cứng như thép. Công kích vô song!',
-    'Mộc':  '🌿 Mộc Linh Căn — Sinh mệnh lực mạnh mẽ, hồi phục thần tốc.',
-    'Thủy': '💧 Thủy Linh Căn — Nhu hòa như nước, vô hình vô tướng. Pháp thuật biến hóa vô cùng.',
-    'Hỏa': '🔥 Hỏa Linh Căn — Bách chiến bách thắng, nhiệt huyết không tắt. Hủy diệt tất cả!',
-    'Thổ':  '⛰️ Thổ Linh Căn — Vĩnh hằng như đất, phòng thủ kiên cố như thành trì.',
-    'Lôi':  '⚡ Lôi Linh Căn — Sức mạnh thiên lôi trong tay ngươi!',
-    'Băng': '❄️ Băng Linh Căn — Lạnh giá vạn vật, khống chế địch nhân.',
-    'Phong':'🌪️ Phong Linh Căn — Nhanh như gió, không ai có thể bắt kịp ngươi!',
-  };
   const gradeDesc = grade === 'Thiên' ? '【Thiên Phẩm】' : grade === 'Địa' ? '【Địa Phẩm】' : grade === 'Huyền' ? '【Huyền Phẩm】' : '【Hoàng Phẩm】';
-  return `${gradeDesc} ${descriptions[root] ?? 'Linh căn kỳ bí, tiền đồ vô hạn!'}`;
+  return `${gradeDesc} ${SPIRIT_ROOT_DESCRIPTIONS[root] ?? 'Linh căn kỳ bí, tiền đồ vô hạn!'}`;
 }

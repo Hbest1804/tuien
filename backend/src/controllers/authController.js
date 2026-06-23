@@ -28,9 +28,11 @@ const SPIRIT_ROOTS = [
   { name: 'Thổ',         grade: 'Hoàng', weight: 20 },
 ];
 
+// Pre-compute tổng weight một lần duy nhất (performance)
+const TOTAL_WEIGHT = SPIRIT_ROOTS.reduce((sum, r) => sum + r.weight, 0);
+
 const randomSpiritRoot = () => {
-  const totalWeight = SPIRIT_ROOTS.reduce((sum, r) => sum + r.weight, 0);
-  let rand = Math.random() * totalWeight;
+  let rand = Math.random() * TOTAL_WEIGHT;
   for (const root of SPIRIT_ROOTS) {
     rand -= root.weight;
     if (rand <= 0) return root;
@@ -139,23 +141,30 @@ export const setupCharacter = async (req, res) => {
       return res.status(400).json({ message: 'Giới tính không hợp lệ' });
     }
 
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-    }
-
-    if (user.isCharacterCreated) {
-      return res.status(400).json({ message: 'Nhân vật đã được tạo trước đó' });
-    }
-
-    // Random linh căn
+    // Random linh căn trước khi query để không block DB
     const { name: spiritRoot, grade: spiritRootGrade } = randomSpiritRoot();
 
-    user.gender = gender;
-    user.spiritRoot = spiritRoot;
-    user.spiritRootGrade = spiritRootGrade;
-    user.isCharacterCreated = true;
-    await user.save();
+    // Atomic update: chỉ cập nhật nếu isCharacterCreated === false
+    // Ngăn chặn race condition khi user gửi nhiều request đồng thời
+    const user = await User.findOneAndUpdate(
+      { _id: req.user.id, isCharacterCreated: false },
+      {
+        gender,
+        spiritRoot,
+        spiritRootGrade,
+        isCharacterCreated: true,
+      },
+      { new: true }
+    );
+
+    if (!user) {
+      // Kiểm tra xem user có tồn tại không hay đã tạo nhân vật rồi
+      const userExists = await User.exists({ _id: req.user.id });
+      if (!userExists) {
+        return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+      }
+      return res.status(400).json({ message: 'Nhân vật đã được tạo trước đó' });
+    }
 
     res.status(200).json({
       message: 'Khai mở linh căn thành công!',
