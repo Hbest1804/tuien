@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Zap, Star, Mail, Lock } from 'lucide-react';
 import { login as apiLogin } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import CharacterSetupModal from '../components/CharacterSetupModal';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showSetup, setShowSetup] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -20,7 +22,12 @@ export default function LoginPage() {
     try {
       const res = await apiLogin(form);
       authLogin(res.data.token, res.data.user);
-      navigate('/');
+      // Nếu chưa tạo nhân vật → hiện modal setup
+      if (!res.data.user.isCharacterCreated) {
+        setShowSetup(true);
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại');
     } finally {
@@ -28,8 +35,15 @@ export default function LoginPage() {
     }
   };
 
+  const handleSetupComplete = () => {
+    navigate('/');
+  };
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
+
+      {/* Character Setup Modal */}
+      {showSetup && <CharacterSetupModal onComplete={handleSetupComplete} />}
 
       {/* Background orbs */}
       <div className="absolute inset-0 pointer-events-none">

@@ -24,6 +24,35 @@ const userSchema = new mongoose.Schema(
       minlength: [6, 'Password phải có ít nhất 6 ký tự'],
       select: false, // Không trả password trong query mặc định
     },
+    gender: {
+      type: String,
+      enum: ['male', 'female'],
+      default: null,
+    },
+    spiritRoot: {
+      type: String,
+      enum: [
+        'Kim',       // Kim Linh Căn
+        'Mộc',       // Mộc Linh Căn
+        'Thủy',      // Thủy Linh Căn
+        'Hỏa',       // Hỏa Linh Căn
+        'Thổ',       // Thổ Linh Căn
+        'Lôi',       // Lôi Linh Căn
+        'Băng',      // Băng Linh Căn
+        'Phong',     // Phong Linh Căn
+        'Hỗn Nguyên', // Hỗn Nguyên Linh Căn (siêu hiếm)
+      ],
+      default: null,
+    },
+    spiritRootGrade: {
+      type: String,
+      enum: ['Thiên', 'Địa', 'Huyền', 'Hoàng'],
+      default: null,
+    },
+    isCharacterCreated: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true, // Tự động thêm createdAt, updatedAt

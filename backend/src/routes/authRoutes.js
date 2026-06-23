@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerUser, loginUser, getMe } from '../controllers/authController.js';
+import { registerUser, loginUser, getMe, setupCharacter } from '../controllers/authController.js';
 import protect from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -8,7 +8,8 @@ const router = express.Router();
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 
-// Protected route (cần đăng nhập)
+// Protected routes (cần đăng nhập)
 router.get('/me', protect, getMe);
+router.post('/setup-character', protect, setupCharacter);
 
 export default router;
