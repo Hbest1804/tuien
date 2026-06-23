@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Sparkles, Zap, Star } from 'lucide-react';
-import { setupCharacter } from '../services/authService';
-import { useAuth } from '../context/AuthContext';
+import { setupCharacter, UserData } from '../services/authService';
 
 interface Props {
-  onComplete: () => void;
+  onComplete: (user: UserData) => void;
 }
 
 // ── Màu sắc & hiệu ứng cho từng loại linh căn ──────────────────────────────
@@ -70,11 +69,11 @@ const SPIRIT_ROOT_DESCRIPTIONS: Record<string, string> = {
 type Step = 'gender' | 'rolling' | 'reveal';
 
 export default function CharacterSetupModal({ onComplete }: Props) {
-  const { updateUser } = useAuth();
   const [step, setStep] = useState<Step>('gender');
   const [selectedGender, setSelectedGender] = useState<'male' | 'female' | null>(null);
   const [rolledRoot, setRolledRoot] = useState<string | null>(null);
   const [rolledGrade, setRolledGrade] = useState<string | null>(null);
+  const [rolledUser, setRolledUser] = useState<UserData | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -89,7 +88,7 @@ export default function CharacterSetupModal({ onComplete }: Props) {
       const res = await setupCharacter(selectedGender);
       setRolledRoot(res.data.user.spiritRoot);
       setRolledGrade(res.data.user.spiritRootGrade);
-      updateUser(res.data.user);
+      setRolledUser(res.data.user);
       setStep('reveal');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Đã có lỗi xảy ra');
@@ -352,7 +351,11 @@ export default function CharacterSetupModal({ onComplete }: Props) {
             </p>
 
             <button
-              onClick={onComplete}
+              onClick={() => {
+                if (rolledUser) {
+                  onComplete(rolledUser);
+                }
+              }}
               className="energy-pulse ornate-corners w-full py-4 rounded-xl font-headline-md text-[18px] transition-all duration-300 flex items-center justify-center gap-2"
               style={{
                 background: `${rootInfo.color}20`,

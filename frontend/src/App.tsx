@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, ReactNode } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
@@ -31,8 +31,8 @@ export default function App() {
 // ── Global Route Guard ────────────────────────────────────────────────────────
 // Kiểm tra isCharacterCreated mọi nơi trong app, kể cả khi refresh trình duyệt.
 // AuthContext.getMe() khôi phục session → nếu chưa tạo nhân vật → modal hiện ra.
-function GlobalCharacterGuard({ children }: { children: React.ReactNode }) {
-  const { user, isLoading } = useAuth();
+function GlobalCharacterGuard({ children }: { children: ReactNode }) {
+  const { user, isLoading, updateUser } = useAuth();
 
   const needsSetup = !isLoading && user !== null && !user.isCharacterCreated;
 
@@ -40,8 +40,7 @@ function GlobalCharacterGuard({ children }: { children: React.ReactNode }) {
     <>
       {children}
       {/* Modal hiện khi user đã đăng nhập nhưng chưa tạo nhân vật */}
-      {/* onComplete là no-op: updateUser() bên trong modal tự đặt isCharacterCreated=true */}
-      {needsSetup && <CharacterSetupModal onComplete={() => {}} />}
+      {needsSetup && <CharacterSetupModal onComplete={(updatedUser) => updateUser(updatedUser)} />}
     </>
   );
 }
