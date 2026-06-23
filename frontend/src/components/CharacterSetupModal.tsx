@@ -341,14 +341,14 @@ export default function CharacterSetupModal({ onComplete }: Props) {
               <div className="text-left">
                 <div className="font-label-caps text-on-surface-variant text-xs">Giới Tính</div>
                 <div className="font-headline-md text-[16px] text-on-background">
-                  {GENDER_DATA[selectedGender!].label}
+                  {selectedGender ? GENDER_DATA[selectedGender].label : ''}
                 </div>
               </div>
             </div>
 
             {/* Description */}
             <p className="font-body-md text-on-surface-variant text-sm mb-8 leading-relaxed">
-              {getRootDescription(rolledRoot!, rolledGrade!)}
+              {rolledRoot && rolledGrade ? getRootDescription(rolledRoot, rolledGrade) : ''}
             </p>
 
             <button

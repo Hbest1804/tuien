@@ -8,6 +8,8 @@ import SpiritRoots from './components/SpiritRoots';
 import WorldMap from './components/WorldMap';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import CharacterSetupModal from './components/CharacterSetupModal';
+import { useAuth } from './context/AuthContext';
 import { TabType } from './types';
 import { Sword, CloudLightning, Mountain, ChevronDown, Star, Zap } from 'lucide-react';
 import './index.css';
@@ -17,8 +19,30 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/*" element={<MainLayout />} />
+      <Route path="/*" element={
+        <GlobalCharacterGuard>
+          <MainLayout />
+        </GlobalCharacterGuard>
+      } />
     </Routes>
+  );
+}
+
+// ── Global Route Guard ────────────────────────────────────────────────────────
+// Kiểm tra isCharacterCreated mọi nơi trong app, kể cả khi refresh trình duyệt.
+// AuthContext.getMe() khôi phục session → nếu chưa tạo nhân vật → modal hiện ra.
+function GlobalCharacterGuard({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  const needsSetup = !isLoading && user !== null && !user.isCharacterCreated;
+
+  return (
+    <>
+      {children}
+      {/* Modal hiện khi user đã đăng nhập nhưng chưa tạo nhân vật */}
+      {/* onComplete là no-op: updateUser() bên trong modal tự đặt isCharacterCreated=true */}
+      {needsSetup && <CharacterSetupModal onComplete={() => {}} />}
+    </>
   );
 }
 

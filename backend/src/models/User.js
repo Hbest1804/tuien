@@ -26,7 +26,7 @@ const userSchema = new mongoose.Schema(
     },
     gender: {
       type: String,
-      // Không dùng enum ở đây để tránh lỗi null validation
+      enum: ['male', 'female', null],  // null hợp lệ khi chưa tạo nhân vật
       default: null,
     },
     spiritRoot: {
@@ -35,6 +35,7 @@ const userSchema = new mongoose.Schema(
     },
     spiritRootGrade: {
       type: String,
+      enum: ['Thiên', 'Địa', 'Huyền', 'Hoàng', null],  // chỉ chấp nhận các phẩm cấp hợp lệ
       default: null,
     },
     isCharacterCreated: {

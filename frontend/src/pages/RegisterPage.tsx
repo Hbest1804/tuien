@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Zap, Star, Mail, Lock, User } from 'lucide-react';
 import { register } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
-import CharacterSetupModal from '../components/CharacterSetupModal';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -13,7 +12,6 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showSetup, setShowSetup] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -22,8 +20,8 @@ export default function RegisterPage() {
     try {
       const res = await register(form);
       authLogin(res.data.token, res.data.user);
-      // Luôn hiển thị modal setup khi đăng ký mới
-      setShowSetup(true);
+      // GlobalCharacterGuard trong App.tsx sẽ tự hiện modal vì isCharacterCreated === false
+      navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Đăng ký thất bại');
     } finally {
@@ -31,15 +29,8 @@ export default function RegisterPage() {
     }
   };
 
-  const handleSetupComplete = () => {
-    navigate('/');
-  };
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
-
-      {/* Character Setup Modal */}
-      {showSetup && <CharacterSetupModal onComplete={handleSetupComplete} />}
 
       {/* Background orbs */}
       <div className="absolute inset-0 pointer-events-none">
