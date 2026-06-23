@@ -20,6 +20,7 @@ export default function RegisterPage() {
     try {
       const res = await register(form);
       authLogin(res.data.token, res.data.user);
+      // GlobalCharacterGuard trong App.tsx sẽ tự hiện modal vì isCharacterCreated === false
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Đăng ký thất bại');

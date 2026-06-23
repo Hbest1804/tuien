@@ -6,10 +6,20 @@ export interface AuthPayload {
   password: string;
 }
 
+export interface UserData {
+  id: string;
+  username: string;
+  email: string;
+  isCharacterCreated: boolean;
+  gender: 'male' | 'female' | null;
+  spiritRoot: string | null;
+  spiritRootGrade: 'Thiên' | 'Địa' | 'Huyền' | 'Hoàng' | null;
+}
+
 export interface AuthResponse {
   message: string;
   token: string;
-  user: { id: string; username: string; email: string };
+  user: UserData;
 }
 
 export const register = (data: AuthPayload) =>
@@ -19,4 +29,7 @@ export const login = (data: AuthPayload) =>
   api.post<AuthResponse>('/auth/login', data);
 
 export const getMe = () =>
-  api.get<{ user: AuthResponse['user'] }>('/auth/me');
+  api.get<{ user: UserData }>('/auth/me');
+
+export const setupCharacter = (gender: 'male' | 'female') =>
+  api.post<{ message: string; user: UserData }>('/auth/setup-character', { gender });

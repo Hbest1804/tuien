@@ -20,6 +20,7 @@ export default function LoginPage() {
     try {
       const res = await apiLogin(form);
       authLogin(res.data.token, res.data.user);
+      // GlobalCharacterGuard trong App.tsx sẽ tự xử lý nếu chưa tạo nhân vật
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Đăng nhập thất bại');
@@ -30,6 +31,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
+
+
 
       {/* Background orbs */}
       <div className="absolute inset-0 pointer-events-none">
