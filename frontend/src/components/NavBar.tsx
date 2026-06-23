@@ -1,5 +1,7 @@
-import { Bell, User, Flame } from 'lucide-react';
+import { Bell, User, Flame, LogOut, LogIn } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { TabType } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 interface NavBarProps {
   activeTab: TabType;
@@ -14,6 +16,7 @@ const navItems: { key: TabType; label: string }[] = [
 ];
 
 export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
+  const { user, logout } = useAuth();
   return (
     <nav className="fixed top-0 w-full z-50 glass-panel border-b border-primary/15">
       {/* Top golden line */}
@@ -63,15 +66,29 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
             <Bell size={18} />
             <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
           </button>
-          <button
-            className="text-on-surface-variant hover:text-primary transition-all duration-300 flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-container/60"
-            title="Tài khoản"
-          >
-            <User size={18} />
-          </button>
-          <button className="hidden md:flex energy-pulse ornate-corners bg-primary/10 border border-primary/60 text-primary px-5 py-2 rounded-lg font-label-caps uppercase tracking-widest hover:bg-primary/20 hover:border-primary transition-all duration-300 text-[11px]">
-            Tu Luyện
-          </button>
+
+          {user ? (
+            <>
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container border border-primary/20">
+                <User size={14} className="text-primary" />
+                <span className="font-label-caps text-primary text-[11px] tracking-wider">{user.username}</span>
+              </div>
+              <button
+                onClick={logout}
+                title="Đăng xuất"
+                className="flex items-center justify-center w-9 h-9 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-all duration-300"
+              >
+                <LogOut size={16} />
+              </button>
+            </>
+          ) : (
+            <Link
+              to="/login"
+              className="hidden md:flex energy-pulse ornate-corners bg-primary/10 border border-primary/60 text-primary px-5 py-2 rounded-lg font-label-caps uppercase tracking-widest hover:bg-primary/20 hover:border-primary transition-all duration-300 text-[11px] items-center gap-1.5"
+            >
+              <LogIn size={13} /> Đăng Nhập
+            </Link>
+          )}
         </div>
       </div>
     </nav>

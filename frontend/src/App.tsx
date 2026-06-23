@@ -1,16 +1,30 @@
 import { useState, useEffect, useRef } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import MobileNav from './components/MobileNav';
 import Pavilion from './components/Pavilion';
 import SpiritRoots from './components/SpiritRoots';
 import WorldMap from './components/WorldMap';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import { TabType } from './types';
 import { Sword, CloudLightning, Mountain, ChevronDown, Star, Zap } from 'lucide-react';
 import './index.css';
 
 export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/*" element={<MainLayout />} />
+    </Routes>
+  );
+}
+
+function MainLayout() {
   const [activeTab, setActiveTab] = useState<TabType>('home');
+
 
   return (
     <div className="bg-background text-on-background min-h-screen relative overflow-x-hidden flex flex-col text-body-md font-body-md">
@@ -29,7 +43,7 @@ export default function App() {
 }
 
 /* ── Floating particle component ── */
-function Particle({ delay, x, size, color }: { delay: number; x: number; size: number; color: string }) {
+function Particle({ delay, x, size, color }: { key?: string | number; delay: number; x: number; size: number; color: string }) {
   return (
     <div
       className="particle"
@@ -156,7 +170,9 @@ function Home({ setActiveTab }: { setActiveTab: (t: TabType) => void }) {
 
         {/* Particles */}
         <div className="absolute inset-0 z-0 overflow-hidden">
-          {particles.map(({ id, ...p }) => <Particle key={id} {...p} />)}
+          {particles.map(({ id, delay, x, size, color }) => (
+            <Particle key={id} delay={delay} x={x} size={size} color={color} />
+          ))}
         </div>
 
         {/* Rotating rings */}
