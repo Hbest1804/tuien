@@ -22,31 +22,19 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password là bắt buộc'],
       minlength: [6, 'Password phải có ít nhất 6 ký tự'],
-      select: false, // Không trả password trong query mặc định
+      select: false,
     },
     gender: {
       type: String,
-      enum: ['male', 'female'],
+      // Không dùng enum ở đây để tránh lỗi null validation
       default: null,
     },
     spiritRoot: {
       type: String,
-      enum: [
-        'Kim',       // Kim Linh Căn
-        'Mộc',       // Mộc Linh Căn
-        'Thủy',      // Thủy Linh Căn
-        'Hỏa',       // Hỏa Linh Căn
-        'Thổ',       // Thổ Linh Căn
-        'Lôi',       // Lôi Linh Căn
-        'Băng',      // Băng Linh Căn
-        'Phong',     // Phong Linh Căn
-        'Hỗn Nguyên', // Hỗn Nguyên Linh Căn (siêu hiếm)
-      ],
       default: null,
     },
     spiritRootGrade: {
       type: String,
-      enum: ['Thiên', 'Địa', 'Huyền', 'Hoàng'],
       default: null,
     },
     isCharacterCreated: {
@@ -55,16 +43,16 @@ const userSchema = new mongoose.Schema(
     },
   },
   {
-    timestamps: true, // Tự động thêm createdAt, updatedAt
+    timestamps: true,
   }
 );
 
 // Hash password trước khi lưu
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next();
+userSchema.pre('save', async function () {
+  if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
+
 
 // Method kiểm tra password khi đăng nhập
 userSchema.methods.comparePassword = async function (candidatePassword) {
