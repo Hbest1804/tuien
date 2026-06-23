@@ -3,29 +3,62 @@ import User from '../models/User.js';
 
 // Danh sách linh căn và tỷ lệ random
 const SPIRIT_ROOTS = [
-  { name: 'Hỗn Nguyên', grade: 'Thiên', weight: 1 },   // 1% - siêu hiếm
-  { name: 'Kim',         grade: 'Thiên', weight: 3 },
-  { name: 'Mộc',         grade: 'Thiên', weight: 3 },
-  { name: 'Thủy',        grade: 'Thiên', weight: 3 },
-  { name: 'Hỏa',         grade: 'Thiên', weight: 3 },
-  { name: 'Lôi',         grade: 'Địa',   weight: 8 },
-  { name: 'Băng',        grade: 'Địa',   weight: 8 },
-  { name: 'Phong',       grade: 'Địa',   weight: 8 },
-  { name: 'Kim',         grade: 'Địa',   weight: 10 },
-  { name: 'Mộc',         grade: 'Địa',   weight: 10 },
-  { name: 'Thủy',        grade: 'Địa',   weight: 10 },
-  { name: 'Hỏa',         grade: 'Địa',   weight: 10 },
-  { name: 'Thổ',         grade: 'Địa',   weight: 10 },
-  { name: 'Kim',         grade: 'Huyền', weight: 15 },
-  { name: 'Mộc',         grade: 'Huyền', weight: 15 },
-  { name: 'Thủy',        grade: 'Huyền', weight: 15 },
-  { name: 'Hỏa',         grade: 'Huyền', weight: 15 },
-  { name: 'Thổ',         grade: 'Huyền', weight: 15 },
-  { name: 'Kim',         grade: 'Hoàng', weight: 20 },
-  { name: 'Mộc',         grade: 'Hoàng', weight: 20 },
-  { name: 'Thủy',        grade: 'Hoàng', weight: 20 },
-  { name: 'Hỏa',         grade: 'Hoàng', weight: 20 },
-  { name: 'Thổ',         grade: 'Hoàng', weight: 20 },
+  // ── HUYỀN THOẠI — Cực kỳ hiếm ──────────────────────────────────
+  { name: 'Hỗn Nguyên', grade: 'Thiên', weight: 1 },  // ~0.25% — vạn cổ độc nhất
+  { name: 'Âm Dương', grade: 'Thiên', weight: 2 },  // ~0.50% — nhị nguyên chi căn
+  { name: 'Không Gian', grade: 'Thiên', weight: 2 },  // ~0.50% — không gian pháp tắc
+
+  // ── THIÊN PHẨM — Ngũ hành đầy đủ + linh căn đặc biệt ───────────
+  { name: 'Kim', grade: 'Thiên', weight: 4 },
+  { name: 'Mộc', grade: 'Thiên', weight: 4 },
+  { name: 'Thủy', grade: 'Thiên', weight: 4 },
+  { name: 'Hỏa', grade: 'Thiên', weight: 4 },
+  { name: 'Thổ', grade: 'Thiên', weight: 4 },  // ← Ngũ hành Thổ Thiên
+  { name: 'Lôi', grade: 'Thiên', weight: 3 },
+  { name: 'Băng', grade: 'Thiên', weight: 3 },
+  { name: 'Phong', grade: 'Thiên', weight: 3 },
+
+  // ── ĐỊA PHẨM — Ngũ hành + linh căn đặc thù ─────────────────────
+  { name: 'Kim', grade: 'Địa', weight: 10 },
+  { name: 'Mộc', grade: 'Địa', weight: 10 },
+  { name: 'Thủy', grade: 'Địa', weight: 10 },
+  { name: 'Hỏa', grade: 'Địa', weight: 10 },
+  { name: 'Thổ', grade: 'Địa', weight: 10 },
+  { name: 'Lôi', grade: 'Địa', weight: 7 },
+  { name: 'Băng', grade: 'Địa', weight: 7 },
+  { name: 'Phong', grade: 'Địa', weight: 7 },
+  { name: 'Quang', grade: 'Địa', weight: 6 },  // Quang Linh Căn — ánh sáng
+  { name: 'Ám', grade: 'Địa', weight: 6 },  // Ám Linh Căn — bóng tối
+  { name: 'Huyết', grade: 'Địa', weight: 5 },  // Huyết Linh Căn — huyết mạch
+  { name: 'Độc', grade: 'Địa', weight: 5 },  // Độc Linh Căn — bá đạo
+  { name: 'Tinh Thần', grade: 'Địa', weight: 5 },  // Tinh Thần Linh Căn — hồn pháp
+
+  // ── HUYỀN PHẨM ───────────────────────────────────────────────────
+  { name: 'Kim', grade: 'Huyền', weight: 18 },
+  { name: 'Mộc', grade: 'Huyền', weight: 18 },
+  { name: 'Thủy', grade: 'Huyền', weight: 18 },
+  { name: 'Hỏa', grade: 'Huyền', weight: 18 },
+  { name: 'Thổ', grade: 'Huyền', weight: 18 },
+  { name: 'Lôi', grade: 'Huyền', weight: 10 },
+  { name: 'Băng', grade: 'Huyền', weight: 10 },
+  { name: 'Phong', grade: 'Huyền', weight: 10 },
+  { name: 'Quang', grade: 'Huyền', weight: 8 },
+  { name: 'Ám', grade: 'Huyền', weight: 8 },
+  { name: 'Độc', grade: 'Huyền', weight: 7 },
+  { name: 'Tinh Thần', grade: 'Huyền', weight: 7 },
+
+  // ── HOÀNG PHẨM — Phổ biến nhất ──────────────────────────────────
+  { name: 'Kim', grade: 'Hoàng', weight: 22 },
+  { name: 'Mộc', grade: 'Hoàng', weight: 22 },
+  { name: 'Thủy', grade: 'Hoàng', weight: 22 },
+  { name: 'Hỏa', grade: 'Hoàng', weight: 22 },
+  { name: 'Thổ', grade: 'Hoàng', weight: 22 },
+  { name: 'Lôi', grade: 'Hoàng', weight: 12 },
+  { name: 'Băng', grade: 'Hoàng', weight: 12 },
+  { name: 'Phong', grade: 'Hoàng', weight: 12 },
+  { name: 'Huyết', grade: 'Hoàng', weight: 8 },
+  { name: 'Độc', grade: 'Hoàng', weight: 8 },
+  { name: 'Tinh Thần', grade: 'Hoàng', weight: 8 },
 ];
 
 // Pre-compute tổng weight một lần duy nhất (performance)
