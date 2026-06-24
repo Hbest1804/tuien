@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Sparkles, Zap, Star } from 'lucide-react';
 import { setupCharacter, UserData } from '../services/authService';
+import SpiritEffect from './SpiritEffect';
 
 interface Props {
   onComplete: (user: UserData) => void;
@@ -262,7 +263,7 @@ export default function CharacterSetupModal({ onComplete }: Props) {
         {/* ── STEP: REVEAL ── */}
         {step === 'reveal' && rootInfo && (
           <div
-            className="glass-panel rounded-3xl p-8 md:p-10 text-center"
+            className="glass-panel rounded-3xl p-8 md:p-10 text-center relative overflow-hidden"
             style={{
               boxShadow: isLegendary
                 ? `0 0 100px ${rootInfo.glow}, 0 0 150px rgba(255,159,67,0.25)`
@@ -271,7 +272,11 @@ export default function CharacterSetupModal({ onComplete }: Props) {
                 : `0 0 40px ${rootInfo.glow}`,
             }}
           >
-            {isLegendary && (
+            {/* Dynamic Elemental Background Effect */}
+            <SpiritEffect type={rolledRoot ?? ''} color={rootInfo.color} />
+
+            <div className="relative z-10">
+              {isLegendary && (
               <div className="font-label-caps text-[11px] tracking-[0.3em] text-yellow-400 mb-3 animate-pulse">
                 ✦ THƯỢNG PHẨM HUYỀN THOẠI LINH CĂN ✦
               </div>
@@ -366,6 +371,7 @@ export default function CharacterSetupModal({ onComplete }: Props) {
               <Zap size={20} />
               Bắt Đầu Tu Luyện!
             </button>
+            </div>
           </div>
         )}
       </div>

@@ -21,7 +21,11 @@ const SPRITES = {
 };
 
 // Preload all sprites
-const preload = (srcs: string[]) => srcs.forEach(s => { const i = new Image(); i.src = s; });
+const preload = (srcs: string[]) => {
+  if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
+    srcs.forEach(s => { const i = new Image(); i.src = s; });
+  }
+};
 preload([
   ...SPRITES.male.idle, ...SPRITES.male.training,
   ...SPRITES.female.idle, ...SPRITES.female.training,

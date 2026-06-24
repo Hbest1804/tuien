@@ -1,6 +1,5 @@
 import { Bell, User, Flame, LogOut, LogIn } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { TabType } from '../types';
 import { useAuth } from '../context/AuthContext';
 
 const navItems: { key: string; label: string; path: string }[] = [

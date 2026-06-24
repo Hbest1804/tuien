@@ -220,6 +220,9 @@ export const joinSect = async (req, res) => {
 export const leaveSect = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
+    if (!user?.isCharacterCreated) {
+      return res.status(403).json({ message: 'Chưa tạo nhân vật' });
+    }
     const cult = await getOrCreateCultivation(req.user._id);
 
     if (!cult.sectName) {

@@ -10,6 +10,7 @@ import {
   joinSect,
   leaveSect,
 } from '../services/cultivationService';
+import SpiritEffect from './SpiritEffect';
 
 // ─── Cảnh giới metadata ───────────────────────────────────────────────────────
 const REALMS = [
@@ -127,14 +128,16 @@ export default function Cultivation() {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showSectModal, setShowSectModal] = useState(false);
   const [localExp, setLocalExp] = useState(0);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
-    if (toastRef.current) clearTimeout(toastRef.current);
-    toastRef.current = setTimeout(() => setToast(null), 3500);
   };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   // ─── Fetch status ─────────────────────────────────────────────────────────
   const fetchStatus = useCallback(async () => {
@@ -157,13 +160,11 @@ export default function Cultivation() {
 
   // ─── Local tick: cập nhật EXP mỗi giây mà không gọi API ──────────────────
   useEffect(() => {
-    if (tickRef.current) clearInterval(tickRef.current);
-    if (cult?.isTraining) {
-      tickRef.current = setInterval(() => {
-        setLocalExp((prev) => prev + (cult.speed || 0));
-      }, 1000);
-    }
-    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+    if (!cult?.isTraining) return;
+    const interval = setInterval(() => {
+      setLocalExp((prev) => prev + (cult.speed || 0));
+    }, 1000);
+    return () => clearInterval(interval);
   }, [cult?.isTraining, cult?.speed]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────
@@ -358,7 +359,12 @@ export default function Cultivation() {
           />
         )}
 
-        <SpiritParticle active={cult?.isTraining ?? false} color={realm.color} />
+        {/* Dynamic elemental particle effect when training */}
+        {cult?.isTraining && user?.spiritRoot && (
+           <SpiritEffect type={user.spiritRoot} color={realm.color} />
+        )}
+        {/* Fallback generic spirit particle if no spirit root (should not happen) */}
+        {!user?.spiritRoot && <SpiritParticle active={cult?.isTraining ?? false} color={realm.color} />}
 
         <div className="relative z-10">
           {/* Current realm badge */}

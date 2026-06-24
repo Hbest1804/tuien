@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback, ReactNode } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getCultivationStatus, CultivationData } from '../services/cultivationService';
 import CharacterAvatar from './CharacterAvatar';
+import SpiritEffect from './SpiritEffect';
 
 // ─── Spirit root metadata ─────────────────────────────────────────────────────
 const SPIRIT_ROOT_META: Record<string, {
@@ -64,7 +65,6 @@ export default function SpiritRoots() {
   const { user } = useAuth();
   const [cult, setCult] = useState<CultivationData | null>(null);
   const [localExp, setLocalExp] = useState(0);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Fetch cultivation data
   const fetchCult = useCallback(async () => {
@@ -80,13 +80,11 @@ export default function SpiritRoots() {
 
   // Live EXP tick
   useEffect(() => {
-    if (tickRef.current) clearInterval(tickRef.current);
-    if (cult?.isTraining) {
-      tickRef.current = setInterval(() => {
-        setLocalExp(p => p + (cult.speed || 0));
-      }, 1000);
-    }
-    return () => { if (tickRef.current) clearInterval(tickRef.current); };
+    if (!cult?.isTraining) return;
+    const interval = setInterval(() => {
+      setLocalExp(p => p + (cult.speed || 0));
+    }, 1000);
+    return () => clearInterval(interval);
   }, [cult?.isTraining, cult?.speed]);
 
   // ── Derived data ──────────────────────────────────────────────────────────
@@ -217,14 +215,39 @@ export default function SpiritRoots() {
       <section className="w-full md:w-7/12 lg:w-1/2 flex flex-col gap-4">
 
         {/* ── Spirit Root detail card ── */}
-        <div className="glass-panel rounded-2xl p-6 relative overflow-hidden beam-sweep">
-          <div className="absolute top-0 left-0 w-full h-[1px]" style={{ background: `linear-gradient(90deg, transparent, ${rootMeta?.color ?? '#f2ca50'}60, transparent)` }} />
+        <div 
+          className="glass-panel rounded-2xl p-6 relative overflow-hidden beam-sweep transition-all duration-1000"
+          style={{
+            boxShadow: `inset 0 0 30px ${rootMeta?.glow ? rootMeta.glow.replace('0.4', '0.1').replace('0.5', '0.15') : 'transparent'}`,
+            borderColor: `${rootMeta?.color ?? '#f2ca50'}30`
+          }}
+        >
+          {/* Dynamic elemental particle effect */}
+          {spiritRoot && rootMeta && <SpiritEffect type={spiritRoot} color={rootMeta.color} />}
 
-          <div className="flex items-start justify-between gap-4">
+          <div className="absolute top-0 left-0 w-full h-[1px]" style={{ background: `linear-gradient(90deg, transparent, ${rootMeta?.color ?? '#f2ca50'}80, transparent)` }} />
+
+          <div className="flex items-start justify-between gap-4 relative z-10">
             <div className="flex-1">
-              <div className="font-label-caps text-[10px] text-on-surface-variant mb-1">Linh Căn Đặc Tính</div>
-              <h1 className="font-headline-xl text-[28px] md:text-[34px] mb-2 leading-tight" style={{ color: rootMeta?.color ?? '#f2ca50' }}>
-                {spiritRoot ? `${spiritRoot} Linh Căn` : 'Chưa Khai Linh Căn'}
+              <div className="font-label-caps text-[10px] text-on-surface-variant mb-2">Linh Căn Đặc Tính</div>
+              <h1 className="font-headline-xl text-[28px] md:text-[34px] mb-3 leading-tight flex items-center gap-3 transition-colors duration-1000" style={{ color: rootMeta?.color ?? '#f2ca50' }}>
+                {rootMeta && (
+                  <div 
+                    className="float-icon flex items-center justify-center p-2 rounded-xl shrink-0" 
+                    style={{ 
+                      background: `${rootMeta.color}15`, 
+                      boxShadow: `0 0 20px ${rootMeta.glow}, inset 0 0 10px ${rootMeta.glow}`,
+                      border: `1px solid ${rootMeta.color}40`
+                    }}
+                  >
+                    {rootMeta.icon}
+                  </div>
+                )}
+                <span style={{ 
+                  textShadow: rootMeta?.glow ? `0 0 20px ${rootMeta.glow}, 0 0 40px ${rootMeta.glow}` : 'none',
+                }}>
+                  {spiritRoot ? `${spiritRoot} Linh Căn` : 'Chưa Khai Linh Căn'}
+                </span>
               </h1>
               <p className="font-body-md text-on-surface-variant text-sm leading-relaxed italic">
                 {rootMeta?.desc ?? 'Linh căn chưa được khai mở. Hãy hoàn thành tạo nhân vật.'}
@@ -232,12 +255,18 @@ export default function SpiritRoots() {
 
               {/* Tags */}
               {rootMeta?.tags && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {rootMeta.tags.map(tag => (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {rootMeta.tags.map((tag, i) => (
                     <span
                       key={tag}
-                      className="font-label-caps text-[9px] px-2.5 py-1 rounded-full border"
-                      style={{ borderColor: `${rootMeta.color}40`, color: rootMeta.color, background: `${rootMeta.color}10` }}
+                      className="font-label-caps text-[9px] px-3 py-1.5 rounded-full border float-icon"
+                      style={{ 
+                        borderColor: `${rootMeta.color}50`, 
+                        color: rootMeta.color, 
+                        background: `${rootMeta.color}15`,
+                        boxShadow: `0 0 10px ${rootMeta.glow}`,
+                        animationDelay: `${i * 0.2}s`
+                      }}
                     >
                       {tag}
                     </span>
