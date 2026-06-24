@@ -1,50 +1,57 @@
-import { Mountain, Map, UserRound, Store } from 'lucide-react';
-import { TabType } from '../types';
+import { Mountain, Map, UserRound, Store, Flame } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
-interface MobileNavProps {
-  activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
-}
+export default function MobileNav() {
+  const location = useLocation();
+  const path = location.pathname;
 
-export default function MobileNav({ activeTab, setActiveTab }: MobileNavProps) {
   return (
     <nav className="md:hidden fixed bottom-0 w-full z-50 bg-background/90 backdrop-blur-lg border-t border-primary/20 pb-safe">
       <div className="flex justify-around items-center py-3">
-        <button 
-          onClick={() => setActiveTab('home')}
-          className={`flex flex-col items-center transition-colors relative ${activeTab === 'home' ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+        <Link 
+          to="/"
+          className={`flex flex-col items-center transition-colors relative ${path === '/' ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
         >
           <Mountain size={20} className="mb-1" />
-          <span className={`font-label-caps text-[10px] tracking-wider ${activeTab === 'home' ? 'font-bold' : ''}`}>Tông</span>
-          {activeTab === 'home' && <div className="absolute -bottom-1 w-8 h-1 bg-primary rounded-t-sm"></div>}
-        </button>
+          <span className={`font-label-caps text-[10px] tracking-wider ${path === '/' ? 'font-bold' : ''}`}>Tông</span>
+          {path === '/' && <div className="absolute -bottom-1 w-8 h-1 bg-primary rounded-t-sm"></div>}
+        </Link>
 
-        <button 
-          onClick={() => setActiveTab('map')}
-          className={`flex flex-col items-center transition-colors relative ${activeTab === 'map' ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+        <Link 
+          to="/map"
+          className={`flex flex-col items-center transition-colors relative ${path === '/map' ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
         >
           <Map size={20} className="mb-1" />
-          <span className={`font-label-caps text-[10px] tracking-wider ${activeTab === 'map' ? 'font-bold' : ''}`}>Bản Đồ</span>
-          {activeTab === 'map' && <div className="absolute -bottom-1 w-8 h-1 bg-primary rounded-t-sm"></div>}
-        </button>
+          <span className={`font-label-caps text-[10px] tracking-wider ${path === '/map' ? 'font-bold' : ''}`}>Bản Đồ</span>
+          {path === '/map' && <div className="absolute -bottom-1 w-8 h-1 bg-primary rounded-t-sm"></div>}
+        </Link>
 
-        <button 
-          onClick={() => setActiveTab('roots')}
-          className={`flex flex-col items-center transition-colors relative ${activeTab === 'roots' ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+        <Link 
+          to="/cultivation"
+          className={`flex flex-col items-center transition-colors relative ${path === '/cultivation' ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+        >
+          <Flame size={20} className="mb-1" />
+          <span className={`font-label-caps text-[10px] tracking-wider ${path === '/cultivation' ? 'font-bold' : ''}`}>Tu Luyện</span>
+          {path === '/cultivation' && <div className="absolute -bottom-1 w-8 h-1 bg-primary rounded-t-sm"></div>}
+        </Link>
+
+        <Link 
+          to="/roots"
+          className={`flex flex-col items-center transition-colors relative ${path === '/roots' ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
         >
           <UserRound size={20} className="mb-1" />
-          <span className={`font-label-caps text-[10px] tracking-wider ${activeTab === 'roots' ? 'font-bold' : ''}`}>Linh Căn</span>
-          {activeTab === 'roots' && <div className="absolute -bottom-1 w-8 h-1 bg-primary rounded-t-sm"></div>}
-        </button>
+          <span className={`font-label-caps text-[10px] tracking-wider ${path === '/roots' ? 'font-bold' : ''}`}>Linh Căn</span>
+          {path === '/roots' && <div className="absolute -bottom-1 w-8 h-1 bg-primary rounded-t-sm"></div>}
+        </Link>
 
-        <button 
-          onClick={() => setActiveTab('pavilion')}
-          className={`flex flex-col items-center transition-colors relative ${activeTab === 'pavilion' ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
+        <Link 
+          to="/pavilion"
+          className={`flex flex-col items-center transition-colors relative ${path === '/pavilion' ? 'text-primary' : 'text-on-surface-variant hover:text-primary'}`}
         >
           <Store size={20} className="mb-1" />
-          <span className={`font-label-caps text-[10px] tracking-wider ${activeTab === 'pavilion' ? 'font-bold' : ''}`}>Tàng Các</span>
-          {activeTab === 'pavilion' && <div className="absolute -bottom-1 w-8 h-1 bg-primary rounded-t-sm"></div>}
-        </button>
+          <span className={`font-label-caps text-[10px] tracking-wider ${path === '/pavilion' ? 'font-bold' : ''}`}>Tàng Các</span>
+          {path === '/pavilion' && <div className="absolute -bottom-1 w-8 h-1 bg-primary rounded-t-sm"></div>}
+        </Link>
       </div>
     </nav>
   );

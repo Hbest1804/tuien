@@ -1,4 +1,4 @@
-export type TabType = 'home' | 'map' | 'roots' | 'pavilion';
+export type TabType = 'home' | 'map' | 'roots' | 'pavilion' | 'cultivation';
 
 export interface Item {
   id: string;

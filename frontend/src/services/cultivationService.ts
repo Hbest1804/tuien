@@ -1,0 +1,44 @@
+import api from '../lib/axios';
+
+export interface CultivationData {
+  isTraining: boolean;
+  trainingStartedAt: string | null;
+  expAccumulated: number;
+  currentExp: number;
+  speed: number;
+  realmIndex: number;
+  realmName: string;
+  realmColor: string;
+  realmExpRequired: number;
+  nextRealmName: string | null;
+  progress: number;
+  sectName: string | null;
+  sectJoinedAt: string | null;
+  isSectMember: boolean;
+  baseSpeed: number;
+  spiritRootMultiplier: number;
+}
+
+interface CultivationResponse {
+  cultivation: CultivationData;
+  message?: string;
+  gained?: number;
+}
+
+export const getCultivationStatus = () =>
+  api.get<CultivationResponse>('/cultivation/status');
+
+export const startCultivation = () =>
+  api.post<CultivationResponse>('/cultivation/start');
+
+export const stopCultivation = () =>
+  api.post<CultivationResponse>('/cultivation/stop');
+
+export const doBreakthrough = () =>
+  api.post<CultivationResponse>('/cultivation/breakthrough');
+
+export const joinSect = (sectName: string) =>
+  api.post<CultivationResponse>('/cultivation/join-sect', { sectName });
+
+export const leaveSect = () =>
+  api.post<CultivationResponse>('/cultivation/leave-sect');
