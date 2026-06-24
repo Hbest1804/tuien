@@ -123,7 +123,7 @@ export default function SpiritRoots() {
 
   // Lifespan from realm
   const REALM_LIFESPAN = [200, 500, 1000, 2000, 5000, 10000];
-  const maxLifespan = REALM_LIFESPAN[cult?.realmIndex ?? 0];
+  const maxLifespan = REALM_LIFESPAN[cult?.realmIndex ?? 0] ?? 200;
   const curLifespan = Math.round(maxLifespan * 0.4);
 
   if (!user) return null;

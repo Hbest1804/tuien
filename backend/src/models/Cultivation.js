@@ -36,7 +36,7 @@ export const REALMS = [
     id: 4,
     name: 'Hóa Thần',
     color: '#b066ff',
-    expRequired: 300000,
+    expRequired: Infinity,
     stages: ['Sơ Kỳ', 'Trung Kỳ', 'Hậu Kỳ', 'Đại Viên Mãn'],// cảnh giới cao nhất của phàm giới 
   },
 ];
@@ -82,12 +82,12 @@ const cultivationSchema = new mongoose.Schema(
       default: 0,
     },
 
-    // Cảnh giới hiện tại (0 = Luyện Khí, 5 = Đại Thừa)
+    // Cảnh giới hiện tại (0 = Luyện Khí, 4 = Hóa Thần)
     realmIndex: {
       type: Number,
       default: 0,
       min: 0,
-      max: 5,
+      max: 4,
     },
 
     // Tổng exp trong cảnh giới hiện tại
@@ -110,6 +110,7 @@ const cultivationSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    optimisticConcurrency: true,
   }
 );
 
@@ -122,7 +123,7 @@ cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade) {
   const now = Date.now();
   const elapsed = (now - this.trainingStartedAt.getTime()) / 1000; // giây
   const speed = this.computeSpeed(spiritRootGrade);
-  const gained = elapsed * speed;
+  const gained = Math.max(0, elapsed * speed);
 
   return this.expAccumulated + gained;
 };

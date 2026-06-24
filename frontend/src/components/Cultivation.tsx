@@ -18,7 +18,6 @@ const REALMS = [
   { id: 2, name: 'Kim Đan',   color: '#f2ca50', glow: 'rgba(242,202,80,0.5)'  },
   { id: 3, name: 'Nguyên Anh',color: '#b066ff', glow: 'rgba(176,102,255,0.4)' },
   { id: 4, name: 'Hóa Thần',  color: '#b066ff', glow: 'rgba(176,102,255,0.5)' },
-  { id: 5, name: 'Đại Thừa',  color: '#ff6b6b', glow: 'rgba(255,107,107,0.5)' },
 ];
 
 // ─── Floating spirit particle ──────────────────────────────────────────────────
@@ -239,14 +238,14 @@ export default function Cultivation() {
   };
 
   // ─── Derived values ───────────────────────────────────────────────────────
-  const realm = cult ? REALMS[cult.realmIndex] : REALMS[0];
+  const realm = REALMS[cult?.realmIndex ?? 0] || REALMS[0];
   const progress = cult
     ? cult.realmExpRequired === Infinity
       ? 1
       : Math.min(localExp / cult.realmExpRequired, 1)
     : 0;
   const canBreakthrough = cult
-    ? cult.realmIndex < 5 && localExp >= cult.realmExpRequired
+    ? cult.realmIndex < REALMS.length - 1 && localExp >= cult.realmExpRequired
     : false;
 
   // ─── Not character created ────────────────────────────────────────────────
@@ -467,7 +466,7 @@ export default function Cultivation() {
             </button>
 
             {/* Breakthrough */}
-            {cult && cult.realmIndex < 5 && (
+            {cult && cult.realmIndex < REALMS.length - 1 && (
               <button
                 id="btn-breakthrough"
                 onClick={handleBreakthrough}

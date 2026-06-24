@@ -3,11 +3,11 @@ import User from '../models/User.js';
 
 // ─── Helper: lấy hoặc tạo cultivation record ──────────────────────────────────
 const getOrCreateCultivation = async (userId) => {
-  let cult = await Cultivation.findOne({ userId });
-  if (!cult) {
-    cult = await Cultivation.create({ userId });
-  }
-  return cult;
+  return await Cultivation.findOneAndUpdate(
+    { userId },
+    { $setOnInsert: { userId } },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
 };
 
 // ─── Helper: chuẩn hóa trạng thái trả về client ─────────────────────────────
@@ -175,8 +175,8 @@ export const breakthrough = async (req, res) => {
 export const joinSect = async (req, res) => {
   try {
     const { sectName } = req.body;
-    if (!sectName || typeof sectName !== 'string' || sectName.trim().length < 2) {
-      return res.status(400).json({ message: 'Tên tông môn không hợp lệ (ít nhất 2 ký tự)' });
+    if (!sectName || typeof sectName !== 'string' || sectName.trim().length < 2 || sectName.trim().length > 30) {
+      return res.status(400).json({ message: 'Tên tông môn không hợp lệ (từ 2 đến 30 ký tự)' });
     }
 
     const user = await User.findById(req.user._id);
