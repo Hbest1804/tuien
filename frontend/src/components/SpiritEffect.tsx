@@ -28,14 +28,14 @@ export default function SpiritEffect({ type, color }: SpiritEffectProps) {
 
 // ─── Fire Effect (Rising Embers) ───
 function FireEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 25 }).map(() => ({
+  const [particles] = useState(() => Array.from({ length: 25 }).map(() => ({
     size: Math.random() * 10 + 4,
     left: `${Math.random() * 100}%`,
     yTarget: -Math.random() * 250 - 100,
     xTarget: Math.random() * 60 - 30,
     duration: Math.random() * 2 + 1.5,
     delay: Math.random() * 2,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 mix-blend-screen">
@@ -70,14 +70,14 @@ function FireEffect({ color }: { color: string }) {
 
 // ─── Water Effect (Bubbles / Drops) ───
 function WaterEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 20 }).map((_, i) => ({
+  const [particles] = useState(() => Array.from({ length: 20 }).map((_, i) => ({
     size: Math.random() * 15 + 5,
     left: `${Math.random() * 100}%`,
     yTarget: -Math.random() * 300 - 100,
     xAmp: 30,
     duration: Math.random() * 3 + 3,
     delay: Math.random() * 3,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -113,7 +113,7 @@ function WaterEffect({ color }: { color: string }) {
 
 // ─── Wood Effect (Falling Leaves / Spores) ───
 function WoodEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 25 }).map(() => ({
+  const [particles] = useState(() => Array.from({ length: 25 }).map(() => ({
     size: Math.random() * 6 + 3,
     left: `${Math.random() * 100}%`,
     yTarget: Math.random() * 300 + 150,
@@ -121,7 +121,7 @@ function WoodEffect({ color }: { color: string }) {
     xTarget2: Math.random() * 100 - 50,
     duration: Math.random() * 4 + 4,
     delay: Math.random() * 4,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -158,7 +158,7 @@ function WoodEffect({ color }: { color: string }) {
 
 // ─── Metal Effect (Sparks) ───
 function MetalEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 20 }).map(() => ({
+  const [particles] = useState(() => Array.from({ length: 20 }).map(() => ({
     width: Math.random() * 2 + 1,
     height: Math.random() * 30 + 10,
     left: `${Math.random() * 100}%`,
@@ -166,7 +166,7 @@ function MetalEffect({ color }: { color: string }) {
     rotate: `${Math.random() * 360}deg`,
     duration: Math.random() * 0.5 + 0.5,
     delay: Math.random() * 2,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 mix-blend-screen">
@@ -202,7 +202,7 @@ function MetalEffect({ color }: { color: string }) {
 
 // ─── Earth Effect (Floating Dust / Pebbles) ───
 function EarthEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 25 }).map(() => ({
+  const [particles] = useState(() => Array.from({ length: 25 }).map(() => ({
     size: Math.random() * 6 + 3,
     left: `${Math.random() * 100}%`,
     top: `${Math.random() * 100}%`,
@@ -211,7 +211,7 @@ function EarthEffect({ color }: { color: string }) {
     xTarget: Math.random() * 50 - 25,
     duration: Math.random() * 5 + 4,
     delay: Math.random() * 3,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -249,13 +249,13 @@ function EarthEffect({ color }: { color: string }) {
 
 // ─── Wind Effect (Horizontal Streaks) ───
 function WindEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 20 }).map(() => ({
+  const [particles] = useState(() => Array.from({ length: 20 }).map(() => ({
     width: Math.random() * 80 + 30,
     height: Math.random() * 2 + 1,
     top: `${Math.random() * 100}%`,
     duration: Math.random() * 2 + 1,
     delay: Math.random() * 2,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -289,7 +289,7 @@ function WindEffect({ color }: { color: string }) {
 
 // ─── Lightning Effect (Flashes) ───
 function LightningEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 8 }).map(() => ({
+  const [particles] = useState(() => Array.from({ length: 8 }).map(() => ({
     width: Math.random() * 4 + 2,
     height: Math.random() * 60 + 30,
     left: `${Math.random() * 100}%`,
@@ -297,7 +297,7 @@ function LightningEffect({ color }: { color: string }) {
     rotate: Math.random() * 60 - 30,
     duration: Math.random() * 0.5 + 0.2,
     delay: Math.random() * 3,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 mix-blend-screen">
@@ -333,14 +333,14 @@ function LightningEffect({ color }: { color: string }) {
 
 // ─── Ice Effect (Snowflakes) ───
 function IceEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 30 }).map((_, i) => ({
+  const [particles] = useState(() => Array.from({ length: 30 }).map((_, i) => ({
     size: Math.random() * 5 + 2,
     left: `${Math.random() * 100}%`,
     yTarget: Math.random() * 250 + 100,
     xAmp: 30,
     duration: Math.random() * 4 + 3,
     delay: Math.random() * 2,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -376,7 +376,7 @@ function IceEffect({ color }: { color: string }) {
 
 // ─── Default Effect (Floating Motes) ───
 function DefaultEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 20 }).map(() => ({
+  const [particles] = useState(() => Array.from({ length: 20 }).map(() => ({
     size: Math.random() * 8 + 2,
     left: `${Math.random() * 100}%`,
     top: `${Math.random() * 100}%`,
@@ -384,7 +384,7 @@ function DefaultEffect({ color }: { color: string }) {
     xTarget: Math.random() * 80 - 40,
     duration: Math.random() * 4 + 2,
     delay: Math.random() * 2,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 mix-blend-screen">
@@ -420,7 +420,7 @@ function DefaultEffect({ color }: { color: string }) {
 
 // ─── Yin Yang Effect (Tai Chi) ───
 function YinYangEffect({ color }: { color: string }) {
-  const particles = useMemo(() => Array.from({ length: 8 }).map((_, i) => ({
+  const [particles] = useState(() => Array.from({ length: 8 }).map((_, i) => ({
     size: Math.random() * 6 + 3,
     color: i % 2 === 0 ? '#f8f9fa' : '#121212',
     left: `${Math.random() * 100}%`,
@@ -429,7 +429,7 @@ function YinYangEffect({ color }: { color: string }) {
     xTarget: Math.random() * 100 - 50,
     duration: Math.random() * 4 + 4,
     delay: Math.random() * 2,
-  })), []);
+  })));
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0 flex items-center justify-center opacity-40">

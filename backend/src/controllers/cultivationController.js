@@ -56,7 +56,8 @@ export const getStatus = async (req, res) => {
     const cult = await getOrCreateCultivation(req.user._id);
     res.json({ cultivation: formatCultivation(cult, user.spiritRootGrade) });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    console.error('Lỗi server:', err);
+    res.status(500).json({ message: 'Lỗi server' });
   }
 };
 
@@ -85,7 +86,8 @@ export const startTraining = async (req, res) => {
       cultivation: formatCultivation(cult, user.spiritRootGrade),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    console.error('Lỗi server:', err);
+    res.status(500).json({ message: 'Lỗi server' });
   }
 };
 
@@ -118,7 +120,8 @@ export const stopTraining = async (req, res) => {
       cultivation: formatCultivation(cult, user.spiritRootGrade),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    console.error('Lỗi server:', err);
+    res.status(500).json({ message: 'Lỗi server' });
   }
 };
 
@@ -164,7 +167,8 @@ export const breakthrough = async (req, res) => {
       cultivation: formatCultivation(cult, user.spiritRootGrade),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    console.error('Lỗi server:', err);
+    res.status(500).json({ message: 'Lỗi server' });
   }
 };
 
@@ -209,7 +213,8 @@ export const joinSect = async (req, res) => {
       cultivation: formatCultivation(cult, user.spiritRootGrade),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    console.error('Lỗi server:', err);
+    res.status(500).json({ message: 'Lỗi server' });
   }
 };
 

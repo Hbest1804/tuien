@@ -44,7 +44,7 @@ export default function CharacterAvatar({
 
   // Không đổi frame để tránh nhấp nháy, chỉ lấy frame 0 của state tương ứng
   const frameIdx = 0;
-  const [floatY, setFloatY] = useState(0);
+  const characterRef = useRef<HTMLDivElement>(null);
   const rafRef   = useRef<number>();
   const phaseRef = useRef(0);
 
@@ -54,7 +54,10 @@ export default function CharacterAvatar({
     const speed = isTraining ? 0.022 : 0.012;
     const tick = () => {
       phaseRef.current += speed;
-      setFloatY(Math.sin(phaseRef.current) * amp);
+      const y = Math.sin(phaseRef.current) * amp;
+      if (characterRef.current) {
+        characterRef.current.style.transform = `translateY(${y}px)`;
+      }
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -186,9 +189,9 @@ export default function CharacterAvatar({
 
       {/* ── Character sprite (animated) ── */}
       <div
+        ref={characterRef}
         className="relative z-20 w-full flex items-end justify-center px-2"
         style={{
-          transform: `translateY(${floatY}px)`,
           transition: 'transform 0.05s linear',
           filter: isTraining
             ? `drop-shadow(0 0 30px ${spiritColor}) drop-shadow(0 0 12px ${spiritColor}80)`

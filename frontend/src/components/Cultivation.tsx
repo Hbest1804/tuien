@@ -94,6 +94,11 @@ function SectModal({ onConfirm, onCancel, loading }: SectModalProps) {
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && name.trim().length >= 2 && !loading) {
+              onConfirm(name.trim());
+            }
+          }}
           placeholder="Hoặc nhập tên tông môn tự chọn..."
           maxLength={30}
           className="w-full bg-surface-container border border-on-surface-variant/20 rounded-lg px-4 py-3 text-on-background font-body-md text-sm focus:outline-none focus:border-primary/60 mb-6"
