@@ -105,12 +105,6 @@ const cultivationSchema = new mongoose.Schema(
       max: 4,
     },
 
-    // Tổng exp trong cảnh giới hiện tại
-    realmExp: {
-      type: Number,
-      default: 0,
-    },
-
     // Tông môn (null = tán tu)
     sectName: {
       type: String,

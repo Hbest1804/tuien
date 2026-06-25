@@ -228,6 +228,9 @@ export const breakthrough = async (req, res) => {
 
     const cult = await getOrCreateCultivation(req.user._id);
 
+    // Auto-stop if EXP is full to correctly calculate breakthroughReadyAt and lifespan drain
+    await autoStopIfFull(cult, user.spiritRootGrade);
+
     if (cult.realmIndex >= REALMS.length - 1) {
       return res.status(400).json({ message: 'Đã đạt cảnh giới tối thượng!' });
     }

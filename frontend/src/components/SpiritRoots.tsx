@@ -38,6 +38,16 @@ const GRADE_META: Record<string, { label: string; color: string; bg: string; sta
   'Hoàng': { label: 'Hoàng Phẩm', color: '#7ed99e', bg: 'rgba(126,217,158,0.1)', stars: 1 },
 };
 
+// Attribute scores based on spirit root (flavor)
+const ATTR_BASE: Record<string, number[]> = {
+  'Kim': [55, 85, 60, 70], 'Mộc': [60, 65, 75, 90], 'Thủy': [80, 55, 85, 65],
+  'Hỏa': [65, 70, 90, 55], 'Thổ': [50, 95, 55, 75], 'Lôi': [75, 60, 95, 50],
+  'Băng': [90, 60, 70, 65], 'Phong': [85, 55, 80, 70], 'Quang': [70, 65, 65, 95],
+  'Ám': [95, 50, 85, 55], 'Huyết': [85, 75, 70, 60], 'Độc': [80, 65, 85, 60],
+  'Tinh Thần': [95, 50, 90, 65],
+  'Hỗn Nguyên': [95, 95, 95, 95], 'Âm Dương': [90, 80, 90, 80], 'Không Gian': [85, 70, 95, 70],
+};
+
 // ─── Animated bar ─────────────────────────────────────────────────────────────
 function AnimatedBar({ pct, color, delay }: { pct: number; color: string; delay: number }) {
   const [animate, setAnimate] = useState(false);
@@ -80,12 +90,21 @@ export default function SpiritRoots() {
 
   // Live EXP tick
   useEffect(() => {
-    if (!cult?.isTraining) return;
-    const interval = setInterval(() => {
-      setLocalExp(p => p + (cult.speed || 0));
-    }, 1000);
+    if (!cult?.isTraining || !cult.trainingStartedAt) return;
+    const cap = cult.realmExpRequired ?? Infinity;
+    const startTime = new Date(cult.trainingStartedAt).getTime();
+
+    const update = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const gained = elapsed * (cult.speed || 0);
+      const next = cult.expAccumulated + gained;
+      setLocalExp(cap !== null && cap !== Infinity ? Math.min(next, cap) : next);
+    };
+
+    update();
+    const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [cult?.isTraining, cult?.speed]);
+  }, [cult?.isTraining, cult?.speed, cult?.realmExpRequired, cult?.trainingStartedAt, cult?.expAccumulated]);
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const spiritRoot = user?.spiritRoot ?? null;
@@ -100,14 +119,6 @@ export default function SpiritRoots() {
     : 0;
 
   // Attribute scores based on spirit root (flavor)
-  const ATTR_BASE: Record<string, number[]> = {
-    'Kim': [55, 85, 60, 70], 'Mộc': [60, 65, 75, 90], 'Thủy': [80, 55, 85, 65],
-    'Hỏa': [65, 70, 90, 55], 'Thổ': [50, 95, 55, 75], 'Lôi': [75, 60, 95, 50],
-    'Băng': [90, 60, 70, 65], 'Phong': [85, 55, 80, 70], 'Quang': [70, 65, 65, 95],
-    'Ám': [95, 50, 85, 55], 'Huyết': [85, 75, 70, 60], 'Độc': [80, 65, 85, 60],
-    'Tinh Thần': [95, 50, 90, 65],
-    'Hỗn Nguyên': [95, 95, 95, 95], 'Âm Dương': [90, 80, 90, 80], 'Không Gian': [85, 70, 95, 70],
-  };
   const attrs = (() => {
     const base = spiritRoot ? (ATTR_BASE[spiritRoot] ?? [60, 60, 60, 60]) : [50, 50, 50, 50];
     const gBonus = grade === 'Thiên' ? 20 : grade === 'Địa' ? 12 : grade === 'Huyền' ? 6 : 0;
