@@ -83,7 +83,9 @@ export default function SpiritRoots() {
       const res = await getCultivationStatus();
       setCult(res.data.cultivation);
       setLocalExp(res.data.cultivation.currentExp);
-    } catch { /* skip */ }
+    } catch (err) {
+      console.error('Failed to fetch cultivation data:', err);
+    }
   }, [user]);
 
   useEffect(() => { fetchCult(); }, [fetchCult]);

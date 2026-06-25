@@ -7,6 +7,8 @@ import Cultivation, {
   LIFESPAN_DRAIN_PER_YEAR,
 } from '../models/Cultivation.js';
 
+const PRACTICAL_INFINITY_LIFESPAN = 9999999;
+
 // ─── Helper: lấy hoặc tạo cultivation record ──────────────────────────────────
 const getOrCreateCultivation = async (userId) => {
   return await Cultivation.findOneAndUpdate(
@@ -85,13 +87,7 @@ const autoStopIfFull = async (cult, spiritRootGrade) => {
   if (currentExp < realm.expRequired) return false;
 
   // EXP đã đầy → tự động dừng và bắt đầu đếm thọ nguyên
-  if (!cult.breakthroughReadyAt) {
-    const speed = cult.computeSpeed(spiritRootGrade);
-    const expNeeded = Math.max(0, realm.expRequired - cult.expAccumulated);
-    const secondsToMax = speed > 0 ? expNeeded / speed : 0;
-    const startTime = cult.trainingStartedAt ? cult.trainingStartedAt.getTime() : Date.now();
-    cult.breakthroughReadyAt = new Date(startTime + secondsToMax * 1000);
-  }
+  cult.calculateAndSetBreakthroughReadyAt(spiritRootGrade, realm);
   
   cult.flushLifespan();
   cult.expAccumulated = realm.expRequired;
@@ -187,13 +183,7 @@ export const stopTraining = async (req, res) => {
     // Kiểm tra nếu EXP đã đầy thì bắt đầu đếm thời gian chờ từ thời điểm đạt mốc
     const realm = REALMS[cult.realmIndex];
     if (realm && realm.expRequired !== Infinity && currentExp >= realm.expRequired) {
-      if (!cult.breakthroughReadyAt) {
-        const speed = cult.computeSpeed(user.spiritRootGrade);
-        const expNeeded = Math.max(0, realm.expRequired - cult.expAccumulated);
-        const secondsToMax = speed > 0 ? expNeeded / speed : 0;
-        const startTime = cult.trainingStartedAt ? cult.trainingStartedAt.getTime() : Date.now();
-        cult.breakthroughReadyAt = new Date(startTime + secondsToMax * 1000);
-      }
+      cult.calculateAndSetBreakthroughReadyAt(user.spiritRootGrade, realm);
     }
 
     cult.flushLifespan();
@@ -268,7 +258,7 @@ export const breakthrough = async (req, res) => {
 
     // Reset thọ nguyên về mức tối đa của cảnh giới mới
     const newLifespanMax = REALM_LIFESPAN[cult.realmIndex] ?? 100;
-    cult.lifespan = newLifespanMax === Infinity ? 9999999 : newLifespanMax;
+    cult.lifespan = newLifespanMax === Infinity ? PRACTICAL_INFINITY_LIFESPAN : newLifespanMax;
     cult.lastStoppedAt = cult.isTraining ? null : new Date();
 
     await cult.save();

@@ -189,6 +189,17 @@ cultivationSchema.methods.flushLifespan = function () {
   }
 };
 
+// ─── Method: Tính toán thời điểm đầy EXP (chờ đột phá) ───────────────────────
+cultivationSchema.methods.calculateAndSetBreakthroughReadyAt = function (spiritRootGrade, realm) {
+  if (!this.breakthroughReadyAt) {
+    const speed = this.computeSpeed(spiritRootGrade);
+    const expNeeded = Math.max(0, realm.expRequired - this.expAccumulated);
+    const secondsToMax = speed > 0 ? expNeeded / speed : 0;
+    const startTime = this.trainingStartedAt ? this.trainingStartedAt.getTime() : Date.now();
+    this.breakthroughReadyAt = new Date(startTime + secondsToMax * 1000);
+  }
+};
+
 const Cultivation = mongoose.model('Cultivation', cultivationSchema);
 
 export default Cultivation;

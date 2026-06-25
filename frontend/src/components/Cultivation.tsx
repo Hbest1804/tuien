@@ -11,6 +11,7 @@ import {
   leaveSect,
 } from '../services/cultivationService';
 import SpiritEffect from './SpiritEffect';
+import axios from 'axios';
 
 // ─── Cảnh giới metadata ───────────────────────────────────────────────────────
 const MAJOR_STAGES = ['Sơ Kỳ', 'Trung Kỳ', 'Hậu Kỳ', 'Đại Viên Mãn'];
@@ -258,8 +259,8 @@ export default function Cultivation() {
         showToast('⚡ Bắt đầu tu luyện!');
       }
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Lỗi';
-      showToast(msg, 'error');
+      const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Lỗi';
+      showToast(msg || 'Lỗi', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -273,8 +274,8 @@ export default function Cultivation() {
       setLocalExp(res.data.cultivation.currentExp);
       showToast(res.data.message || '🌟 Đột phá thành công!');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Chưa đủ EXP';
-      showToast(msg, 'error');
+      const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Chưa đủ EXP';
+      showToast(msg || 'Chưa đủ EXP', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -289,8 +290,8 @@ export default function Cultivation() {
       setShowSectModal(false);
       showToast(res.data.message || '🏯 Gia nhập tông môn thành công!');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Lỗi';
-      showToast(msg, 'error');
+      const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Lỗi';
+      showToast(msg || 'Lỗi', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -305,8 +306,8 @@ export default function Cultivation() {
       setLocalExp(res.data.cultivation.currentExp);
       showToast(res.data.message || '💨 Đã rời tông môn.');
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Lỗi';
-      showToast(msg, 'error');
+      const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Lỗi';
+      showToast(msg || 'Lỗi', 'error');
     } finally {
       setActionLoading(false);
     }
