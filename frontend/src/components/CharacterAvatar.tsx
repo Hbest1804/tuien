@@ -142,7 +142,7 @@ export default function CharacterAvatar({
             const dur = `${speed}s`;
             const beg = `${pi * (speed / count)}s`;
             return (
-              <g key={`${ri}-${pi}`}>
+              <g key={`${isTraining ? 'train' : 'idle'}-${ri}-${pi}`}>
                 <circle cx={cx} cy={cy} r={size * 2.5} fill={spiritColor} opacity={0.3} filter="url(#q-glow)">
                   <animateTransform attributeName="transform" type="rotate"
                     from={`${a0} 150 240`} to={`${a0+360} 150 240`} dur={dur} begin={beg} repeatCount="indefinite"/>

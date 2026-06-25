@@ -40,7 +40,7 @@ const formatCultivation = (cult, spiritRootGrade) => {
 
   // Thọ nguyên
   const isBreakthroughReady = !!cult.breakthroughReadyAt;
-  const yearsWaiting = cult.breakthroughReadyAt ? (Date.now() - cult.breakthroughReadyAt.getTime()) / 1000 / SECONDS_PER_YEAR : 0;
+  const yearsWaiting = cult.breakthroughReadyAt ? Math.max(0, (Date.now() - cult.breakthroughReadyAt.getTime()) / 1000 / SECONDS_PER_YEAR) : 0;
   const rawLifespanMax = REALM_LIFESPAN[cult.realmIndex] ?? 100;
   const lifespanMax = rawLifespanMax === Infinity ? null : rawLifespanMax;
   const currentLifespan = cult.computeCurrentLifespan();
@@ -79,13 +79,13 @@ const formatCultivation = (cult, spiritRootGrade) => {
 
 // ─── Helper: auto-stop training khi EXP đã đầy ───────────────────────────────
 const autoStopIfFull = async (cult, spiritRootGrade) => {
-  if (!cult.isTraining) return false;
+  if (!cult.isTraining) return cult;
 
   const realm = REALMS[cult.realmIndex];
-  if (!realm || realm.expRequired === Infinity) return false;
+  if (!realm || realm.expRequired === Infinity) return cult;
 
   const currentExp = cult.computeCurrentExp(spiritRootGrade);
-  if (currentExp < realm.expRequired) return false;
+  if (currentExp < realm.expRequired) return cult;
 
   // EXP đã đầy → tự động dừng và bắt đầu đếm thọ nguyên
   cult.calculateAndSetBreakthroughReadyAt(spiritRootGrade, realm);
@@ -98,18 +98,17 @@ const autoStopIfFull = async (cult, spiritRootGrade) => {
   cult.lastStoppedAt = cult.breakthroughReadyAt; // cho chuẩn thời gian bắt đầu ngưng
   try {
     await cult.save();
+    return cult;
   } catch (err) {
     if (err.name === 'VersionError') {
       const updated = await Cultivation.findById(cult._id);
       if (updated) {
-        cult.set(updated.toObject());
-        return await autoStopIfFull(cult, spiritRootGrade);
+        return await autoStopIfFull(updated, spiritRootGrade);
       }
-    } else {
-      throw err;
+      return cult;
     }
+    throw err;
   }
-  return true;
 };
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -122,10 +121,10 @@ export const getStatus = async (req, res) => {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
 
-    const cult = await getOrCreateCultivation(req.user._id);
+    let cult = await getOrCreateCultivation(req.user._id);
 
     // Auto-stop nếu EXP đã đầy
-    await autoStopIfFull(cult, user.spiritRootGrade);
+    cult = await autoStopIfFull(cult, user.spiritRootGrade);
 
     res.json({ cultivation: formatCultivation(cult, user.spiritRootGrade) });
   } catch (err) {
@@ -158,6 +157,20 @@ export const startTraining = async (req, res) => {
     }
 
     cult.updateLifespan();
+    if (cult.lifespan <= 0) {
+      // Tinh khí tán tận — thọ nguyên cạn kiệt, phải tu luyện lại từ đầu
+      cult.expAccumulated = 0;
+      const rawLifespan = REALM_LIFESPAN[cult.realmIndex] ?? 100;
+      cult.lifespan = rawLifespan === Infinity ? PRACTICAL_INFINITY_LIFESPAN : rawLifespan;
+      cult.breakthroughReadyAt = null;
+      cult.lastStoppedAt = new Date();
+      await cult.save();
+      return res.status(400).json({
+        message: '💀 Thọ nguyên cạn kiệt! Tinh khí tán tận — phải tu luyện lại từ đầu trong cảnh giới này.',
+        cultivation: formatCultivation(cult, user.spiritRootGrade),
+      });
+    }
+
     cult.isTraining = true;
     cult.trainingStartedAt = new Date();
     cult.lastStoppedAt = null;
@@ -228,10 +241,10 @@ export const breakthrough = async (req, res) => {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
 
-    const cult = await getOrCreateCultivation(req.user._id);
+    let cult = await getOrCreateCultivation(req.user._id);
 
     // Auto-stop if EXP is full to correctly calculate breakthroughReadyAt and lifespan drain
-    await autoStopIfFull(cult, user.spiritRootGrade);
+    cult = await autoStopIfFull(cult, user.spiritRootGrade);
 
     if (cult.realmIndex >= REALMS.length - 1) {
       return res.status(400).json({ message: 'Đã đạt cảnh giới tối thượng!' });
@@ -262,7 +275,7 @@ export const breakthrough = async (req, res) => {
 
     // Flush thọ nguyên hao mòn vào DB
     cult.updateLifespan();
-    cult.lifespan = Math.round(cult.lifespan * 100) / 100;
+    // Overwritten by new realm's max lifespan below
 
     // Trừ EXP, lên cảnh giới, reset thọ nguyên theo cảnh giới mới
     cult.expAccumulated -= currentRealm.expRequired;
@@ -303,7 +316,7 @@ export const joinSect = async (req, res) => {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
 
-    const cult = await getOrCreateCultivation(req.user._id);
+    let cult = await getOrCreateCultivation(req.user._id);
 
     if (cult.sectName) {
       return res.status(400).json({
@@ -312,7 +325,7 @@ export const joinSect = async (req, res) => {
     }
 
     // Auto-stop if EXP is full before joining
-    await autoStopIfFull(cult, user.spiritRootGrade);
+    cult = await autoStopIfFull(cult, user.spiritRootGrade);
     // Flush EXP nếu đang train
     if (cult.isTraining) {
       cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
@@ -344,7 +357,7 @@ export const leaveSect = async (req, res) => {
     if (!user?.isCharacterCreated) {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
-    const cult = await getOrCreateCultivation(req.user._id);
+    let cult = await getOrCreateCultivation(req.user._id);
 
     if (!cult.sectName) {
       return res.status(400).json({ message: 'Ngươi không thuộc tông môn nào' });
@@ -353,7 +366,7 @@ export const leaveSect = async (req, res) => {
     const oldSect = cult.sectName;
 
     // Auto-stop if EXP is full before leaving
-    await autoStopIfFull(cult, user.spiritRootGrade);
+    cult = await autoStopIfFull(cult, user.spiritRootGrade);
     // Flush EXP nếu đang train
     if (cult.isTraining) {
       cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
