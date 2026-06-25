@@ -53,8 +53,8 @@ export const SECONDS_PER_YEAR = 3600;
 // Thọ nguyên tối đa theo từng cảnh giới (năm)
 export const REALM_LIFESPAN = [100, 200, 500, 1000, Infinity];
 
-// Thọ nguyên hao mòn mỗi năm khi trì hoãn đột phá (năm/năm)
-export const LIFESPAN_DRAIN_PER_YEAR = [1, 2, 5, 10, 0];
+// Thọ nguyên hao mòn mỗi năm khi trì hoãn đột phá — đồng đều 1 năm/năm mọi cảnh giới
+export const LIFESPAN_DRAIN_PER_YEAR = [1, 1, 1, 1, 0];
 
 // ─── Tốc độ tu luyện cơ bản (EXP/giây) ──────────────────────────────────────
 export const BASE_SPEED = {

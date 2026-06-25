@@ -27,7 +27,7 @@ const REALMS = [
 
 // ─── Game constants ───────────────────────────────────────────────────────────
 const SECONDS_PER_YEAR = 3600; // 1 giờ thực = 1 năm tu luyện
-const LIFESPAN_DRAIN: number[] = [1, 2, 5, 10, 0]; // hao mòn/năm theo cảnh giới
+const LIFESPAN_DRAIN: number[] = [1, 1, 1, 1, 0]; // hao mòn đồng đều 1 thọ nguyên/năm mọi cảnh giới
 
 // ─── Floating spirit particle ──────────────────────────────────────────────────
 function SpiritParticle({ active, color }: { active: boolean; color: string }) {
