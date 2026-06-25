@@ -64,75 +64,52 @@ export default function Cultivation() {
     if (user?.isCharacterCreated) fetchStatus();
   }, [user, fetchStatus]);
 
-  // ─── Local tick: cập nhật EXP mỗi giây mà không gọi API ──────────────
+  // ─── Unified Real-time Tick ─────────────────────────────────────────
   useEffect(() => {
-    if (!cult?.isTraining || !cult.trainingStartedAt) return;
-    const cap = cult.realmExpRequired ?? Infinity;
-    const startTime = new Date(cult.trainingStartedAt).getTime();
-    
-    const update = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const gained = elapsed * (cult.speed || 0);
-      const next = cult.expAccumulated + gained;
-      setLocalExp(cap !== null && cap !== Infinity ? Math.min(next, cap) : next);
+    const updateAll = () => {
+      const now = Date.now();
+
+      // 1. EXP Tick
+      if (cult?.isTraining && cult.trainingStartedAt) {
+        const cap = cult.realmExpRequired ?? Infinity;
+        const startTime = new Date(cult.trainingStartedAt).getTime();
+        const elapsed = (now - startTime) / 1000;
+        const gained = elapsed * (cult.speed || 0);
+        const next = cult.expAccumulated + gained;
+        setLocalExp(cap !== null && cap !== Infinity ? Math.min(next, cap) : next);
+      }
+
+      // 2. Years Waiting Tick
+      if (cult?.breakthroughReadyAt) {
+        const readyTime = new Date(cult.breakthroughReadyAt).getTime();
+        const baseYears = cult.yearsWaiting ?? 0;
+        const elapsedSeconds = Math.max(0, (now - readyTime) / 1000);
+        setLocalYearsWaiting(baseYears + elapsedSeconds / 3600);
+      } else {
+        setLocalYearsWaiting(cult?.yearsWaiting ?? 0);
+      }
+
+      // 3. Idle Years Tick
+      if (!cult?.isTraining && cult?.lastStoppedAt) {
+        const stopTime = new Date(cult.lastStoppedAt).getTime();
+        const elapsedSeconds = Math.max(0, (now - stopTime) / 1000);
+        setLocalIdleYears(elapsedSeconds / 3600);
+      } else {
+        setLocalIdleYears(0);
+      }
+
+      // 4. Total Years Tick
+      if (cult?.createdAt) {
+        const startTime = new Date(cult.createdAt).getTime();
+        const elapsedSeconds = Math.max(0, (now - startTime) / 1000);
+        setLocalTotalYears(elapsedSeconds / 3600);
+      }
     };
 
-    // Update immediately once, then set interval
-    update();
-    const interval = setInterval(update, 1000);
+    updateAll();
+    const interval = setInterval(updateAll, 1000);
     return () => clearInterval(interval);
-  }, [cult?.isTraining, cult?.speed, cult?.realmExpRequired, cult?.trainingStartedAt, cult?.expAccumulated]);
-
-  // ─── Local tick: đếm số năm chờ đột phá real-time ──────────────────
-  useEffect(() => {
-    if (!cult?.breakthroughReadyAt) {
-      setLocalYearsWaiting(cult?.yearsWaiting ?? 0);
-      return;
-    }
-    const readyTime = new Date(cult.breakthroughReadyAt).getTime();
-    const baseYears = cult.yearsWaiting ?? 0;
-    
-    const update = () => {
-      const elapsedSeconds = Math.max(0, (Date.now() - readyTime) / 1000);
-      setLocalYearsWaiting(baseYears + elapsedSeconds / 3600);
-    };
-
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [cult?.breakthroughReadyAt, cult?.yearsWaiting]);
-
-  // ─── Local tick: đếm số năm ngưng tu luyện real-time (idle) ────────
-  useEffect(() => {
-    if (cult?.isTraining || !cult?.lastStoppedAt) {
-      setLocalIdleYears(0);
-      return;
-    }
-    const stopTime = new Date(cult.lastStoppedAt).getTime();
-    
-    const update = () => {
-      const elapsedSeconds = Math.max(0, (Date.now() - stopTime) / 1000);
-      setLocalIdleYears(elapsedSeconds / 3600);
-    };
-
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [cult?.isTraining, cult?.lastStoppedAt]);
-
-  // ─── Local tick: tổng thời gian tu luyện ─────────────────────────────
-  useEffect(() => {
-    if (!cult?.createdAt) return;
-    const startTime = new Date(cult.createdAt).getTime();
-    const update = () => {
-      const elapsedSeconds = Math.max(0, (Date.now() - startTime) / 1000);
-      setLocalTotalYears(elapsedSeconds / 3600);
-    };
-
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [cult?.createdAt]);
+  }, [cult]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   const handleToggleTraining = async () => {

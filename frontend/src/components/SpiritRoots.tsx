@@ -2,6 +2,7 @@ import { Activity, Flame, Leaf, Sparkles, Zap, Droplets, Mountain, Wind, Sun, Mo
 import { useEffect, useRef, useState, useCallback, ReactNode } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getCultivationStatus, CultivationData } from '../services/cultivationService';
+import { LIFESPAN_DRAIN } from '../config/cultivationConstants';
 import CharacterAvatar from './CharacterAvatar';
 import SpiritEffect from './SpiritEffect';
 
@@ -75,6 +76,7 @@ export default function SpiritRoots() {
   const { user } = useAuth();
   const [cult, setCult] = useState<CultivationData | null>(null);
   const [localExp, setLocalExp] = useState(0);
+  const [localIdleYears, setLocalIdleYears] = useState(0);
 
   // Fetch cultivation data
   const fetchCult = useCallback(async () => {
@@ -86,27 +88,39 @@ export default function SpiritRoots() {
     } catch (err) {
       console.error('Failed to fetch cultivation data:', err);
     }
-  }, [user]);
+  }, [user?.isCharacterCreated]);
 
   useEffect(() => { fetchCult(); }, [fetchCult]);
 
-  // Live EXP tick
+  // Live EXP and Idle tick
   useEffect(() => {
-    if (!cult?.isTraining || !cult.trainingStartedAt) return;
-    const cap = cult.realmExpRequired ?? Infinity;
-    const startTime = new Date(cult.trainingStartedAt).getTime();
+    const updateAll = () => {
+      const now = Date.now();
+      
+      // EXP Tick
+      if (cult?.isTraining && cult.trainingStartedAt) {
+        const cap = cult.realmExpRequired ?? Infinity;
+        const startTime = new Date(cult.trainingStartedAt).getTime();
+        const elapsed = (now - startTime) / 1000;
+        const gained = elapsed * (cult.speed || 0);
+        const next = cult.expAccumulated + gained;
+        setLocalExp(cap !== null && cap !== Infinity ? Math.min(next, cap) : next);
+      }
 
-    const update = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const gained = elapsed * (cult.speed || 0);
-      const next = cult.expAccumulated + gained;
-      setLocalExp(cap !== null && cap !== Infinity ? Math.min(next, cap) : next);
+      // Idle Years Tick for Lifespan drain
+      if (!cult?.isTraining && cult?.lastStoppedAt) {
+        const stopTime = new Date(cult.lastStoppedAt).getTime();
+        const elapsedSeconds = Math.max(0, (now - stopTime) / 1000);
+        setLocalIdleYears(elapsedSeconds / 3600);
+      } else {
+        setLocalIdleYears(0);
+      }
     };
 
-    update();
-    const interval = setInterval(update, 1000);
+    updateAll();
+    const interval = setInterval(updateAll, 1000);
     return () => clearInterval(interval);
-  }, [cult?.isTraining, cult?.speed, cult?.realmExpRequired, cult?.trainingStartedAt, cult?.expAccumulated]);
+  }, [cult]);
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const spiritRoot = user?.spiritRoot ?? null;
@@ -134,7 +148,13 @@ export default function SpiritRoots() {
 
   // Lifespan from realm
   const maxLifespan = (cult?.lifespanMax === null || cult?.lifespanMax === undefined) ? Infinity : cult.lifespanMax;
-  const curLifespan = cult ? (cult.lifespanMax === null ? Infinity : Math.ceil(cult.lifespan)) : 100;
+  
+  const drainPerYear = LIFESPAN_DRAIN[cult?.realmIndex ?? 0] ?? 0;
+  const localLifespanFloat = cult?.isTraining
+    ? (cult?.lifespan ?? 100)
+    : Math.max(0, (cult?.lifespan ?? 100) - localIdleYears * drainPerYear);
+    
+  const curLifespan = cult ? (cult.lifespanMax === null ? Infinity : Math.ceil(localLifespanFloat)) : 100;
 
   if (!user) return null;
 

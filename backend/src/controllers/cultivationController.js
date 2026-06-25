@@ -26,7 +26,7 @@ const formatCultivation = (cult, spiritRootGrade) => {
 
   // Tính progress trong cảnh giới hiện tại
   const progress = realm.expRequired === Infinity
-    ? 1
+    ? 0
     : Math.min(currentExp / realm.expRequired, 1);
 
   // Tính tầng hiện tại (0–3) dựa vào % EXP trong cảnh giới
@@ -94,7 +94,18 @@ const autoStopIfFull = async (cult, spiritRootGrade) => {
   cult.trainingStartedAt = null;
   // lastStoppedAt sẽ được set sau khi updateLifespan nếu isTraining=false:
   cult.lastStoppedAt = cult.breakthroughReadyAt; // cho chuẩn thời gian bắt đầu ngưng
-  await cult.save();
+  try {
+    await cult.save();
+  } catch (err) {
+    if (err.name === 'VersionError') {
+      const updated = await Cultivation.findById(cult._id);
+      if (updated) {
+        Object.assign(cult, updated.toObject());
+      }
+    } else {
+      throw err;
+    }
+  }
   return true;
 };
 

@@ -172,8 +172,9 @@ cultivationSchema.methods.computeSpeed = function (spiritRootGrade) {
 // Thọ nguyên chỉ giảm khi KHÔNG tu luyện (nghỉ ngơi hoặc viên mãn chờ đột phá)
 cultivationSchema.methods.computeCurrentLifespan = function () {
   let drainSeconds = 0;
-  if (!this.isTraining && this.lastStoppedAt) {
-    drainSeconds = (Date.now() - this.lastStoppedAt.getTime()) / 1000;
+  if (!this.isTraining) {
+    const stopTime = this.lastStoppedAt || this.createdAt || new Date();
+    drainSeconds = (Date.now() - stopTime.getTime()) / 1000;
   }
   const drainYears = drainSeconds / SECONDS_PER_YEAR;
   const drainPerYear = LIFESPAN_DRAIN_PER_YEAR[this.realmIndex] ?? 0;

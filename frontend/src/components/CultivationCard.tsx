@@ -102,13 +102,12 @@ export default function CultivationCard({
 
           {/* Training status badge */}
           <div
-            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-label-caps transition-all duration-500 ${
-              isBreakthroughReady
+            className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-label-caps transition-all duration-500 ${isBreakthroughReady
                 ? 'border-yellow-400/60 text-yellow-300 bg-yellow-400/10'
                 : cult?.isTraining
-                ? 'border-secondary/40 text-secondary bg-secondary/10'
-                : 'border-on-surface-variant/20 text-on-surface-variant bg-surface-container'
-            }`}
+                  ? 'border-secondary/40 text-secondary bg-secondary/10'
+                  : 'border-on-surface-variant/20 text-on-surface-variant bg-surface-container'
+              }`}
             style={isBreakthroughReady ? { animation: 'pulse-aura 1.5s ease-in-out infinite alternate' } : {}}
           >
             {isBreakthroughReady ? (
@@ -142,8 +141,8 @@ export default function CultivationCard({
                 {Math.floor(localExp).toLocaleString()}
                 <span className="text-on-surface-variant text-[14px] font-body-md ml-1">
                   / {cult?.realmExpRequired === undefined || cult.realmExpRequired === null || cult.realmExpRequired === Infinity
-                      ? '∞'
-                      : cult.realmExpRequired.toLocaleString()}
+                    ? '∞'
+                    : cult.realmExpRequired.toLocaleString()}
                 </span>
               </div>
             </div>
@@ -181,11 +180,11 @@ export default function CultivationCard({
                 key={s}
                 className="font-label-caps text-[9px] transition-colors duration-300"
                 style={{
-                  color: i < Math.floor(localSubLevel === 9 ? (localMajorStageName === MAJOR_STAGES[i] ? i : (MAJOR_STAGES.indexOf(localMajorStageName))) : MAJOR_STAGES.indexOf(localMajorStageName))
+                  color: i < MAJOR_STAGES.indexOf(localMajorStageName)
                     ? `${realm.color}80`
                     : i === MAJOR_STAGES.indexOf(localMajorStageName)
-                    ? realm.color
-                    : 'rgba(160,150,130,0.3)',
+                      ? realm.color
+                      : 'rgba(160,150,130,0.3)',
                   width: '25%',
                   textAlign: i === 0 ? 'left' : i === 3 ? 'right' : 'center',
                 }}
@@ -269,8 +268,8 @@ export default function CultivationCard({
                     background: lifespanWarning
                       ? 'linear-gradient(90deg, #ef444480, #ef4444)'
                       : lifespanPct < 50
-                      ? 'linear-gradient(90deg, #f9731680, #f97316)'
-                      : 'linear-gradient(90deg, #fb923c80, #facc15)',
+                        ? 'linear-gradient(90deg, #f9731680, #f97316)'
+                        : 'linear-gradient(90deg, #fb923c80, #facc15)',
                     boxShadow: lifespanWarning ? '0 0 8px rgba(239,68,68,0.6)' : '0 0 8px rgba(250,204,21,0.4)',
                   }}
                 />
@@ -287,13 +286,12 @@ export default function CultivationCard({
             onClick={onToggleTraining}
             disabled={actionLoading || isBreakthroughReady}
             title={isBreakthroughReady ? 'Tu vi đã viên mãn, hãy đột phá trước' : undefined}
-            className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-headline-md text-[18px] transition-all duration-300 disabled:opacity-50 ${
-              cult?.isTraining
+            className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-headline-md text-[18px] transition-all duration-300 disabled:opacity-50 ${cult?.isTraining
                 ? 'bg-surface-container border border-error/30 text-error hover:bg-error/10'
                 : isBreakthroughReady
-                ? 'border border-on-surface-variant/10 text-on-surface-variant/40 cursor-not-allowed'
-                : 'border text-primary hover:bg-primary/10 energy-pulse ornate-corners'
-            }`}
+                  ? 'border border-on-surface-variant/10 text-on-surface-variant/40 cursor-not-allowed'
+                  : 'border text-primary hover:bg-primary/10 energy-pulse ornate-corners'
+              }`}
             style={cult?.isTraining || isBreakthroughReady ? {} : {
               borderColor: `${realm.color}60`,
               boxShadow: `0 0 20px ${realm.glow}`,
@@ -312,11 +310,10 @@ export default function CultivationCard({
               id="btn-breakthrough"
               onClick={onBreakthrough}
               disabled={!canBreakthrough || actionLoading}
-              className={`flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-headline-md text-[18px] transition-all duration-300 ${
-                canBreakthrough
+              className={`flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-headline-md text-[18px] transition-all duration-300 ${canBreakthrough
                   ? 'border text-yellow-300 hover:bg-yellow-400/20'
                   : 'border border-on-surface-variant/10 text-on-surface-variant/40 cursor-not-allowed'
-              }`}
+                }`}
               style={canBreakthrough ? {
                 borderColor: 'rgba(234,179,8,0.7)',
                 background: 'rgba(234,179,8,0.08)',
