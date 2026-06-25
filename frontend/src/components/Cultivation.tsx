@@ -143,6 +143,7 @@ export default function Cultivation() {
   const [showSectModal, setShowSectModal] = useState(false);
   const [localExp, setLocalExp] = useState(0);
   const [localYearsWaiting, setLocalYearsWaiting] = useState(0);
+  const [localIdleYears, setLocalIdleYears] = useState(0);
   const [localTotalYears, setLocalTotalYears] = useState(0);
   const [expandedRealm, setExpandedRealm] = useState<number | null>(null);
 
@@ -210,6 +211,22 @@ export default function Cultivation() {
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [cult?.isBreakthroughReady, cult?.breakthroughReadyAt, cult?.yearsWaiting]);
+
+  // ─── Local tick: đếm số năm ngưng tu luyện real-time (tuổi thọ hao mòn) ────
+  useEffect(() => {
+    if (cult?.isTraining || !cult?.lastStoppedAt) {
+      setLocalIdleYears(0);
+      return;
+    }
+    const stoppedAt = new Date(cult.lastStoppedAt).getTime();
+    const update = () => {
+      const elapsed = (Date.now() - stoppedAt) / 1000;
+      setLocalIdleYears(elapsed / SECONDS_PER_YEAR);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [cult?.isTraining, cult?.lastStoppedAt]);
 
   // ─── Local tick: đếm tổng thời gian tu đạo real-time ────────────────
   useEffect(() => {
@@ -310,9 +327,12 @@ export default function Cultivation() {
   // Thọ nguyên real-time
   const lifespanMax = (cult?.lifespanMax === null || cult?.lifespanMax === undefined) ? Infinity : cult.lifespanMax;
   const drainPerYear = LIFESPAN_DRAIN[cult?.realmIndex ?? 0] ?? 0;
-  const localLifespan = isBreakthroughReady
-    ? Math.max(0, (cult?.lifespan ?? 100) - localYearsWaiting * drainPerYear)
-    : (cult?.lifespan ?? 100);
+  
+  // Trừ hao mòn dựa trên thời gian idle thực tế
+  const localLifespan = cult?.isTraining
+    ? (cult?.lifespan ?? 100)
+    : Math.max(0, (cult?.lifespan ?? 100) - localIdleYears * drainPerYear);
+
   const lifespanPct = lifespanMax === Infinity ? 100 : Math.min((localLifespan / lifespanMax) * 100, 100);
   const lifespanWarning = lifespanPct < 20 && lifespanMax !== Infinity;
 
@@ -596,7 +616,7 @@ export default function Cultivation() {
           </div>
 
           {/* ── Thọ Nguyên & Năm Tu Luyện ── */}
-          {isBreakthroughReady && (
+          {!cult?.isTraining && (
             <div
               className="mb-6 rounded-2xl p-4 border"
               style={{
@@ -624,13 +644,13 @@ export default function Cultivation() {
                 <div>
                   <div className="font-label-caps text-[10px] text-on-surface-variant mb-1 flex items-center gap-1">
                     <Clock size={10} />
-                    Năm Tu Luyện Chờ Đột Phá
+                    {isBreakthroughReady ? 'Năm Tu Luyện Chờ Đột Phá' : 'Thời Gian Ngưng Tu Luyện'}
                   </div>
                   <div
                     className="font-headline-md text-[28px]"
                     style={{ color: lifespanWarning ? '#ef4444' : '#facc15' }}
                   >
-                    {Math.floor(localYearsWaiting)}
+                    {Math.floor(isBreakthroughReady ? localYearsWaiting : localIdleYears)}
                     <span className="text-on-surface-variant text-[13px] font-body-md ml-1">năm</span>
                   </div>
                   <div className="font-body-md text-[10px] text-on-surface-variant/50 mt-0.5">

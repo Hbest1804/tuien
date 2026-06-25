@@ -37,7 +37,7 @@ const formatCultivation = (cult, spiritRootGrade) => {
 
   // Thọ nguyên
   const isBreakthroughReady = !!cult.breakthroughReadyAt;
-  const yearsWaiting = cult.computeYearsWaiting();
+  const yearsWaiting = cult.breakthroughReadyAt ? (Date.now() - cult.breakthroughReadyAt.getTime()) / 1000 / SECONDS_PER_YEAR : 0;
   const rawLifespanMax = REALM_LIFESPAN[cult.realmIndex] ?? 100;
   const lifespanMax = rawLifespanMax === Infinity ? null : rawLifespanMax;
   const currentLifespan = cult.computeCurrentLifespan();
@@ -70,6 +70,7 @@ const formatCultivation = (cult, spiritRootGrade) => {
     lifespan: currentLifespan,
     lifespanMax,
     createdAt: cult.createdAt,
+    lastStoppedAt: cult.lastStoppedAt,
   };
 };
 
@@ -92,9 +93,13 @@ const autoStopIfFull = async (cult, spiritRootGrade) => {
     cult.breakthroughReadyAt = new Date(startTime + secondsToMax * 1000);
   }
   
+  cult.flushLifespan();
   cult.expAccumulated = realm.expRequired;
   cult.isTraining = false;
   cult.trainingStartedAt = null;
+  // lastStoppedAt sẽ được set bên trong flushLifespan nếu isTraining=false,
+  // nhưng ta gọi flushLifespan TRƯỚC khi set isTraining=false. Vậy phải gọi lại:
+  cult.lastStoppedAt = cult.breakthroughReadyAt; // cho chuẩn thời gian bắt đầu ngưng
   await cult.save();
   return true;
 };
@@ -144,8 +149,10 @@ export const startTraining = async (req, res) => {
       });
     }
 
+    cult.flushLifespan();
     cult.isTraining = true;
     cult.trainingStartedAt = new Date();
+    cult.lastStoppedAt = null;
     await cult.save();
 
     res.json({
@@ -189,9 +196,11 @@ export const stopTraining = async (req, res) => {
       }
     }
 
+    cult.flushLifespan();
     cult.expAccumulated = currentExp;
     cult.isTraining = false;
     cult.trainingStartedAt = null;
+    cult.lastStoppedAt = new Date();
 
     await cult.save();
 
@@ -250,7 +259,8 @@ export const breakthrough = async (req, res) => {
     }
 
     // Flush thọ nguyên hao mòn vào DB
-    cult.lifespan = Math.round(currentLifespan * 100) / 100;
+    cult.flushLifespan();
+    cult.lifespan = Math.round(cult.lifespan * 100) / 100;
 
     // Trừ EXP, lên cảnh giới, reset thọ nguyên theo cảnh giới mới
     cult.expAccumulated -= currentRealm.expRequired;
@@ -260,6 +270,7 @@ export const breakthrough = async (req, res) => {
     // Reset thọ nguyên về mức tối đa của cảnh giới mới
     const newLifespanMax = REALM_LIFESPAN[cult.realmIndex] ?? 100;
     cult.lifespan = newLifespanMax === Infinity ? 9999999 : newLifespanMax;
+    cult.lastStoppedAt = cult.isTraining ? null : new Date();
 
     await cult.save();
 

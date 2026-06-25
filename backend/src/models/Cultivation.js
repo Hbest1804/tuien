@@ -124,6 +124,12 @@ const cultivationSchema = new mongoose.Schema(
     },
 
     // ─── Thọ Nguyên & Đột Phá ──────────────────────────────────────────────
+    // Thời điểm ngưng tu luyện (để bắt đầu đếm thọ nguyên hao mòn)
+    lastStoppedAt: {
+      type: Date,
+      default: null,
+    },
+    
     // Thời điểm EXP chạm ngưỡng và dừng tu luyện (chờ đột phá)
     breakthroughReadyAt: {
       type: Date,
@@ -167,18 +173,26 @@ cultivationSchema.methods.computeSpeed = function (spiritRootGrade) {
   return base * multiplier;
 };
 
-// ─── Method: số năm đã chờ kể từ khi EXP đầy (real-time) ─────────────────────
-cultivationSchema.methods.computeYearsWaiting = function () {
-  if (!this.breakthroughReadyAt) return 0;
-  const elapsed = (Date.now() - this.breakthroughReadyAt.getTime()) / 1000; // giây
-  return elapsed / SECONDS_PER_YEAR;
+// ─── Method: thọ nguyên hiện tại (sau khi trừ hao mòn real-time) ─────────────
+// Thọ nguyên chỉ giảm khi KHÔNG tu luyện (nghỉ ngơi hoặc viên mãn chờ đột phá)
+cultivationSchema.methods.computeCurrentLifespan = function () {
+  let drainSeconds = 0;
+  if (!this.isTraining && this.lastStoppedAt) {
+    drainSeconds = (Date.now() - this.lastStoppedAt.getTime()) / 1000;
+  }
+  const drainYears = drainSeconds / SECONDS_PER_YEAR;
+  const drainPerYear = LIFESPAN_DRAIN_PER_YEAR[this.realmIndex] ?? 0;
+  return Math.max(0, this.lifespan - drainYears * drainPerYear);
 };
 
-// ─── Method: thọ nguyên hiện tại (sau khi trừ hao mòn real-time) ─────────────
-cultivationSchema.methods.computeCurrentLifespan = function () {
-  const yearsWaiting = this.computeYearsWaiting();
-  const drainPerYear = LIFESPAN_DRAIN_PER_YEAR[this.realmIndex] ?? 0;
-  return Math.max(0, this.lifespan - yearsWaiting * drainPerYear);
+// ─── Method: flush thọ nguyên vào DB ─────────────────────────────────────────
+cultivationSchema.methods.flushLifespan = function () {
+  this.lifespan = this.computeCurrentLifespan();
+  if (!this.isTraining) {
+    this.lastStoppedAt = new Date();
+  } else {
+    this.lastStoppedAt = null;
+  }
 };
 
 const Cultivation = mongoose.model('Cultivation', cultivationSchema);

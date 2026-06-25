@@ -27,6 +27,7 @@ export interface CultivationData {
   lifespan: number;
   lifespanMax: number;
   createdAt: string;
+  lastStoppedAt: string | null;
 }
 
 interface CultivationResponse {
