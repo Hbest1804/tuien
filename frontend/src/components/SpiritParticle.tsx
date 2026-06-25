@@ -12,7 +12,7 @@ export default function SpiritParticle({ active, color }: { active: boolean; col
             height: active ? `${2 + (i % 3)}px` : '0px',
             background: color,
             borderRadius: '50%',
-            opacity: active ? 0 : 0,
+            opacity: active ? 0.8 : 0,
             boxShadow: `0 0 6px ${color}`,
             animation: active
               ? `float-particle ${4 + (i % 5)}s ${(i * 0.4)}s linear infinite`

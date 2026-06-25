@@ -90,10 +90,15 @@ export default function Cultivation() {
       }
 
       // 3. Idle Years Tick
-      if (!cult?.isTraining && cult?.lastStoppedAt) {
-        const stopTime = new Date(cult.lastStoppedAt).getTime();
-        const elapsedSeconds = Math.max(0, (now - stopTime) / 1000);
-        setLocalIdleYears(elapsedSeconds / 3600);
+      if (!cult?.isTraining) {
+        const stopTimeStr = cult?.lastStoppedAt || cult?.createdAt;
+        if (stopTimeStr) {
+          const stopTime = new Date(stopTimeStr).getTime();
+          const elapsedSeconds = Math.max(0, (now - stopTime) / 1000);
+          setLocalIdleYears(elapsedSeconds / 3600);
+        } else {
+          setLocalIdleYears(0);
+        }
       } else {
         setLocalIdleYears(0);
       }

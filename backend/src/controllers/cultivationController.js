@@ -10,6 +10,8 @@ import Cultivation, {
 
 // ─── Helper: lấy hoặc tạo cultivation record ──────────────────────────────────
 const getOrCreateCultivation = async (userId) => {
+  const existing = await Cultivation.findOne({ userId });
+  if (existing) return existing;
   return await Cultivation.findOneAndUpdate(
     { userId },
     { $setOnInsert: { userId } },
@@ -100,7 +102,7 @@ const autoStopIfFull = async (cult, spiritRootGrade) => {
     if (err.name === 'VersionError') {
       const updated = await Cultivation.findById(cult._id);
       if (updated) {
-        Object.assign(cult, updated.toObject());
+        cult.set(updated.toObject());
       }
     } else {
       throw err;
@@ -247,7 +249,8 @@ export const breakthrough = async (req, res) => {
     if (currentLifespan <= 0) {
       // Tinh khí tán tận — thọ nguyên cạn kiệt, phải tu luyện lại từ đầu
       cult.expAccumulated = 0;
-      cult.lifespan = REALM_LIFESPAN[cult.realmIndex] ?? 100;
+      const rawLifespan = REALM_LIFESPAN[cult.realmIndex] ?? 100;
+      cult.lifespan = rawLifespan === Infinity ? PRACTICAL_INFINITY_LIFESPAN : rawLifespan;
       cult.breakthroughReadyAt = null;
       cult.lastStoppedAt = new Date();
       await cult.save();

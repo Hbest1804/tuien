@@ -284,7 +284,7 @@ export default function CultivationCard({
           <button
             id="btn-toggle-training"
             onClick={onToggleTraining}
-            disabled={actionLoading || isBreakthroughReady}
+            disabled={actionLoading || (isBreakthroughReady && !cult?.isTraining)}
             title={isBreakthroughReady ? 'Tu vi đã viên mãn, hãy đột phá trước' : undefined}
             className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-headline-md text-[18px] transition-all duration-300 disabled:opacity-50 ${cult?.isTraining
                 ? 'bg-surface-container border border-error/30 text-error hover:bg-error/10'
