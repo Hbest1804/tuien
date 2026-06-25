@@ -132,7 +132,7 @@ export default function CharacterAvatar({
         )}
 
         {/* Orbiting orbs */}
-        {orbits.map(({ r, count, size, speed }, ri) =>
+        {orbits.flatMap(({ r, count, size, speed }, ri) =>
           Array.from({ length: count }).map((_, pi) => {
             const a0  = (pi / count) * 360;
             const cx  = 150 + r;

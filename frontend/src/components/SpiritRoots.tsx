@@ -120,9 +120,8 @@ export default function SpiritRoots() {
   })();
 
   // Lifespan from realm
-  const REALM_LIFESPAN = [200, 500, 1000, 2000, 5000, 10000];
-  const maxLifespan = REALM_LIFESPAN[cult?.realmIndex ?? 0] ?? 200;
-  const curLifespan = Math.round(maxLifespan * 0.4);
+  const maxLifespan = (cult?.lifespanMax === null || cult?.lifespanMax === undefined) ? Infinity : cult.lifespanMax;
+  const curLifespan = cult ? (cult.lifespanMax === null ? Infinity : Math.ceil(cult.lifespan)) : 100;
 
   if (!user) return null;
 
@@ -351,8 +350,9 @@ export default function SpiritRoots() {
             <div className="w-9 h-9 rounded-xl bg-secondary/10 border border-secondary/20 flex items-center justify-center mb-2">
               <Sparkles size={16} className="text-secondary" />
             </div>
-            <span className="font-label-caps text-[9px] text-on-surface-variant mb-1">Thọ Nguyên</span>
-            <span className="font-headline-md text-[20px] text-on-surface">{curLifespan} / {maxLifespan}</span>
+            <span className="font-headline-md text-[20px] text-on-surface">
+              {curLifespan === Infinity ? '∞' : curLifespan.toLocaleString()} / {maxLifespan === Infinity ? '∞' : maxLifespan.toLocaleString()}
+            </span>
             <span className="font-label-caps text-[9px] text-on-surface-variant/60 mt-1">Năm</span>
           </div>
 

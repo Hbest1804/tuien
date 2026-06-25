@@ -178,16 +178,22 @@ export default function Cultivation() {
 
   // ─── Local tick: cập nhật EXP mỗi giây mà không gọi API ──────────────
   useEffect(() => {
-    if (!cult?.isTraining) return;
+    if (!cult?.isTraining || !cult.trainingStartedAt) return;
     const cap = cult.realmExpRequired ?? Infinity;
-    const interval = setInterval(() => {
-      setLocalExp((prev) => {
-        const next = prev + (cult.speed || 0);
-        return cap !== null && cap !== Infinity ? Math.min(next, cap) : next;
-      });
-    }, 1000);
+    const startTime = new Date(cult.trainingStartedAt).getTime();
+    
+    const update = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const gained = elapsed * (cult.speed || 0);
+      const next = cult.expAccumulated + gained;
+      setLocalExp(cap !== null && cap !== Infinity ? Math.min(next, cap) : next);
+    };
+
+    // Update immediately once, then set interval
+    update();
+    const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
-  }, [cult?.isTraining, cult?.speed, cult?.realmExpRequired]);
+  }, [cult?.isTraining, cult?.speed, cult?.realmExpRequired, cult?.trainingStartedAt, cult?.expAccumulated]);
 
   // ─── Local tick: đếm số năm chờ đột phá real-time ──────────────────
   useEffect(() => {
@@ -302,7 +308,7 @@ export default function Cultivation() {
     : false;
 
   // Thọ nguyên real-time
-  const lifespanMax = cult?.lifespanMax ?? 100;
+  const lifespanMax = (cult?.lifespanMax === null || cult?.lifespanMax === undefined) ? Infinity : cult.lifespanMax;
   const drainPerYear = LIFESPAN_DRAIN[cult?.realmIndex ?? 0] ?? 0;
   const localLifespan = isBreakthroughReady
     ? Math.max(0, (cult?.lifespan ?? 100) - localYearsWaiting * drainPerYear)

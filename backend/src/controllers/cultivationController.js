@@ -38,7 +38,8 @@ const formatCultivation = (cult, spiritRootGrade) => {
   // Thọ nguyên
   const isBreakthroughReady = !!cult.breakthroughReadyAt;
   const yearsWaiting = cult.computeYearsWaiting();
-  const lifespanMax = REALM_LIFESPAN[cult.realmIndex] ?? 100;
+  const rawLifespanMax = REALM_LIFESPAN[cult.realmIndex] ?? 100;
+  const lifespanMax = rawLifespanMax === Infinity ? null : rawLifespanMax;
   const currentLifespan = cult.computeCurrentLifespan();
 
   return {
@@ -83,12 +84,17 @@ const autoStopIfFull = async (cult, spiritRootGrade) => {
   if (currentExp < realm.expRequired) return false;
 
   // EXP đã đầy → tự động dừng và bắt đầu đếm thọ nguyên
+  if (!cult.breakthroughReadyAt) {
+    const speed = cult.computeSpeed(spiritRootGrade);
+    const expNeeded = Math.max(0, realm.expRequired - cult.expAccumulated);
+    const secondsToMax = speed > 0 ? expNeeded / speed : 0;
+    const startTime = cult.trainingStartedAt ? cult.trainingStartedAt.getTime() : Date.now();
+    cult.breakthroughReadyAt = new Date(startTime + secondsToMax * 1000);
+  }
+  
   cult.expAccumulated = realm.expRequired;
   cult.isTraining = false;
   cult.trainingStartedAt = null;
-  if (!cult.breakthroughReadyAt) {
-    cult.breakthroughReadyAt = new Date();
-  }
   await cult.save();
   return true;
 };
@@ -171,18 +177,21 @@ export const stopTraining = async (req, res) => {
     // Flush EXP tích lũy vào DB
     const currentExp = cult.computeCurrentExp(user.spiritRootGrade);
     const gained = currentExp - cult.expAccumulated;
+    // Kiểm tra nếu EXP đã đầy thì bắt đầu đếm thời gian chờ từ thời điểm đạt mốc
+    const realm = REALMS[cult.realmIndex];
+    if (realm && realm.expRequired !== Infinity && currentExp >= realm.expRequired) {
+      if (!cult.breakthroughReadyAt) {
+        const speed = cult.computeSpeed(user.spiritRootGrade);
+        const expNeeded = Math.max(0, realm.expRequired - cult.expAccumulated);
+        const secondsToMax = speed > 0 ? expNeeded / speed : 0;
+        const startTime = cult.trainingStartedAt ? cult.trainingStartedAt.getTime() : Date.now();
+        cult.breakthroughReadyAt = new Date(startTime + secondsToMax * 1000);
+      }
+    }
+
     cult.expAccumulated = currentExp;
     cult.isTraining = false;
     cult.trainingStartedAt = null;
-
-    // Kiểm tra nếu EXP đã đầy thì bắt đầu đếm thời gian chờ
-    const realm = REALMS[cult.realmIndex];
-    if (realm && realm.expRequired !== Infinity && cult.expAccumulated >= realm.expRequired) {
-      cult.expAccumulated = realm.expRequired;
-      if (!cult.breakthroughReadyAt) {
-        cult.breakthroughReadyAt = new Date();
-      }
-    }
 
     await cult.save();
 
