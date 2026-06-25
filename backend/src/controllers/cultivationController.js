@@ -117,7 +117,9 @@ export const stopTraining = async (req, res) => {
     }
 
     // Flush EXP tích lũy vào DB
-    cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
+    const currentExp = cult.computeCurrentExp(user.spiritRootGrade);
+    const gained = currentExp - cult.expAccumulated;
+    cult.expAccumulated = currentExp;
     cult.isTraining = false;
     cult.trainingStartedAt = null;
     await cult.save();
