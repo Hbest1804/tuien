@@ -126,7 +126,7 @@ export default function SpiritRoots() {
     updateAll();
     const interval = setInterval(updateAll, 1000);
     return () => clearInterval(interval);
-  }, [cult]);
+  }, [cult, fetchedAt]);
 
   // ── Derived data ──────────────────────────────────────────────────────────
   const spiritRoot = user?.spiritRoot ?? null;
@@ -160,7 +160,7 @@ export default function SpiritRoots() {
     ? (cult?.lifespan ?? 100)
     : Math.max(0, (cult?.lifespan ?? 100) - localIdleYears * drainPerYear);
     
-  const curLifespan = cult ? (cult.lifespanMax === null ? Infinity : Math.ceil(localLifespanFloat)) : 100;
+  const curLifespan = cult ? (maxLifespan === Infinity ? Infinity : Math.ceil(localLifespanFloat)) : 100;
 
   if (!user) return null;
 

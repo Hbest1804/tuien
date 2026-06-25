@@ -26,11 +26,6 @@ const preload = (srcs: string[]) => {
     srcs.forEach(s => { const i = new Image(); i.src = s; });
   }
 };
-preload([
-  ...SPRITES.male.idle, ...SPRITES.male.training,
-  ...SPRITES.female.idle, ...SPRITES.female.training,
-]);
-
 export default function CharacterAvatar({
   gender,
   isTraining,
@@ -38,6 +33,13 @@ export default function CharacterAvatar({
   spiritGlow,
   realmIndex = 0,
 }: CharacterAvatarProps) {
+  useEffect(() => {
+    preload([
+      ...SPRITES.male.idle, ...SPRITES.male.training,
+      ...SPRITES.female.idle, ...SPRITES.female.training,
+    ]);
+  }, []);
+
   const key   = gender === 'female' ? 'female' : 'male';
   const state = isTraining ? 'training' : 'idle';
   const frames = SPRITES[key][state];

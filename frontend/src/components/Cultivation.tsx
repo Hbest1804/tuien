@@ -114,7 +114,7 @@ export default function Cultivation() {
     updateAll();
     const interval = setInterval(updateAll, 1000);
     return () => clearInterval(interval);
-  }, [cult]);
+  }, [cult, fetchedAt]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   const handleToggleTraining = async () => {

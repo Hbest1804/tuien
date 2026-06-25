@@ -7,7 +7,13 @@ import SpiritParticle from './SpiritParticle';
 interface CultivationCardProps {
   cult: CultivationData | null;
   realm: RealmConfig;
-  user: any; // Ideally we should have a User type imported
+  user: {
+    username: string;
+    gender: 'male' | 'female' | null;
+    spiritRoot?: string;
+    spiritRootGrade?: string;
+    isCharacterCreated: boolean;
+  };
   localExp: number;
   progress: number;
   localMajorStageName: string;
