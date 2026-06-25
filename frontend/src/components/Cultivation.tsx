@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Flame, Wind, Zap, Star, TrendingUp, LogIn, LogOut, ChevronUp, AlertCircle } from 'lucide-react';
+import { Flame, Wind, Zap, Star, TrendingUp, LogIn, LogOut, ChevronUp, AlertCircle, Clock, Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import {
   CultivationData,
@@ -24,6 +24,10 @@ const REALMS = [
   { id: 3, name: 'Nguyên Anh',color: '#b066ff', glow: 'rgba(176,102,255,0.4)', stages: STAGES },
   { id: 4, name: 'Hóa Thần',  color: '#b066ff', glow: 'rgba(176,102,255,0.5)', stages: STAGES },
 ];
+
+// ─── Game constants ───────────────────────────────────────────────────────────
+const SECONDS_PER_YEAR = 3600; // 1 giờ thực = 1 năm tu luyện
+const LIFESPAN_DRAIN: number[] = [1, 2, 5, 10, 0]; // hao mòn/năm theo cảnh giới
 
 // ─── Floating spirit particle ──────────────────────────────────────────────────
 function SpiritParticle({ active, color }: { active: boolean; color: string }) {
@@ -138,6 +142,7 @@ export default function Cultivation() {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showSectModal, setShowSectModal] = useState(false);
   const [localExp, setLocalExp] = useState(0);
+  const [localYearsWaiting, setLocalYearsWaiting] = useState(0);
   const [expandedRealm, setExpandedRealm] = useState<number | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -170,14 +175,34 @@ export default function Cultivation() {
     if (user?.isCharacterCreated) fetchStatus();
   }, [user, fetchStatus]);
 
-  // ─── Local tick: cập nhật EXP mỗi giây mà không gọi API ──────────────────
+  // ─── Local tick: cập nhật EXP mỗi giây mà không gọi API ──────────────
   useEffect(() => {
     if (!cult?.isTraining) return;
+    const cap = cult.realmExpRequired ?? Infinity;
     const interval = setInterval(() => {
-      setLocalExp((prev) => prev + (cult.speed || 0));
+      setLocalExp((prev) => {
+        const next = prev + (cult.speed || 0);
+        return cap !== null && cap !== Infinity ? Math.min(next, cap) : next;
+      });
     }, 1000);
     return () => clearInterval(interval);
-  }, [cult?.isTraining, cult?.speed]);
+  }, [cult?.isTraining, cult?.speed, cult?.realmExpRequired]);
+
+  // ─── Local tick: đếm số năm chờ đột phá real-time ──────────────────
+  useEffect(() => {
+    if (!cult?.isBreakthroughReady || !cult.breakthroughReadyAt) {
+      setLocalYearsWaiting(cult?.yearsWaiting ?? 0);
+      return;
+    }
+    const readyAt = new Date(cult.breakthroughReadyAt).getTime();
+    const update = () => {
+      const elapsed = (Date.now() - readyAt) / 1000;
+      setLocalYearsWaiting(elapsed / SECONDS_PER_YEAR);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [cult?.isBreakthroughReady, cult?.breakthroughReadyAt, cult?.yearsWaiting]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   const handleToggleTraining = async () => {
@@ -252,17 +277,27 @@ export default function Cultivation() {
 
   // ─── Derived values ───────────────────────────────────────────────────────
   const realm = REALMS[cult?.realmIndex ?? 0] || REALMS[0];
+  const isBreakthroughReady = cult?.isBreakthroughReady ?? false;
   const progress = cult
-    ? cult.realmExpRequired === Infinity
+    ? (cult.realmExpRequired === null || cult.realmExpRequired === Infinity)
       ? 1
       : Math.min(localExp / cult.realmExpRequired, 1)
     : 0;
   const canBreakthrough = cult
-    ? cult.realmIndex < REALMS.length - 1 && localExp >= cult.realmExpRequired
+    ? cult.realmIndex < REALMS.length - 1 && isBreakthroughReady
     : false;
 
+  // Thọ nguyên real-time
+  const lifespanMax = cult?.lifespanMax ?? 100;
+  const drainPerYear = LIFESPAN_DRAIN[cult?.realmIndex ?? 0] ?? 0;
+  const localLifespan = isBreakthroughReady
+    ? Math.max(0, (cult?.lifespan ?? 100) - localYearsWaiting * drainPerYear)
+    : (cult?.lifespan ?? 100);
+  const lifespanPct = lifespanMax === Infinity ? 100 : Math.min((localLifespan / lifespanMax) * 100, 100);
+  const lifespanWarning = lifespanPct < 20 && lifespanMax !== Infinity;
+
   // Tính tầng hiện tại từ progress cục bộ (real-time) — 36 tầng tổng
-  const localStageIndex = cult?.realmExpRequired === Infinity
+  const localStageIndex = (cult?.realmExpRequired === null || cult?.realmExpRequired === Infinity)
     ? 35
     : Math.min(Math.floor(progress * 36), 35);
   const localMajorIndex     = Math.floor(localStageIndex / 9);  // 0–3 (Sơ Kỳ → Đại Viên Mãn)
@@ -436,12 +471,20 @@ export default function Cultivation() {
             {/* Training status badge */}
             <div
               className={`flex items-center gap-2 px-4 py-2 rounded-full border text-sm font-label-caps transition-all duration-500 ${
-                cult?.isTraining
+                isBreakthroughReady
+                  ? 'border-yellow-400/60 text-yellow-300 bg-yellow-400/10'
+                  : cult?.isTraining
                   ? 'border-secondary/40 text-secondary bg-secondary/10'
                   : 'border-on-surface-variant/20 text-on-surface-variant bg-surface-container'
               }`}
+              style={isBreakthroughReady ? { animation: 'pulse-aura 1.5s ease-in-out infinite alternate' } : {}}
             >
-              {cult?.isTraining ? (
+              {isBreakthroughReady ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-yellow-400" style={{ animation: 'pulse-aura 1s ease-in-out infinite alternate' }} />
+                  Viên Mãn ✦ Chờ Đột Phá
+                </>
+              ) : cult?.isTraining ? (
                 <>
                   <span
                     className="w-2 h-2 rounded-full bg-secondary"
@@ -521,19 +564,105 @@ export default function Cultivation() {
             </div>
           </div>
 
+          {/* ── Thọ Nguyên & Năm Tu Luyện ── */}
+          {isBreakthroughReady && (
+            <div
+              className="mb-6 rounded-2xl p-4 border"
+              style={{
+                borderColor: lifespanWarning ? 'rgba(239,68,68,0.4)' : 'rgba(234,179,8,0.25)',
+                background: lifespanWarning
+                  ? 'rgba(239,68,68,0.06)'
+                  : 'rgba(234,179,8,0.05)',
+              }}
+            >
+              {/* Cảnh báo thọ nguyên cạn */}
+              {lifespanWarning && (
+                <div
+                  className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30"
+                  style={{ animation: 'pulse-aura 1s ease-in-out infinite alternate' }}
+                >
+                  <AlertCircle size={14} className="text-red-400 shrink-0" />
+                  <span className="font-label-caps text-[10px] text-red-400">
+                    THọO NGUYÊN CẠN KIỆT! HÃY ĐỘT PHÁ NGAY!
+                  </span>
+                </div>
+              )}
+
+              <div className="flex justify-between items-start mb-3">
+                {/* Số năm chờ */}
+                <div>
+                  <div className="font-label-caps text-[10px] text-on-surface-variant mb-1 flex items-center gap-1">
+                    <Clock size={10} />
+                    Năm Tu Luyện Chờ Đột Phá
+                  </div>
+                  <div
+                    className="font-headline-md text-[28px]"
+                    style={{ color: lifespanWarning ? '#ef4444' : '#facc15' }}
+                  >
+                    {localYearsWaiting.toFixed(2)}
+                    <span className="text-on-surface-variant text-[13px] font-body-md ml-1">năm</span>
+                  </div>
+                  <div className="font-body-md text-[10px] text-on-surface-variant/50 mt-0.5">
+                    Hao mòn: {drainPerYear} thọ nguyên/năm
+                  </div>
+                </div>
+
+                {/* Thọ nguyên */}
+                <div className="text-right">
+                  <div className="font-label-caps text-[10px] text-on-surface-variant mb-1 flex items-center justify-end gap-1">
+                    <Heart size={10} />
+                    Thọ Nguyên
+                  </div>
+                  <div
+                    className="font-headline-md text-[28px]"
+                    style={{ color: lifespanWarning ? '#ef4444' : '#fb923c' }}
+                  >
+                    {lifespanMax === Infinity
+                      ? '∞'
+                      : Math.ceil(localLifespan).toLocaleString()}
+                    <span className="text-on-surface-variant text-[13px] font-body-md ml-1">
+                      / {lifespanMax === Infinity ? '∞' : lifespanMax.toLocaleString()} năm
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thanh thọ nguyên */}
+              {lifespanMax !== Infinity && (
+                <div className="w-full h-2.5 rounded-full bg-surface-container-high overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-1000"
+                    style={{
+                      width: `${lifespanPct}%`,
+                      background: lifespanWarning
+                        ? 'linear-gradient(90deg, #ef444480, #ef4444)'
+                        : lifespanPct < 50
+                        ? 'linear-gradient(90deg, #f9731680, #f97316)'
+                        : 'linear-gradient(90deg, #fb923c80, #facc15)',
+                      boxShadow: lifespanWarning ? '0 0 8px rgba(239,68,68,0.6)' : '0 0 8px rgba(250,204,21,0.4)',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Action buttons */}
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Toggle training */}
             <button
               id="btn-toggle-training"
               onClick={handleToggleTraining}
-              disabled={actionLoading}
+              disabled={actionLoading || isBreakthroughReady}
+              title={isBreakthroughReady ? 'Tu vi đã viên mãn, hãy đột phá trước' : undefined}
               className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-headline-md text-[18px] transition-all duration-300 disabled:opacity-50 ${
                 cult?.isTraining
                   ? 'bg-surface-container border border-error/30 text-error hover:bg-error/10'
+                  : isBreakthroughReady
+                  ? 'border border-on-surface-variant/10 text-on-surface-variant/40 cursor-not-allowed'
                   : 'border text-primary hover:bg-primary/10 energy-pulse ornate-corners'
               }`}
-              style={cult?.isTraining ? {} : {
+              style={cult?.isTraining || isBreakthroughReady ? {} : {
                 borderColor: `${realm.color}60`,
                 boxShadow: `0 0 20px ${realm.glow}`,
               }}
@@ -541,7 +670,7 @@ export default function Cultivation() {
               {cult?.isTraining ? (
                 <><Wind size={20} className="shrink-0" /> Ngưng Tu Luyện</>
               ) : (
-                <><Flame size={20} className="shrink-0" style={{ color: realm.color }} /> Bắt Đầu Tu Luyện</>
+                <><Flame size={20} className="shrink-0" style={{ color: isBreakthroughReady ? undefined : realm.color }} /> Bắt Đầu Tu Luyện</>
               )}
             </button>
 
@@ -553,9 +682,15 @@ export default function Cultivation() {
                 disabled={!canBreakthrough || actionLoading}
                 className={`flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-headline-md text-[18px] transition-all duration-300 ${
                   canBreakthrough
-                    ? 'bg-primary/10 border border-primary text-primary hover:bg-primary/20 hover:gold-glow-strong'
+                    ? 'border text-yellow-300 hover:bg-yellow-400/20'
                     : 'border border-on-surface-variant/10 text-on-surface-variant/40 cursor-not-allowed'
                 }`}
+                style={canBreakthrough ? {
+                  borderColor: 'rgba(234,179,8,0.7)',
+                  background: 'rgba(234,179,8,0.08)',
+                  boxShadow: '0 0 24px rgba(234,179,8,0.35)',
+                  animation: 'pulse-aura 1.5s ease-in-out infinite alternate',
+                } : {}}
               >
                 <ChevronUp size={20} />
                 Đột Phá

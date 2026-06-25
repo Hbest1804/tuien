@@ -42,9 +42,19 @@ export const REALMS = [
     name: 'Hóa Thần',
     color: '#b066ff',
     expRequired: Infinity,
-    stages: REALM_STAGES,// cảnh giới cao nhất của phàm giới 
+    stages: REALM_STAGES,// cảnh giới cao nhất của phàm giới
   },
 ];
+
+// ─── Hệ thống Thọ Nguyên ──────────────────────────────────────────────────────
+// 1 giờ thực = 1 năm tu luyện
+export const SECONDS_PER_YEAR = 3600;
+
+// Thọ nguyên tối đa theo từng cảnh giới (năm)
+export const REALM_LIFESPAN = [100, 200, 500, 1000, Infinity];
+
+// Thọ nguyên hao mòn mỗi năm khi trì hoãn đột phá (năm/năm)
+export const LIFESPAN_DRAIN_PER_YEAR = [1, 2, 5, 10, 0];
 
 // ─── Tốc độ tu luyện cơ bản (EXP/giây) ──────────────────────────────────────
 export const BASE_SPEED = {
@@ -112,6 +122,19 @@ const cultivationSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // ─── Thọ Nguyên & Đột Phá ──────────────────────────────────────────────
+    // Thời điểm EXP chạm ngưỡng và dừng tu luyện (chờ đột phá)
+    breakthroughReadyAt: {
+      type: Date,
+      default: null,
+    },
+
+    // Thọ nguyên hiện tại (năm) — được flush mỗi khi có hành động quan trọng
+    lifespan: {
+      type: Number,
+      default: 100,
+    },
   },
   {
     timestamps: true,
@@ -119,7 +142,7 @@ const cultivationSchema = new mongoose.Schema(
   }
 );
 
-// ─── Virtual: tính EXP hiện tại bao gồm cả phần đang train offline ────────────
+// ─── Method: tính EXP hiện tại (bao gồm offline, có cap ở ngưỡng cảnh giới) ──
 cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade) {
   if (!this.isTraining || !this.trainingStartedAt) {
     return this.expAccumulated;
@@ -129,8 +152,12 @@ cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade) {
   const elapsed = (now - this.trainingStartedAt.getTime()) / 1000; // giây
   const speed = this.computeSpeed(spiritRootGrade);
   const gained = Math.max(0, elapsed * speed);
+  const raw = this.expAccumulated + gained;
 
-  return this.expAccumulated + gained;
+  // Cap EXP ở ngưỡng đột phá của cảnh giới hiện tại
+  const realm = REALMS[this.realmIndex];
+  const cap = realm?.expRequired ?? Infinity;
+  return cap === Infinity ? raw : Math.min(raw, cap);
 };
 
 // ─── Method: tốc độ tu luyện hiện tại (EXP/giây) ─────────────────────────────
@@ -138,6 +165,20 @@ cultivationSchema.methods.computeSpeed = function (spiritRootGrade) {
   const base = this.sectName ? BASE_SPEED['宗门'] : BASE_SPEED['散修'];
   const multiplier = SPIRIT_ROOT_MULTIPLIER[spiritRootGrade] || 1.0;
   return base * multiplier;
+};
+
+// ─── Method: số năm đã chờ kể từ khi EXP đầy (real-time) ─────────────────────
+cultivationSchema.methods.computeYearsWaiting = function () {
+  if (!this.breakthroughReadyAt) return 0;
+  const elapsed = (Date.now() - this.breakthroughReadyAt.getTime()) / 1000; // giây
+  return elapsed / SECONDS_PER_YEAR;
+};
+
+// ─── Method: thọ nguyên hiện tại (sau khi trừ hao mòn real-time) ─────────────
+cultivationSchema.methods.computeCurrentLifespan = function () {
+  const yearsWaiting = this.computeYearsWaiting();
+  const drainPerYear = LIFESPAN_DRAIN_PER_YEAR[this.realmIndex] ?? 0;
+  return Math.max(0, this.lifespan - yearsWaiting * drainPerYear);
 };
 
 const Cultivation = mongoose.model('Cultivation', cultivationSchema);

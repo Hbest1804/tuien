@@ -9,7 +9,7 @@ export interface CultivationData {
   realmIndex: number;
   realmName: string;
   realmColor: string;
-  realmExpRequired: number;
+  realmExpRequired: number | null;
   realmStages: string[];
   stageIndex: number;
   stageName: string;
@@ -20,6 +20,12 @@ export interface CultivationData {
   isSectMember: boolean;
   baseSpeed: number;
   spiritRootMultiplier: number;
+  // Breakthrough & Lifespan
+  isBreakthroughReady: boolean;
+  breakthroughReadyAt: string | null;
+  yearsWaiting: number;
+  lifespan: number;
+  lifespanMax: number;
 }
 
 interface CultivationResponse {
