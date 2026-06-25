@@ -25,7 +25,7 @@ export interface CultivationData {
   breakthroughReadyAt: string | null;
   yearsWaiting: number;
   lifespan: number;
-  lifespanMax: number;
+  lifespanMax: number | null;
   createdAt: string;
   lastStoppedAt: string | null;
 }

@@ -5,9 +5,8 @@ import Cultivation, {
   SECONDS_PER_YEAR,
   REALM_LIFESPAN,
   LIFESPAN_DRAIN_PER_YEAR,
+  PRACTICAL_INFINITY_LIFESPAN,
 } from '../models/Cultivation.js';
-
-const PRACTICAL_INFINITY_LIFESPAN = 9999999;
 
 // ─── Helper: lấy hoặc tạo cultivation record ──────────────────────────────────
 const getOrCreateCultivation = async (userId) => {
@@ -89,12 +88,11 @@ const autoStopIfFull = async (cult, spiritRootGrade) => {
   // EXP đã đầy → tự động dừng và bắt đầu đếm thọ nguyên
   cult.calculateAndSetBreakthroughReadyAt(spiritRootGrade, realm);
   
-  cult.flushLifespan();
+  cult.updateLifespan();
   cult.expAccumulated = realm.expRequired;
   cult.isTraining = false;
   cult.trainingStartedAt = null;
-  // lastStoppedAt sẽ được set bên trong flushLifespan nếu isTraining=false,
-  // nhưng ta gọi flushLifespan TRƯỚC khi set isTraining=false. Vậy phải gọi lại:
+  // lastStoppedAt sẽ được set sau khi updateLifespan nếu isTraining=false:
   cult.lastStoppedAt = cult.breakthroughReadyAt; // cho chuẩn thời gian bắt đầu ngưng
   await cult.save();
   return true;
@@ -145,7 +143,7 @@ export const startTraining = async (req, res) => {
       });
     }
 
-    cult.flushLifespan();
+    cult.updateLifespan();
     cult.isTraining = true;
     cult.trainingStartedAt = new Date();
     cult.lastStoppedAt = null;
@@ -186,7 +184,7 @@ export const stopTraining = async (req, res) => {
       cult.calculateAndSetBreakthroughReadyAt(user.spiritRootGrade, realm);
     }
 
-    cult.flushLifespan();
+    cult.updateLifespan();
     cult.expAccumulated = currentExp;
     cult.isTraining = false;
     cult.trainingStartedAt = null;
@@ -248,7 +246,7 @@ export const breakthrough = async (req, res) => {
     }
 
     // Flush thọ nguyên hao mòn vào DB
-    cult.flushLifespan();
+    cult.updateLifespan();
     cult.lifespan = Math.round(cult.lifespan * 100) / 100;
 
     // Trừ EXP, lên cảnh giới, reset thọ nguyên theo cảnh giới mới

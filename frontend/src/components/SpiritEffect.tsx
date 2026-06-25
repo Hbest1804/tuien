@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 
 interface SpiritEffectProps {
   type: string;

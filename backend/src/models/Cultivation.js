@@ -55,6 +55,7 @@ export const REALM_LIFESPAN = [100, 200, 500, 1000, Infinity];
 
 // Thọ nguyên hao mòn mỗi năm khi trì hoãn đột phá — đồng đều 1 năm/năm mọi cảnh giới
 export const LIFESPAN_DRAIN_PER_YEAR = [1, 1, 1, 1, 0];
+export const PRACTICAL_INFINITY_LIFESPAN = 9999999;
 
 // ─── Tốc độ tu luyện cơ bản (EXP/giây) ──────────────────────────────────────
 export const BASE_SPEED = {
@@ -157,7 +158,7 @@ cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade) {
   // Cap EXP ở ngưỡng đột phá của cảnh giới hiện tại
   const realm = REALMS[this.realmIndex];
   const cap = realm?.expRequired ?? Infinity;
-  return cap === Infinity ? raw : Math.min(raw, cap);
+  return Math.min(raw, cap);
 };
 
 // ─── Method: tốc độ tu luyện hiện tại (EXP/giây) ─────────────────────────────
@@ -179,14 +180,9 @@ cultivationSchema.methods.computeCurrentLifespan = function () {
   return Math.max(0, this.lifespan - drainYears * drainPerYear);
 };
 
-// ─── Method: flush thọ nguyên vào DB ─────────────────────────────────────────
-cultivationSchema.methods.flushLifespan = function () {
+// ─── Method: cập nhật thọ nguyên vào DB ──────────────────────────────────────
+cultivationSchema.methods.updateLifespan = function () {
   this.lifespan = this.computeCurrentLifespan();
-  if (!this.isTraining) {
-    this.lastStoppedAt = new Date();
-  } else {
-    this.lastStoppedAt = null;
-  }
 };
 
 // ─── Method: Tính toán thời điểm đầy EXP (chờ đột phá) ───────────────────────
