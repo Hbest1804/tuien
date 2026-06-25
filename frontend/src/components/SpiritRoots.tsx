@@ -361,7 +361,7 @@ export default function SpiritRoots() {
               <span className="text-primary text-sm font-bold">宗</span>
             </div>
             <span className="font-label-caps text-[9px] text-on-surface-variant mb-1">Tông Môn</span>
-            {cult?.isSectMember ? (
+            {cult && cult.isSectMember ? (
               <>
                 <span className="font-headline-md text-[14px] text-on-surface text-center leading-tight">{cult.sectName}</span>
                 <span className="font-label-caps text-[9px] text-secondary mt-1">Đệ Tử</span>

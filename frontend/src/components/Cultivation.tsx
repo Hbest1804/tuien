@@ -455,7 +455,7 @@ export default function Cultivation() {
               <div className="text-right">
                 <div className="font-label-caps text-on-surface-variant text-[10px] mb-0.5">Tốc Độ</div>
                 <div className="font-body-md text-sm" style={{ color: cult?.isTraining ? realm.color : 'rgba(160,150,130,0.6)' }}>
-                  {cult?.speed.toFixed(3) ?? '0.000'} <span className="text-on-surface-variant text-xs">EXP/s</span>
+                  {cult?.speed?.toFixed(3) ?? '0.000'} <span className="text-on-surface-variant text-xs">EXP/s</span>
                 </div>
               </div>
             </div>
@@ -612,7 +612,7 @@ export default function Cultivation() {
           )}
         </div>
 
-        {cult?.isSectMember ? (
+        {cult && cult.isSectMember ? (
           <div className="flex items-center justify-between">
             <div>
               <div className="font-headline-md text-[22px] text-on-background">{cult.sectName}</div>
