@@ -135,9 +135,8 @@ export default function CharacterAvatar({
         {orbits.map(({ r, count, size, speed }, ri) =>
           Array.from({ length: count }).map((_, pi) => {
             const a0  = (pi / count) * 360;
-            const rad = (a0 * Math.PI) / 180;
-            const cx  = 150 + r * Math.cos(rad);
-            const cy  = 240 + r * Math.sin(rad);
+            const cx  = 150 + r;
+            const cy  = 240;
             const dur = `${speed}s`;
             const beg = `${pi * (speed / count)}s`;
             return (

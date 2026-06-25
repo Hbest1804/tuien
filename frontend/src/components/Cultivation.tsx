@@ -446,7 +446,7 @@ export default function Cultivation() {
                 <div className="font-headline-md text-[28px] mt-0.5" style={{ color: realm.color }}>
                   {Math.floor(localExp).toLocaleString()}
                   <span className="text-on-surface-variant text-[14px] font-body-md ml-1">
-                    / {cult?.realmExpRequired === undefined || cult.realmExpRequired === Infinity
+                    / {cult?.realmExpRequired === undefined || cult.realmExpRequired === null || cult.realmExpRequired === Infinity
                         ? '∞'
                         : cult.realmExpRequired.toLocaleString()}
                   </span>
@@ -794,7 +794,7 @@ export default function Cultivation() {
                     </div>
 
                     {/* Mini progress bar cho cảnh giới hiện tại */}
-                    {isCurrent && cult && cult.realmExpRequired !== Infinity && (
+                    {isCurrent && cult && cult.realmExpRequired !== null && cult.realmExpRequired !== Infinity && (
                       <div className="mt-3">
                         <div className="flex justify-between mb-1">
                           <span className="font-label-caps text-[9px] text-on-surface-variant/50">Tiến độ trong cảnh giới</span>

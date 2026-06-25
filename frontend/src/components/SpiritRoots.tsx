@@ -318,7 +318,7 @@ export default function SpiritRoots() {
               <span className="font-body-md text-sm font-semibold" style={{ color: realmColor }}>
                 {Math.floor(localExp).toLocaleString()}
                 {cult.realmExpRequired !== undefined && (
-                  <span className="text-on-surface-variant font-normal"> / {cult.realmExpRequired === Infinity ? '∞' : cult.realmExpRequired.toLocaleString()}</span>
+                  <span className="text-on-surface-variant font-normal"> / {cult.realmExpRequired === null || cult.realmExpRequired === Infinity ? '∞' : cult.realmExpRequired.toLocaleString()}</span>
                 )}
               </span>
             </div>

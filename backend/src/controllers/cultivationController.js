@@ -1,5 +1,4 @@
 import Cultivation, { REALMS, SPIRIT_ROOT_MULTIPLIER, BASE_SPEED } from '../models/Cultivation.js';
-import User from '../models/User.js';
 
 // ─── Helper: lấy hoặc tạo cultivation record ──────────────────────────────────
 const getOrCreateCultivation = async (userId) => {
@@ -58,7 +57,7 @@ const formatCultivation = (cult, spiritRootGrade) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const getStatus = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = req.user;
     if (!user?.isCharacterCreated) {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
@@ -76,7 +75,7 @@ export const getStatus = async (req, res) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const startTraining = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = req.user;
     if (!user?.isCharacterCreated) {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
@@ -106,7 +105,7 @@ export const startTraining = async (req, res) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const stopTraining = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = req.user;
     if (!user?.isCharacterCreated) {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
@@ -141,7 +140,7 @@ export const stopTraining = async (req, res) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const breakthrough = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = req.user;
     if (!user?.isCharacterCreated) {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
@@ -193,7 +192,7 @@ export const joinSect = async (req, res) => {
       return res.status(400).json({ message: 'Tên tông môn không hợp lệ (từ 2 đến 30 ký tự)' });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = req.user;
     if (!user?.isCharacterCreated) {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
@@ -234,7 +233,7 @@ export const joinSect = async (req, res) => {
 // ──────────────────────────────────────────────────────────────────────────────
 export const leaveSect = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const user = req.user;
     if (!user?.isCharacterCreated) {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
