@@ -22,6 +22,13 @@ const formatCultivation = (cult, spiritRootGrade) => {
     ? 1
     : Math.min(currentExp / realm.expRequired, 1);
 
+  // Tính tầng hiện tại (0–3) dựa vào % EXP trong cảnh giới
+  const stages = realm.stages || ['Sơ Kỳ', 'Trung Kỳ', 'Hậu Kỳ', 'Đại Viên Mãn'];
+  const stageIndex = realm.expRequired === Infinity
+    ? stages.length - 1
+    : Math.min(Math.floor(progress * stages.length), stages.length - 1);
+  const stageName = stages[stageIndex];
+
   return {
     isTraining: cult.isTraining,
     trainingStartedAt: cult.trainingStartedAt,
@@ -32,6 +39,9 @@ const formatCultivation = (cult, spiritRootGrade) => {
     realmName: realm.name,
     realmColor: realm.color,
     realmExpRequired: realm.expRequired,
+    realmStages: stages,               // ['Sơ Kỳ', 'Trung Kỳ', 'Hậu Kỳ', 'Đại Viên Mãn']
+    stageIndex,                        // tầng hiện tại (0–3)
+    stageName,                         // tên tầng hiện tại
     nextRealmName: nextRealm?.name || null,
     progress,                          // 0 → 1
     sectName: cult.sectName,

@@ -13,12 +13,14 @@ import {
 import SpiritEffect from './SpiritEffect';
 
 // ─── Cảnh giới metadata ───────────────────────────────────────────────────────
+const STAGES = ['Sơ Kỳ', 'Trung Kỳ', 'Hậu Kỳ', 'Đại Viên Mãn'];
+
 const REALMS = [
-  { id: 0, name: 'Luyện Khí',  color: '#7ed99e', glow: 'rgba(126,217,158,0.4)' },
-  { id: 1, name: 'Trúc Cơ',   color: '#f2ca50', glow: 'rgba(242,202,80,0.4)'  },
-  { id: 2, name: 'Kim Đan',   color: '#f2ca50', glow: 'rgba(242,202,80,0.5)'  },
-  { id: 3, name: 'Nguyên Anh',color: '#b066ff', glow: 'rgba(176,102,255,0.4)' },
-  { id: 4, name: 'Hóa Thần',  color: '#b066ff', glow: 'rgba(176,102,255,0.5)' },
+  { id: 0, name: 'Luyện Khí',  color: '#7ed99e', glow: 'rgba(126,217,158,0.4)', stages: STAGES },
+  { id: 1, name: 'Trúc Cơ',   color: '#f2ca50', glow: 'rgba(242,202,80,0.4)',  stages: STAGES },
+  { id: 2, name: 'Kim Đan',   color: '#f2ca50', glow: 'rgba(242,202,80,0.5)',  stages: STAGES },
+  { id: 3, name: 'Nguyên Anh',color: '#b066ff', glow: 'rgba(176,102,255,0.4)', stages: STAGES },
+  { id: 4, name: 'Hóa Thần',  color: '#b066ff', glow: 'rgba(176,102,255,0.5)', stages: STAGES },
 ];
 
 // ─── Floating spirit particle ──────────────────────────────────────────────────
@@ -133,6 +135,7 @@ export default function Cultivation() {
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showSectModal, setShowSectModal] = useState(false);
   const [localExp, setLocalExp] = useState(0);
+  const [expandedRealm, setExpandedRealm] = useState<number | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -253,6 +256,12 @@ export default function Cultivation() {
   const canBreakthrough = cult
     ? cult.realmIndex < REALMS.length - 1 && localExp >= cult.realmExpRequired
     : false;
+
+  // Tính tầng hiện tại từ progress cục bộ (real-time)
+  const localStageIndex = cult?.realmExpRequired === Infinity
+    ? 3
+    : Math.min(Math.floor(progress * 4), 3);
+  const localStageName = STAGES[localStageIndex];
 
   // ─── Not character created ────────────────────────────────────────────────
   if (!user?.isCharacterCreated) {
@@ -383,8 +392,19 @@ export default function Cultivation() {
               </div>
               <div>
                 <div className="font-label-caps text-on-surface-variant text-[10px]">Cảnh Giới Hiện Tại</div>
-                <div className="font-headline-md text-[22px]" style={{ color: realm.color }}>
+                <div className="font-headline-md text-[22px] leading-tight" style={{ color: realm.color }}>
                   {realm.name}
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span
+                    className="font-label-caps text-[11px] px-2 py-0.5 rounded-full"
+                    style={{ background: `${realm.color}18`, color: realm.color, border: `1px solid ${realm.color}40` }}
+                  >
+                    {localStageName}
+                  </span>
+                  <span className="font-label-caps text-[10px] text-on-surface-variant/60">
+                    Tầng {localStageIndex + 1} / 4
+                  </span>
                 </div>
               </div>
             </div>
@@ -436,8 +456,8 @@ export default function Cultivation() {
               </div>
             </div>
 
-            {/* Progress bar */}
-            <div className="w-full h-3 rounded-full bg-surface-container-high overflow-hidden">
+            {/* Progress bar — chia 4 tầng */}
+            <div className="relative w-full h-3 rounded-full bg-surface-container-high overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-1000 ease-linear"
                 style={{
@@ -446,9 +466,34 @@ export default function Cultivation() {
                   boxShadow: cult?.isTraining ? `0 0 12px ${realm.glow}` : 'none',
                 }}
               />
+              {/* 3 vạch chia 4 tầng */}
+              {[25, 50, 75].map((pct) => (
+                <div
+                  key={pct}
+                  className="absolute top-0 bottom-0 w-px"
+                  style={{ left: `${pct}%`, background: 'rgba(0,0,0,0.35)' }}
+                />
+              ))}
             </div>
-            <div className="text-right mt-1 font-label-caps text-[10px] text-on-surface-variant">
-              {(progress * 100).toFixed(1)}%
+            {/* Stage labels */}
+            <div className="flex justify-between mt-1">
+              {STAGES.map((s, i) => (
+                <div
+                  key={s}
+                  className="font-label-caps text-[9px] transition-colors duration-300"
+                  style={{
+                    color: i < localStageIndex
+                      ? `${realm.color}80`
+                      : i === localStageIndex
+                      ? realm.color
+                      : 'rgba(160,150,130,0.3)',
+                    width: '25%',
+                    textAlign: i === 0 ? 'left' : i === 3 ? 'right' : 'center',
+                  }}
+                >
+                  {s}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -608,39 +653,153 @@ export default function Cultivation() {
 
       {/* ── Realm info ── */}
       <div className="glass-panel rounded-2xl p-6">
-        <p className="font-label-caps text-on-surface-variant tracking-widest mb-4">Thông Tin Cảnh Giới</p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <p className="font-label-caps text-on-surface-variant tracking-widest mb-4">Lịch Sử Cảnh Giới</p>
+        <div className="flex flex-col gap-2">
           {REALMS.map((r, i) => {
             const isCurrent = i === (cult?.realmIndex ?? 0);
             const isPassed  = i < (cult?.realmIndex ?? 0);
+            const isLocked  = i > (cult?.realmIndex ?? 0);
+            const isExpanded = expandedRealm === i;
+            const canExpand = isCurrent || isPassed;
+
+            // Tính stage info cho từng realm
+            const realmStageProgress = isCurrent ? localStageIndex : isPassed ? 3 : -1;
+
             return (
-              <div
-                key={r.id}
-                className={`rounded-xl p-4 border transition-all duration-300 ${
-                  isCurrent
-                    ? 'border-opacity-60 bg-opacity-10'
-                    : isPassed
-                    ? 'opacity-60 border-opacity-10'
-                    : 'opacity-30 border-opacity-5'
-                }`}
+              <div key={r.id} className="rounded-xl border transition-all duration-300"
                 style={{
-                  borderColor: isCurrent ? r.color : `${r.color}20`,
-                  background: isCurrent ? `${r.color}10` : 'transparent',
-                  boxShadow: isCurrent ? `0 0 20px ${r.glow}` : 'none',
+                  borderColor: isCurrent ? `${r.color}50` : isPassed ? `${r.color}20` : 'rgba(100,90,70,0.1)',
+                  background: isCurrent ? `${r.color}08` : 'transparent',
+                  boxShadow: isCurrent && isExpanded ? `0 0 20px ${r.glow}` : 'none',
+                  opacity: isLocked ? 0.3 : 1,
                 }}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <div
-                    className="w-2 h-2 rounded-full"
-                    style={{ background: r.color, boxShadow: isCurrent ? `0 0 6px ${r.color}` : 'none' }}
-                  />
-                  <span className="font-label-caps text-[10px]" style={{ color: r.color }}>
-                    {r.name} {isCurrent && '← Hiện tại'}
-                  </span>
-                </div>
-                <div className="font-body-md text-[11px] text-on-surface-variant/60">
-                  {isPassed ? '✓ Đã vượt qua' : isCurrent ? 'Đang tu luyện' : 'Chưa đạt tới'}
-                </div>
+                {/* Header row — clickable */}
+                <button
+                  className="w-full flex items-center justify-between px-4 py-3 text-left"
+                  disabled={isLocked}
+                  onClick={() => canExpand && setExpandedRealm(isExpanded ? null : i)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{
+                        background: r.color,
+                        boxShadow: isCurrent ? `0 0 8px ${r.color}` : 'none',
+                        animation: isCurrent ? 'pulse-aura 2s ease-in-out infinite alternate' : 'none',
+                      }}
+                    />
+                    <div>
+                      <span className="font-label-caps text-[11px]" style={{ color: isCurrent ? r.color : isPassed ? `${r.color}99` : 'rgba(160,150,130,0.4)' }}>
+                        {r.name}
+                      </span>
+                      {isCurrent && (
+                        <span
+                          className="ml-2 font-label-caps text-[9px] px-1.5 py-0.5 rounded-full"
+                          style={{ background: `${r.color}20`, color: r.color }}
+                        >
+                          {localStageName} · Tầng {localStageIndex + 1}
+                        </span>
+                      )}
+                      {isPassed && (
+                        <span className="ml-2 font-label-caps text-[9px] text-on-surface-variant/40">✓ Hoàn thành</span>
+                      )}
+                      {isLocked && (
+                        <span className="ml-2 font-label-caps text-[9px] text-on-surface-variant/30">Chưa đạt tới</span>
+                      )}
+                    </div>
+                  </div>
+                  {canExpand && (
+                    <span
+                      className="font-label-caps text-[9px] text-on-surface-variant/40 transition-transform duration-200"
+                      style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', display: 'inline-block' }}
+                    >
+                      ▼
+                    </span>
+                  )}
+                </button>
+
+                {/* Expanded: hiển thị 4 tầng con */}
+                {isExpanded && canExpand && (
+                  <div className="px-4 pb-4">
+                    <div className="grid grid-cols-4 gap-2">
+                      {STAGES.map((stage, si) => {
+                        const stageDone   = si < realmStageProgress;
+                        const stageCurrent = si === realmStageProgress;
+                        const stageLocked  = si > realmStageProgress;
+                        return (
+                          <div
+                            key={stage}
+                            className="rounded-lg p-2.5 text-center border transition-all duration-300"
+                            style={{
+                              borderColor: stageCurrent
+                                ? `${r.color}60`
+                                : stageDone
+                                ? `${r.color}25`
+                                : 'rgba(100,90,70,0.1)',
+                              background: stageCurrent
+                                ? `${r.color}12`
+                                : stageDone
+                                ? `${r.color}06`
+                                : 'transparent',
+                              opacity: stageLocked ? 0.35 : 1,
+                            }}
+                          >
+                            <div
+                              className="font-label-caps text-[9px] mb-1"
+                              style={{
+                                color: stageCurrent ? r.color : stageDone ? `${r.color}80` : 'rgba(160,150,130,0.4)',
+                              }}
+                            >
+                              Tầng {si + 1}
+                            </div>
+                            <div
+                              className="font-body-md text-[10px]"
+                              style={{
+                                color: stageCurrent ? r.color : stageDone ? `${r.color}70` : 'rgba(160,150,130,0.3)',
+                              }}
+                            >
+                              {stage}
+                            </div>
+                            <div className="mt-1 text-[8px] font-label-caps">
+                              {stageDone ? (
+                                <span style={{ color: `${r.color}70` }}>✓</span>
+                              ) : stageCurrent ? (
+                                <span style={{ color: r.color }}>▶</span>
+                              ) : (
+                                <span className="text-on-surface-variant/20">—</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Mini progress bar cho cảnh giới hiện tại */}
+                    {isCurrent && cult && cult.realmExpRequired !== Infinity && (
+                      <div className="mt-3">
+                        <div className="flex justify-between mb-1">
+                          <span className="font-label-caps text-[9px] text-on-surface-variant/50">Tiến độ trong cảnh giới</span>
+                          <span className="font-label-caps text-[9px]" style={{ color: r.color }}>
+                            {Math.floor(localExp).toLocaleString()} / {cult.realmExpRequired.toLocaleString()} EXP
+                          </span>
+                        </div>
+                        <div className="relative w-full h-1.5 rounded-full bg-surface-container-high overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-1000"
+                            style={{
+                              width: `${Math.min(progress * 100, 100)}%`,
+                              background: `linear-gradient(90deg, ${r.color}70, ${r.color})`,
+                            }}
+                          />
+                          {[25, 50, 75].map((p) => (
+                            <div key={p} className="absolute top-0 bottom-0 w-px" style={{ left: `${p}%`, background: 'rgba(0,0,0,0.3)' }} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

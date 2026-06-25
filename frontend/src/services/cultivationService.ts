@@ -10,6 +10,9 @@ export interface CultivationData {
   realmName: string;
   realmColor: string;
   realmExpRequired: number;
+  realmStages: string[];
+  stageIndex: number;
+  stageName: string;
   nextRealmName: string | null;
   progress: number;
   sectName: string | null;
