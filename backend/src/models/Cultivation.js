@@ -126,7 +126,7 @@ cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade) {
   }
 
   const now = Date.now();
-  const elapsed = (now - this.trainingStartedAt) / 1000; // giây
+  const elapsed = (now - this.trainingStartedAt.getTime()) / 1000; // giây
   const speed = this.computeSpeed(spiritRootGrade);
   const gained = Math.max(0, elapsed * speed);
 

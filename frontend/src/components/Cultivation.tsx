@@ -133,6 +133,7 @@ export default function Cultivation() {
   const { user } = useAuth();
   const [cult, setCult] = useState<CultivationData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showSectModal, setShowSectModal] = useState(false);
@@ -153,12 +154,13 @@ export default function Cultivation() {
   const fetchStatus = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await getCultivationStatus();
       const data = res.data.cultivation;
       setCult(data);
       setLocalExp(data.currentExp);
-    } catch {
-      // silently ignore
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Lỗi tải dữ liệu tu luyện. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
@@ -284,6 +286,24 @@ export default function Cultivation() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-primary animate-pulse font-label-caps tracking-widest">Đang tải tu luyện...</div>
+      </div>
+    );
+  }
+
+  if (error && !cult) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="glass-panel rounded-2xl p-10 text-center max-w-md border border-error/30">
+          <AlertCircle size={40} className="text-error mx-auto mb-4 opacity-70" />
+          <h2 className="font-headline-md text-on-background mb-2">Lỗi Kết Nối</h2>
+          <p className="text-on-surface-variant font-body-md text-sm mb-6">{error}</p>
+          <button
+            onClick={fetchStatus}
+            className="px-6 py-3 rounded-xl bg-error/10 text-error border border-error/20 font-body-md text-sm hover:bg-error/20 transition-all"
+          >
+            Thử Lại
+          </button>
+        </div>
       </div>
     );
   }

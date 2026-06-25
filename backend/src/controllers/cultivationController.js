@@ -117,8 +117,7 @@ export const stopTraining = async (req, res) => {
     }
 
     // Flush EXP tích lũy vào DB
-    const gained = cult.computeCurrentExp(user.spiritRootGrade) - cult.expAccumulated;
-    cult.expAccumulated += gained;
+    cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
     cult.isTraining = false;
     cult.trainingStartedAt = null;
     await cult.save();
@@ -153,8 +152,7 @@ export const breakthrough = async (req, res) => {
 
     // Cộng EXP offline trước khi đột phá
     if (cult.isTraining) {
-      const gained = cult.computeCurrentExp(user.spiritRootGrade) - cult.expAccumulated;
-      cult.expAccumulated += gained;
+      cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
       cult.trainingStartedAt = new Date(); // reset timer
     }
 
@@ -207,8 +205,7 @@ export const joinSect = async (req, res) => {
 
     // Flush EXP nếu đang train
     if (cult.isTraining) {
-      const gained = cult.computeCurrentExp(user.spiritRootGrade) - cult.expAccumulated;
-      cult.expAccumulated += gained;
+      cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
       cult.trainingStartedAt = new Date();
     }
 
@@ -247,8 +244,7 @@ export const leaveSect = async (req, res) => {
 
     // Flush EXP nếu đang train
     if (cult.isTraining) {
-      const gained = cult.computeCurrentExp(user.spiritRootGrade) - cult.expAccumulated;
-      cult.expAccumulated += gained;
+      cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
       cult.trainingStartedAt = new Date();
     }
 
