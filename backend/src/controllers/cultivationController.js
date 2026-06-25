@@ -68,6 +68,7 @@ const formatCultivation = (cult, spiritRootGrade) => {
     yearsWaiting,
     lifespan: currentLifespan,
     lifespanMax,
+    createdAt: cult.createdAt,
   };
 };
 

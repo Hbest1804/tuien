@@ -143,6 +143,7 @@ export default function Cultivation() {
   const [showSectModal, setShowSectModal] = useState(false);
   const [localExp, setLocalExp] = useState(0);
   const [localYearsWaiting, setLocalYearsWaiting] = useState(0);
+  const [localTotalYears, setLocalTotalYears] = useState(0);
   const [expandedRealm, setExpandedRealm] = useState<number | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
@@ -203,6 +204,19 @@ export default function Cultivation() {
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [cult?.isBreakthroughReady, cult?.breakthroughReadyAt, cult?.yearsWaiting]);
+
+  // ─── Local tick: đếm tổng thời gian tu đạo real-time ────────────────
+  useEffect(() => {
+    if (!cult?.createdAt) return;
+    const createdAtTime = new Date(cult.createdAt).getTime();
+    const update = () => {
+      const elapsed = (Date.now() - createdAtTime) / 1000;
+      setLocalTotalYears(elapsed / SECONDS_PER_YEAR);
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [cult?.createdAt]);
 
   // ─── Actions ──────────────────────────────────────────────────────────────
   const handleToggleTraining = async () => {
@@ -369,9 +383,20 @@ export default function Cultivation() {
       )}
 
       {/* ── Header ── */}
-      <div className="text-center mb-2">
+      <div className="text-center mb-2 relative">
         <div className="font-label-caps text-primary tracking-[0.2em] mb-2">Con Đường Tu Tiên</div>
         <h1 className="font-headline-lg text-on-background">Tu Luyện</h1>
+        
+        {/* Tu đạo tuế nguyệt (Tổng thời gian tu luyện) */}
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <Clock size={14} className="text-on-surface-variant/70" />
+          <span className="font-label-caps text-[11px] text-on-surface-variant/70">
+            Tu đạo tuế nguyệt:
+          </span>
+          <span className="font-headline-sm text-primary text-[16px]">
+            {localTotalYears.toFixed(2)} năm
+          </span>
+        </div>
       </div>
 
       {/* ── Realm Road ── */}
