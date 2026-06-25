@@ -634,7 +634,7 @@ export default function Cultivation() {
                 >
                   <AlertCircle size={14} className="text-red-400 shrink-0" />
                   <span className="font-label-caps text-[10px] text-red-400">
-                    THọO NGUYÊN CẠN KIỆT! HÃY ĐỘT PHÁ NGAY!
+                    THỌ NGUYÊN CẠN KIỆT! HÃY ĐỘT PHÁ NGAY!
                   </span>
                 </div>
               )}

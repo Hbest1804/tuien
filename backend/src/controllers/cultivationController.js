@@ -200,7 +200,7 @@ export const stopTraining = async (req, res) => {
     cult.expAccumulated = currentExp;
     cult.isTraining = false;
     cult.trainingStartedAt = null;
-    cult.lastStoppedAt = new Date();
+    cult.lastStoppedAt = cult.breakthroughReadyAt || new Date();
 
     await cult.save();
 
@@ -235,11 +235,6 @@ export const breakthrough = async (req, res) => {
       return res.status(400).json({ message: 'Đã đạt cảnh giới tối thượng!' });
     }
 
-    // Cộng EXP offline trước khi đột phá
-    if (cult.isTraining) {
-      cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
-      cult.trainingStartedAt = new Date(); // reset timer
-    }
 
     const currentRealm = REALMS[cult.realmIndex];
     if (cult.expAccumulated < currentRealm.expRequired) {
@@ -255,6 +250,7 @@ export const breakthrough = async (req, res) => {
       cult.expAccumulated = 0;
       cult.lifespan = REALM_LIFESPAN[cult.realmIndex] ?? 100;
       cult.breakthroughReadyAt = null;
+      cult.lastStoppedAt = new Date();
       await cult.save();
       return res.status(400).json({
         message: '💀 Thọ nguyên cạn kiệt! Tinh khí tán tận — phải tu luyện lại từ đầu trong cảnh giới này.',
