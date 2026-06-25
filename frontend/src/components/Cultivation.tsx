@@ -394,7 +394,7 @@ export default function Cultivation() {
             Tu đạo tuế nguyệt:
           </span>
           <span className="font-headline-sm text-primary text-[16px]">
-            {localTotalYears.toFixed(2)} năm
+            {Math.floor(localTotalYears)} năm
           </span>
         </div>
       </div>
@@ -624,7 +624,7 @@ export default function Cultivation() {
                     className="font-headline-md text-[28px]"
                     style={{ color: lifespanWarning ? '#ef4444' : '#facc15' }}
                   >
-                    {localYearsWaiting.toFixed(2)}
+                    {Math.floor(localYearsWaiting)}
                     <span className="text-on-surface-variant text-[13px] font-body-md ml-1">năm</span>
                   </div>
                   <div className="font-body-md text-[10px] text-on-surface-variant/50 mt-0.5">
