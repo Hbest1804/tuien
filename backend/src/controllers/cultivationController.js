@@ -253,6 +253,7 @@ export const leaveSect = async (req, res) => {
       cultivation: formatCultivation(cult, user.spiritRootGrade),
     });
   } catch (err) {
-    res.status(500).json({ message: 'Lỗi server', error: err.message });
+    console.error('Lỗi server:', err);
+    res.status(500).json({ message: 'Lỗi server' });
   }
 };

@@ -228,7 +228,7 @@ export default function Cultivation() {
   };
 
   const handleLeaveSect = async () => {
-    if (!confirm('Xác nhận rời tông môn? Tốc độ tu luyện sẽ giảm xuống.')) return;
+    if (!window.confirm('Xác nhận rời tông môn? Tốc độ tu luyện sẽ giảm xuống.')) return;
     setActionLoading(true);
     try {
       const res = await leaveSect();
