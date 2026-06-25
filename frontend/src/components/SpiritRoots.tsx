@@ -77,6 +77,13 @@ export default function SpiritRoots() {
   const [cult, setCult] = useState<CultivationData | null>(null);
   const [localExp, setLocalExp] = useState(0);
   const [localIdleYears, setLocalIdleYears] = useState(0);
+  const [fetchedAt, setFetchedAt] = useState<number>(Date.now());
+
+  useEffect(() => {
+    if (cult) {
+      setFetchedAt(Date.now());
+    }
+  }, [cult]);
 
   // Fetch cultivation data
   const fetchCult = useCallback(async () => {
@@ -109,14 +116,8 @@ export default function SpiritRoots() {
 
       // Idle Years Tick for Lifespan drain
       if (!cult?.isTraining) {
-        const stopTimeStr = cult?.lastStoppedAt || cult?.createdAt;
-        if (stopTimeStr) {
-          const stopTime = new Date(stopTimeStr).getTime();
-          const elapsedSeconds = Math.max(0, (now - stopTime) / 1000);
-          setLocalIdleYears(elapsedSeconds / 3600);
-        } else {
-          setLocalIdleYears(0);
-        }
+        const elapsedSeconds = Math.max(0, (now - fetchedAt) / 1000);
+        setLocalIdleYears(elapsedSeconds / 3600);
       } else {
         setLocalIdleYears(0);
       }

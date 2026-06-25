@@ -103,6 +103,7 @@ const autoStopIfFull = async (cult, spiritRootGrade) => {
       const updated = await Cultivation.findById(cult._id);
       if (updated) {
         cult.set(updated.toObject());
+        return await autoStopIfFull(cult, spiritRootGrade);
       }
     } else {
       throw err;
@@ -310,6 +311,8 @@ export const joinSect = async (req, res) => {
       });
     }
 
+    // Auto-stop if EXP is full before joining
+    await autoStopIfFull(cult, user.spiritRootGrade);
     // Flush EXP nếu đang train
     if (cult.isTraining) {
       cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
@@ -349,6 +352,8 @@ export const leaveSect = async (req, res) => {
 
     const oldSect = cult.sectName;
 
+    // Auto-stop if EXP is full before leaving
+    await autoStopIfFull(cult, user.spiritRootGrade);
     // Flush EXP nếu đang train
     if (cult.isTraining) {
       cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);

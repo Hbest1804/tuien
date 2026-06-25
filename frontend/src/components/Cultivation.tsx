@@ -32,6 +32,13 @@ export default function Cultivation() {
   const [localYearsWaiting, setLocalYearsWaiting] = useState(0);
   const [localIdleYears, setLocalIdleYears] = useState(0);
   const [localTotalYears, setLocalTotalYears] = useState(0);
+  const [fetchedAt, setFetchedAt] = useState<number>(Date.now());
+
+  useEffect(() => {
+    if (cult) {
+      setFetchedAt(Date.now());
+    }
+  }, [cult]);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -82,23 +89,16 @@ export default function Cultivation() {
       // 2. Years Waiting Tick
       if (cult?.breakthroughReadyAt) {
         const readyTime = new Date(cult.breakthroughReadyAt).getTime();
-        const baseYears = cult.yearsWaiting ?? 0;
         const elapsedSeconds = Math.max(0, (now - readyTime) / 1000);
-        setLocalYearsWaiting(baseYears + elapsedSeconds / 3600);
+        setLocalYearsWaiting(elapsedSeconds / 3600);
       } else {
         setLocalYearsWaiting(cult?.yearsWaiting ?? 0);
       }
 
       // 3. Idle Years Tick
       if (!cult?.isTraining) {
-        const stopTimeStr = cult?.lastStoppedAt || cult?.createdAt;
-        if (stopTimeStr) {
-          const stopTime = new Date(stopTimeStr).getTime();
-          const elapsedSeconds = Math.max(0, (now - stopTime) / 1000);
-          setLocalIdleYears(elapsedSeconds / 3600);
-        } else {
-          setLocalIdleYears(0);
-        }
+        const elapsedSeconds = Math.max(0, (now - fetchedAt) / 1000);
+        setLocalIdleYears(elapsedSeconds / 3600);
       } else {
         setLocalIdleYears(0);
       }
