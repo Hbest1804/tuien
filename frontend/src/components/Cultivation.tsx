@@ -34,11 +34,11 @@ export default function Cultivation() {
   const [localTotalYears, setLocalTotalYears] = useState(0);
   const [fetchedAt, setFetchedAt] = useState<number>(Date.now());
 
-  useEffect(() => {
-    if (cult) {
-      setFetchedAt(Date.now());
-    }
-  }, [cult]);
+  const updateCultivationData = useCallback((data: CultivationData) => {
+    setCult(data);
+    setLocalExp(data.currentExp);
+    setFetchedAt(Date.now());
+  }, []);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -57,15 +57,14 @@ export default function Cultivation() {
       setError(null);
       const res = await getCultivationStatus();
       const data = res.data.cultivation;
-      setCult(data);
-      setLocalExp(data.currentExp);
+      updateCultivationData(data);
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Lỗi tải dữ liệu tu luyện. Vui lòng thử lại.';
       setError(msg || 'Lỗi tải dữ liệu tu luyện. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [updateCultivationData]);
 
   useEffect(() => {
     if (user?.isCharacterCreated) fetchStatus();
@@ -123,13 +122,11 @@ export default function Cultivation() {
     try {
       if (cult.isTraining) {
         const res = await stopCultivation();
-        setCult(res.data.cultivation);
-        setLocalExp(res.data.cultivation.currentExp);
+        updateCultivationData(res.data.cultivation);
         showToast(`🧘 Ngưng tu luyện. Tích lũy được ${res.data.gained ?? 0} EXP.`);
       } else {
         const res = await startCultivation();
-        setCult(res.data.cultivation);
-        setLocalExp(res.data.cultivation.currentExp);
+        updateCultivationData(res.data.cultivation);
         showToast('⚡ Bắt đầu tu luyện!');
       }
     } catch (err: unknown) {
@@ -144,8 +141,7 @@ export default function Cultivation() {
     setActionLoading(true);
     try {
       const res = await doBreakthrough();
-      setCult(res.data.cultivation);
-      setLocalExp(res.data.cultivation.currentExp);
+      updateCultivationData(res.data.cultivation);
       showToast(res.data.message || '🌟 Đột phá thành công!');
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Chưa đủ EXP';
@@ -159,8 +155,7 @@ export default function Cultivation() {
     setActionLoading(true);
     try {
       const res = await joinSect(name);
-      setCult(res.data.cultivation);
-      setLocalExp(res.data.cultivation.currentExp);
+      updateCultivationData(res.data.cultivation);
       setShowSectModal(false);
       showToast(res.data.message || '🏯 Gia nhập tông môn thành công!');
     } catch (err: unknown) {
@@ -176,8 +171,7 @@ export default function Cultivation() {
     setActionLoading(true);
     try {
       const res = await leaveSect();
-      setCult(res.data.cultivation);
-      setLocalExp(res.data.cultivation.currentExp);
+      updateCultivationData(res.data.cultivation);
       showToast(res.data.message || '💨 Đã rời tông môn.');
     } catch (err: unknown) {
       const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Lỗi';

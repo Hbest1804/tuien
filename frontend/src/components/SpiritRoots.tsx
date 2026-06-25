@@ -79,23 +79,21 @@ export default function SpiritRoots() {
   const [localIdleYears, setLocalIdleYears] = useState(0);
   const [fetchedAt, setFetchedAt] = useState<number>(Date.now());
 
-  useEffect(() => {
-    if (cult) {
-      setFetchedAt(Date.now());
-    }
-  }, [cult]);
+  const updateCultivationData = useCallback((data: CultivationData) => {
+    setCult(data);
+    setLocalExp(data.currentExp);
+    setFetchedAt(Date.now());
+  }, []);
 
-  // Fetch cultivation data
   const fetchCult = useCallback(async () => {
     if (!user?.isCharacterCreated) return;
     try {
       const res = await getCultivationStatus();
-      setCult(res.data.cultivation);
-      setLocalExp(res.data.cultivation.currentExp);
+      updateCultivationData(res.data.cultivation);
     } catch (err) {
       console.error('Failed to fetch cultivation data:', err);
     }
-  }, [user?.isCharacterCreated]);
+  }, [user?.isCharacterCreated, updateCultivationData]);
 
   useEffect(() => { fetchCult(); }, [fetchCult]);
 
