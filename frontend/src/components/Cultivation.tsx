@@ -13,7 +13,9 @@ import {
 import SpiritEffect from './SpiritEffect';
 
 // ─── Cảnh giới metadata ───────────────────────────────────────────────────────
-const STAGES = ['Sơ Kỳ', 'Trung Kỳ', 'Hậu Kỳ', 'Đại Viên Mãn'];
+const MAJOR_STAGES = ['Sơ Kỳ', 'Trung Kỳ', 'Hậu Kỳ', 'Đại Viên Mãn'];
+const STAGES: string[] = MAJOR_STAGES.flatMap(k => Array.from({ length: 9 }, (_, i) => `${k} Tầng ${i + 1}`));
+// 36 phần tử: Sơ Kỳ Tầng 1 → Sơ Kỳ Tầng 9 → Trung Kỳ Tầng 1 → ... → Đại Viên Mãn Tầng 9
 
 const REALMS = [
   { id: 0, name: 'Luyện Khí',  color: '#7ed99e', glow: 'rgba(126,217,158,0.4)', stages: STAGES },
@@ -257,11 +259,13 @@ export default function Cultivation() {
     ? cult.realmIndex < REALMS.length - 1 && localExp >= cult.realmExpRequired
     : false;
 
-  // Tính tầng hiện tại từ progress cục bộ (real-time)
+  // Tính tầng hiện tại từ progress cục bộ (real-time) — 36 tầng tổng
   const localStageIndex = cult?.realmExpRequired === Infinity
-    ? 3
-    : Math.min(Math.floor(progress * 4), 3);
-  const localStageName = STAGES[localStageIndex];
+    ? 35
+    : Math.min(Math.floor(progress * 36), 35);
+  const localMajorIndex     = Math.floor(localStageIndex / 9);  // 0–3 (Sơ Kỳ → Đại Viên Mãn)
+  const localSubLevel       = (localStageIndex % 9) + 1;        // 1–9
+  const localMajorStageName = MAJOR_STAGES[localMajorIndex];
 
   // ─── Not character created ────────────────────────────────────────────────
   if (!user?.isCharacterCreated) {
@@ -400,10 +404,10 @@ export default function Cultivation() {
                     className="font-label-caps text-[11px] px-2 py-0.5 rounded-full"
                     style={{ background: `${realm.color}18`, color: realm.color, border: `1px solid ${realm.color}40` }}
                   >
-                    {localStageName}
+                    {localMajorStageName}
                   </span>
                   <span className="font-label-caps text-[10px] text-on-surface-variant/60">
-                    Tầng {localStageIndex + 1} / 4
+                    Tầng {localSubLevel} / 9
                   </span>
                 </div>
               </div>
@@ -475,16 +479,16 @@ export default function Cultivation() {
                 />
               ))}
             </div>
-            {/* Stage labels */}
+            {/* Stage labels — 4 kỳ chính */}
             <div className="flex justify-between mt-1">
-              {STAGES.map((s, i) => (
+              {MAJOR_STAGES.map((s, i) => (
                 <div
                   key={s}
                   className="font-label-caps text-[9px] transition-colors duration-300"
                   style={{
-                    color: i < localStageIndex
+                    color: i < localMajorIndex
                       ? `${realm.color}80`
-                      : i === localStageIndex
+                      : i === localMajorIndex
                       ? realm.color
                       : 'rgba(160,150,130,0.3)',
                     width: '25%',
@@ -662,8 +666,8 @@ export default function Cultivation() {
             const isExpanded = expandedRealm === i;
             const canExpand = isCurrent || isPassed;
 
-            // Tính stage info cho từng realm
-            const realmStageProgress = isCurrent ? localStageIndex : isPassed ? 3 : -1;
+            // Tính stage info cho từng realm (0-35)
+            const realmStageProgress = isCurrent ? localStageIndex : isPassed ? 35 : -1;
 
             return (
               <div key={r.id} className="rounded-xl border transition-all duration-300"
@@ -698,7 +702,7 @@ export default function Cultivation() {
                           className="ml-2 font-label-caps text-[9px] px-1.5 py-0.5 rounded-full"
                           style={{ background: `${r.color}20`, color: r.color }}
                         >
-                          {localStageName} · Tầng {localStageIndex + 1}
+                          {localMajorStageName} · Tầng {localSubLevel}
                         </span>
                       )}
                       {isPassed && (
@@ -719,57 +723,71 @@ export default function Cultivation() {
                   )}
                 </button>
 
-                {/* Expanded: hiển thị 4 tầng con */}
+                {/* Expanded: hiển thị 4 kỳ × 9 tầng */}
                 {isExpanded && canExpand && (
                   <div className="px-4 pb-4">
-                    <div className="grid grid-cols-4 gap-2">
-                      {STAGES.map((stage, si) => {
-                        const stageDone   = si < realmStageProgress;
-                        const stageCurrent = si === realmStageProgress;
-                        const stageLocked  = si > realmStageProgress;
+                    <div className="flex flex-col gap-3">
+                      {MAJOR_STAGES.map((majorStage, mi) => {
+                        const majorStart   = mi * 9;
+                        const majorEnd     = majorStart + 8;
+                        const majorAllDone = realmStageProgress > majorEnd;
+                        const majorActive  = realmStageProgress >= majorStart && realmStageProgress <= majorEnd;
                         return (
-                          <div
-                            key={stage}
-                            className="rounded-lg p-2.5 text-center border transition-all duration-300"
-                            style={{
-                              borderColor: stageCurrent
-                                ? `${r.color}60`
-                                : stageDone
-                                ? `${r.color}25`
-                                : 'rgba(100,90,70,0.1)',
-                              background: stageCurrent
-                                ? `${r.color}12`
-                                : stageDone
-                                ? `${r.color}06`
-                                : 'transparent',
-                              opacity: stageLocked ? 0.35 : 1,
-                            }}
-                          >
-                            <div
-                              className="font-label-caps text-[9px] mb-1"
-                              style={{
-                                color: stageCurrent ? r.color : stageDone ? `${r.color}80` : 'rgba(160,150,130,0.4)',
-                              }}
-                            >
-                              Tầng {si + 1}
+                          <div key={majorStage} className="flex items-center gap-2">
+                            {/* Tên kỳ */}
+                            <div className="shrink-0" style={{ width: '66px' }}>
+                              <span
+                                className="font-label-caps text-[9px]"
+                                style={{
+                                  color: majorAllDone
+                                    ? `${r.color}80`
+                                    : majorActive
+                                    ? r.color
+                                    : 'rgba(160,150,130,0.3)',
+                                }}
+                              >
+                                {majorStage}
+                              </span>
                             </div>
-                            <div
-                              className="font-body-md text-[10px]"
-                              style={{
-                                color: stageCurrent ? r.color : stageDone ? `${r.color}70` : 'rgba(160,150,130,0.3)',
-                              }}
-                            >
-                              {stage}
+                            {/* 9 ô tầng */}
+                            <div className="flex gap-1 flex-1">
+                              {Array.from({ length: 9 }, (_, si) => {
+                                const idx     = majorStart + si;
+                                const isDone  = idx < realmStageProgress;
+                                const isCurr  = idx === realmStageProgress;
+                                return (
+                                  <div key={si} className="flex-1 flex flex-col items-center gap-0.5">
+                                    <div
+                                      className="w-full h-2 rounded-sm transition-all duration-300"
+                                      style={{
+                                        background: isCurr
+                                          ? r.color
+                                          : isDone
+                                          ? `${r.color}55`
+                                          : 'rgba(100,90,70,0.15)',
+                                        boxShadow: isCurr ? `0 0 5px ${r.color}` : 'none',
+                                      }}
+                                    />
+                                    <span
+                                      className="font-label-caps"
+                                      style={{
+                                        fontSize: '7px',
+                                        color: isCurr
+                                          ? r.color
+                                          : isDone
+                                          ? `${r.color}55`
+                                          : 'rgba(160,150,130,0.2)',
+                                      }}
+                                    >
+                                      {si + 1}
+                                    </span>
+                                  </div>
+                                );
+                              })}
                             </div>
-                            <div className="mt-1 text-[8px] font-label-caps">
-                              {stageDone ? (
-                                <span style={{ color: `${r.color}70` }}>✓</span>
-                              ) : stageCurrent ? (
-                                <span style={{ color: r.color }}>▶</span>
-                              ) : (
-                                <span className="text-on-surface-variant/20">—</span>
-                              )}
-                            </div>
+                            {majorAllDone && (
+                              <span className="font-label-caps text-[9px] shrink-0" style={{ color: `${r.color}60` }}>✓</span>
+                            )}
                           </div>
                         );
                       })}
