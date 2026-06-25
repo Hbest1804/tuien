@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef, ReactNode } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useNavigate } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import MobileNav from './components/MobileNav';
 import Pavilion from './components/Pavilion';
 import SpiritRoots from './components/SpiritRoots';
 import WorldMap from './components/WorldMap';
+import Cultivation from './components/Cultivation';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CharacterSetupModal from './components/CharacterSetupModal';
 import { useAuth } from './context/AuthContext';
-import { TabType } from './types';
 import { Sword, CloudLightning, Mountain, ChevronDown, Star, Zap } from 'lucide-react';
 import './index.css';
 
@@ -46,21 +46,21 @@ function GlobalCharacterGuard({ children }: { children: ReactNode }) {
 }
 
 function MainLayout() {
-  const [activeTab, setActiveTab] = useState<TabType>('home');
-
-
   return (
     <div className="bg-background text-on-background min-h-screen relative overflow-x-hidden flex flex-col text-body-md font-body-md">
       <div className="fixed inset-0 ink-wash-overlay z-0 pointer-events-none"></div>
-      <NavBar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <NavBar />
       <main className="relative z-10 pt-24 min-h-screen flex flex-col flex-grow">
-        {activeTab === 'map' && <WorldMap />}
-        {activeTab === 'roots' && <SpiritRoots />}
-        {activeTab === 'pavilion' && <Pavilion />}
-        {activeTab === 'home' && <Home setActiveTab={setActiveTab} />}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/map" element={<WorldMap />} />
+          <Route path="/roots" element={<SpiritRoots />} />
+          <Route path="/pavilion" element={<Pavilion />} />
+          <Route path="/cultivation" element={<Cultivation />} />
+        </Routes>
       </main>
       <Footer />
-      <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <MobileNav />
     </div>
   );
 }
@@ -126,7 +126,8 @@ function StatCard({ value, label, suffix = '', delay }: { value: number; label: 
   );
 }
 
-function Home({ setActiveTab }: { setActiveTab: (t: TabType) => void }) {
+function Home() {
+  const navigate = useNavigate();
   const particles = Array.from({ length: 20 }, (_, i) => ({
     id: i,
     delay: i * 0.5,
@@ -229,7 +230,7 @@ function Home({ setActiveTab }: { setActiveTab: (t: TabType) => void }) {
           {/* CTA Buttons */}
           <div className="fade-in-up-delay-3 flex flex-col sm:flex-row items-center gap-4 mt-4">
             <button
-              onClick={() => setActiveTab('roots')}
+              onClick={() => navigate('/cultivation')}
               className="energy-pulse ornate-corners relative bg-primary/10 border border-primary text-primary px-10 py-4 rounded-lg font-headline-md text-[20px] hover:bg-primary/20 hover:gold-glow-strong transition-all duration-300 group"
             >
               <span className="relative z-10 flex items-center gap-2">
@@ -238,7 +239,7 @@ function Home({ setActiveTab }: { setActiveTab: (t: TabType) => void }) {
               </span>
             </button>
             <button
-              onClick={() => setActiveTab('map')}
+              onClick={() => navigate('/map')}
               className="border border-on-surface-variant/30 text-on-surface-variant px-8 py-4 rounded-lg font-body-lg hover:border-primary/50 hover:text-primary transition-all duration-300"
             >
               Khám Phá Thế Giới →
@@ -353,7 +354,7 @@ function Home({ setActiveTab }: { setActiveTab: (t: TabType) => void }) {
               Gia nhập hàng ngàn tu sĩ đang trên con đường tìm kiếm bất tử. Linh căn của ngươi đang chờ đợi.
             </p>
             <button
-              onClick={() => setActiveTab('roots')}
+              onClick={() => navigate('/roots')}
               className="energy-pulse ornate-corners bg-primary text-on-primary px-12 py-5 rounded-xl font-headline-md text-[20px] hover:bg-primary-fixed-dim transition-all duration-300 hover:shadow-[0_0_50px_rgba(242,202,80,0.4)] inline-flex items-center gap-3"
             >
               <Zap size={22} />
@@ -366,3 +367,5 @@ function Home({ setActiveTab }: { setActiveTab: (t: TabType) => void }) {
     </div>
   );
 }
+
+

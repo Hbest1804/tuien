@@ -1,22 +1,20 @@
 import { Bell, User, Flame, LogOut, LogIn } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { TabType } from '../types';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-interface NavBarProps {
-  activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
-}
-
-const navItems: { key: TabType; label: string }[] = [
-  { key: 'home',     label: 'Tông Đỉnh'   },
-  { key: 'map',      label: 'Bản Đồ'      },
-  { key: 'roots',    label: 'Linh Căn'    },
-  { key: 'pavilion', label: 'Tàng Kinh Các' },
+const navItems: { key: string; label: string; path: string }[] = [
+  { key: 'home',        label: 'Tông Đỉnh',     path: '/' },
+  { key: 'map',         label: 'Bản Đồ',        path: '/map' },
+  { key: 'roots',       label: 'Linh Căn',      path: '/roots' },
+  { key: 'cultivation', label: 'Tu Luyện',      path: '/cultivation' },
+  { key: 'pavilion',    label: 'Tàng Kinh Các', path: '/pavilion' },
 ];
 
-export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
+export default function NavBar() {
   const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
   return (
     <nav className="fixed top-0 w-full z-50 glass-panel border-b border-primary/15">
       {/* Top golden line */}
@@ -27,7 +25,7 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
         {/* Logo */}
         <div
           className="flex items-center gap-3 cursor-pointer group"
-          onClick={() => setActiveTab('home')}
+          onClick={() => navigate('/')}
         >
           <div className="relative w-10 h-10 md:w-11 md:h-11">
             <div className="absolute inset-0 rounded-xl bg-primary/20 animate-pulse-slow" />
@@ -42,19 +40,22 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
 
         {/* Desktop Nav */}
         <div className="hidden md:flex items-center gap-1">
-          {navItems.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`relative px-4 py-2 rounded-lg font-body-md font-medium transition-all duration-300 ${
-                activeTab === key
-                  ? 'text-primary bg-primary/10 nav-active-pill'
-                  : 'text-on-surface-variant hover:text-primary hover:bg-surface-container/60'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+          {navItems.map(({ key, label, path }) => {
+            const isActive = location.pathname === path;
+            return (
+              <Link
+                key={key}
+                to={path}
+                className={`relative px-4 py-2 rounded-lg font-body-md font-medium transition-all duration-300 ${
+                  isActive
+                    ? 'text-primary bg-primary/10 nav-active-pill'
+                    : 'text-on-surface-variant hover:text-primary hover:bg-surface-container/60'
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
         </div>
 
         {/* Actions */}

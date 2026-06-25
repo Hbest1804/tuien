@@ -1,12 +1,12 @@
 import express from 'express';
 import authRoutes from './authRoutes.js';
+import cultivationRoutes from './cultivationRoutes.js';
 
 const router = express.Router();
 
 router.use('/auth', authRoutes);
+router.use('/cultivation', cultivationRoutes);
 
-// Thêm các routes khác ở đây:
-// router.use('/users', userRoutes);
-// router.use('/products', productRoutes);
+
 
 export default router;
