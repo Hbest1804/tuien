@@ -144,28 +144,75 @@ const cultivationSchema = new mongoose.Schema(
 );
 
 // ─── Method: tính EXP hiện tại (bao gồm offline, có cap ở ngưỡng cảnh giới) ──
-cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade, inventorySpeedMultiplier = 1.0) {
+cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade, inventory = null) {
   if (!this.isTraining || !this.trainingStartedAt) {
     return this.expAccumulated;
   }
 
   const now = Date.now();
-  const elapsed = (now - this.trainingStartedAt.getTime()) / 1000; // giây
-  const speed = this.computeSpeed(spiritRootGrade, inventorySpeedMultiplier);
-  const gained = Math.max(0, elapsed * speed);
-  const raw = this.expAccumulated + gained;
+  const startTime = this.trainingStartedAt.getTime();
+  const baseSpeed = this.computeSpeedBase(spiritRootGrade);
 
-  // Cap EXP ở ngưỡng đột phá của cảnh giới hiện tại
+  let totalExpGained = 0;
+
+  // Tương thích ngược: nếu truyền vào số (speedMultiplier)
+  if (typeof inventory === 'number') {
+    const elapsed = (now - startTime) / 1000;
+    totalExpGained = Math.max(0, elapsed * baseSpeed * inventory);
+  } else if (!inventory || !inventory.activeBuffs || inventory.activeBuffs.length === 0) {
+    const elapsed = (now - startTime) / 1000;
+    totalExpGained = Math.max(0, elapsed * baseSpeed);
+  } else {
+    // Phân tích các mốc thời gian buff hết hạn
+    const events = [startTime, now];
+    for (const buff of inventory.activeBuffs) {
+      if (buff.buffType.startsWith('SPEED_')) {
+        const expiresTime = new Date(buff.expiresAt).getTime();
+        if (expiresTime > startTime && expiresTime < now) {
+          if (!events.includes(expiresTime)) events.push(expiresTime);
+        }
+      }
+    }
+    events.sort((a, b) => a - b);
+    
+    // Tính EXP cho từng khoảng thời gian
+    for (let i = 0; i < events.length - 1; i++) {
+      const segStart = events[i];
+      const segEnd = events[i+1];
+      const elapsed = (segEnd - segStart) / 1000;
+      
+      if (elapsed > 0) {
+        const midTime = segStart + (segEnd - segStart) / 2;
+        let multiplier = 1.0;
+        
+        for (const buff of inventory.activeBuffs) {
+          if (buff.buffType.startsWith('SPEED_')) {
+            if (new Date(buff.expiresAt).getTime() > midTime) {
+              multiplier *= buff.multiplier;
+            }
+          }
+        }
+        totalExpGained += elapsed * baseSpeed * multiplier;
+      }
+    }
+  }
+
+  const raw = this.expAccumulated + totalExpGained;
   const realm = REALMS[this.realmIndex];
   const cap = realm?.expRequired ?? Infinity;
   return Math.min(raw, cap);
 };
 
-// ─── Method: tốc độ tu luyện hiện tại (EXP/giây) ─────────────────────────────
-cultivationSchema.methods.computeSpeed = function (spiritRootGrade, inventorySpeedMultiplier = 1.0) {
+// ─── Method: tốc độ tu luyện cơ bản (chưa tính buff từ túi đồ) ────────────────
+cultivationSchema.methods.computeSpeedBase = function (spiritRootGrade) {
   const base = this.sectName ? BASE_SPEED['宗门'] : BASE_SPEED['散修'];
   const multiplier = SPIRIT_ROOT_MULTIPLIER[spiritRootGrade] || 1.0;
-  return base * multiplier * inventorySpeedMultiplier;
+  return base * multiplier;
+};
+
+// ─── Method: tốc độ tu luyện hiện tại (EXP/giây) ─────────────────────────────
+cultivationSchema.methods.computeSpeed = function (spiritRootGrade, inventorySpeedMultiplier = 1.0) {
+  return this.computeSpeedBase(spiritRootGrade) * inventorySpeedMultiplier;
 };
 
 // ─── Method: thọ nguyên hiện tại (sau khi trừ hao mòn real-time) ─────────────

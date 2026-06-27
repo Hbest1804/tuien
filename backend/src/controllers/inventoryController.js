@@ -87,8 +87,17 @@ export const addTestItem = async (req, res) => {
 
 export const useItem = async (req, res) => {
   try {
+    const user = req.user;
+    if (!user?.isCharacterCreated) {
+      return res.status(403).json({ message: 'Chưa tạo nhân vật' });
+    }
+
     const { itemId, quantity = 1 } = req.body;
     
+    if (!Number.isInteger(quantity) || quantity <= 0) {
+      return res.status(400).json({ message: 'Số lượng vật phẩm không hợp lệ.' });
+    }
+
     if (!ITEMS[itemId]) {
       return res.status(400).json({ message: 'Item ID không hợp lệ.' });
     }
@@ -134,15 +143,27 @@ export const useItem = async (req, res) => {
       if (cult.breakthroughReadyAt) {
         return res.status(400).json({ message: 'Tu vi đã viên mãn, cắn thuốc lúc này không có tác dụng, hãy đột phá trước!' });
       }
+      
       // Dừng tu luyện hiện tại để flush exp
-      const speedMultiplier = inventory.getSpeedBuffMultiplier();
       if (cult.isTraining) {
-        cult.expAccumulated = cult.computeCurrentExp(req.user.spiritRootGrade, speedMultiplier);
+        cult.expAccumulated = cult.computeCurrentExp(req.user.spiritRootGrade, inventory);
         cult.trainingStartedAt = new Date(); // reset start time
       }
       
       const actualExp = Math.floor(effects.expAmount * quantity * effectiveness);
       cult.expAccumulated += actualExp;
+
+      // Xử lý tràn EXP
+      const realm = REALMS[cult.realmIndex];
+      if (realm && realm.expRequired !== Infinity && cult.expAccumulated >= realm.expRequired) {
+        cult.expAccumulated = realm.expRequired;
+        cult.breakthroughReadyAt = new Date();
+        cult.lastStoppedAt = cult.breakthroughReadyAt;
+        if (cult.isTraining) {
+          cult.isTraining = false;
+          cult.trainingStartedAt = null;
+        }
+      }
       message += `Nhận được ${actualExp} EXP. `;
     }
 
