@@ -107,21 +107,31 @@ export const useItem = async (req, res) => {
       return res.status(400).json({ message: 'Item ID không hợp lệ.' });
     }
 
-    const inventory = await getOrCreateInventory(req.user._id);
-    const itemIndex = inventory.items.findIndex(i => i.itemId === itemId);
-    
-    if (itemIndex === -1 || inventory.items[itemIndex].quantity < quantity) {
-      return res.status(400).json({ message: 'Không đủ số lượng vật phẩm trong túi.' });
-    }
-
     const itemData = ITEMS[itemId];
     if (itemData.type !== ITEM_TYPES.PILL) {
       return res.status(400).json({ message: 'Vật phẩm này không thể sử dụng trực tiếp.' });
     }
 
+    // Đảm bảo túi đồ tồn tại trước khi vào transaction
+    await getOrCreateInventory(req.user._id);
+
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
+      const inventory = await Inventory.findOne({ userId: req.user._id }).session(session);
+      if (!inventory) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Không tìm thấy túi đồ.' });
+      }
+
+      const itemIndex = inventory.items.findIndex(i => i.itemId === itemId);
+      if (itemIndex === -1 || inventory.items[itemIndex].quantity < quantity) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Không đủ số lượng vật phẩm trong túi.' });
+      }
+
       let cult = await Cultivation.findOne({ userId: req.user._id }).session(session);
       if (!cult) {
         await session.abortTransaction();
@@ -170,6 +180,7 @@ export const useItem = async (req, res) => {
       // Xử lý tràn EXP
       const realm = REALMS[cult.realmIndex];
       if (realm && realm.expRequired !== Infinity && cult.expAccumulated >= realm.expRequired) {
+        cult.updateLifespan();
         cult.expAccumulated = realm.expRequired;
         cult.breakthroughReadyAt = new Date();
         cult.lastStoppedAt = cult.breakthroughReadyAt;
