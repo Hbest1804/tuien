@@ -71,10 +71,14 @@ inventorySchema.methods.cleanExpiredBuffs = function () {
   const now = new Date();
   const initialLength = this.activeBuffs.length;
   
-  this.activeBuffs = this.activeBuffs.filter(buff => buff.expiresAt > now);
-  this.markModified('activeBuffs');
+  const active = this.activeBuffs.filter(buff => buff.expiresAt > now);
+  if (active.length !== initialLength) {
+    this.activeBuffs = active;
+    this.markModified('activeBuffs');
+    return true;
+  }
   
-  return this.activeBuffs.length !== initialLength; // Trả về true nếu có buff bị xóa
+  return false;
 };
 
 // Method: lấy tổng hệ số buff tốc độ (multiplicative)

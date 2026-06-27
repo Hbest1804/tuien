@@ -214,6 +214,7 @@ export const useItem = async (req, res) => {
       const existingBuff = inventory.activeBuffs.find(b => b.buffType === effects.buffType);
       if (existingBuff) {
         existingBuff.expiresAt = new Date(Math.max(Date.now(), existingBuff.expiresAt.getTime()) + durationMs);
+        inventory.markModified('activeBuffs');
       } else {
         inventory.activeBuffs.push({
           buffType: effects.buffType,
