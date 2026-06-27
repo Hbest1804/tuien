@@ -267,8 +267,8 @@ export const breakthrough = async (req, res) => {
     }
     let cult = await Cultivation.findOne({ userId: req.user._id }).session(session);
     if (!cult) {
-      await getOrCreateCultivation(req.user._id);
-      cult = await Cultivation.findOne({ userId: req.user._id }).session(session);
+      cult = new Cultivation({ userId: req.user._id });
+      await cult.save({ session });
     }
 
     cult = await autoStopIfFull(cult, user.spiritRootGrade, inventory, session);
