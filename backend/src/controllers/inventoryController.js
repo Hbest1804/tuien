@@ -45,9 +45,12 @@ export const getInventoryStatus = async (req, res) => {
     }
 
     const inventory = await getOrCreateInventory(req.user._id);
-    await inventory.save(); // save để update buff hết hạn nếu có
+    const populated = populateInventoryData(inventory);
+    if (inventory.isModified()) {
+      await inventory.save();
+    }
     
-    res.json({ inventory: populateInventoryData(inventory) });
+    res.json({ inventory: populated });
   } catch (err) {
     console.error('Lỗi getInventoryStatus:', err);
     res.status(500).json({ message: 'Lỗi server' });
@@ -220,15 +223,14 @@ export const useItem = async (req, res) => {
       message += `Tốc độ tu luyện x${effects.multiplier} trong ${effects.durationHours * quantity} giờ. `;
     }
 
-    await cult.save();
-
-    // Trừ vật phẩm trong túi
+    // Trừ vật phẩm trong túi trước để tránh lỗi trùng lặp (duplication exploit) nếu lưu cultivation thành công nhưng lưu inventory thất bại
     inventory.items[itemIndex].quantity -= quantity;
     if (inventory.items[itemIndex].quantity <= 0) {
       inventory.items.splice(itemIndex, 1);
     }
     
     await inventory.save();
+    await cult.save();
 
     res.json({ message, inventory: populateInventoryData(inventory) });
   } catch (err) {

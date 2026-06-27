@@ -130,7 +130,7 @@ export const getStatus = async (req, res) => {
     cult = await autoStopIfFull(cult, user.spiritRootGrade, inventory);
 
     const speedMultiplier = inventory ? inventory.getSpeedBuffMultiplier() : 1.0;
-    if (inventory) await inventory.save(); // lưu lại trạng thái đã xóa buff hết hạn sau khi compute
+    if (inventory && inventory.isModified()) await inventory.save(); // lưu lại trạng thái đã xóa buff hết hạn sau khi compute
 
     res.json({ cultivation: formatCultivation(cult, user.spiritRootGrade, inventory, speedMultiplier) });
   } catch (err) {
@@ -182,7 +182,7 @@ export const startTraining = async (req, res) => {
     cult.trainingStartedAt = new Date();
     cult.lastStoppedAt = null;
     await cult.save();
-    if (inventory) await inventory.save();
+    if (inventory && inventory.isModified()) await inventory.save();
 
     res.json({
       message: '⚡ Bắt đầu tu luyện! Linh khí đang chảy vào thể phách...',
@@ -229,7 +229,7 @@ export const stopTraining = async (req, res) => {
     cult.lastStoppedAt = cult.breakthroughReadyAt || new Date();
 
     await cult.save();
-    if (inventory) await inventory.save();
+    if (inventory && inventory.isModified()) await inventory.save();
 
     res.json({
       message: '🧘 Ngưng tu luyện. Linh khí được cất giữ trong đan điền.',
@@ -293,7 +293,7 @@ export const breakthrough = async (req, res) => {
     cult.lastStoppedAt = cult.isTraining ? null : new Date();
 
     await cult.save();
-    if (inventory) await inventory.save();
+    if (inventory && inventory.isModified()) await inventory.save();
 
     const newRealm = REALMS[cult.realmIndex];
     res.json({
@@ -341,7 +341,7 @@ export const joinSect = async (req, res) => {
     await cult.save();
     
     const speedMultiplier = inventory ? inventory.getSpeedBuffMultiplier() : 1.0;
-    if (inventory) await inventory.save();
+    if (inventory && inventory.isModified()) await inventory.save();
 
     const newSpeed = cult.computeSpeed(user.spiritRootGrade, speedMultiplier);
     res.json({
