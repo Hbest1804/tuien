@@ -91,22 +91,6 @@ export default function Inventory() {
         </div>
       )}
 
-      {/* Cheat / Debug Panel */}
-      <div className="mb-8 flex flex-wrap justify-center gap-3">
-        <button onClick={() => handleCheatItem('pill_tu_khi_dan')} className="px-4 py-2 bg-surface-container border border-primary/30 rounded-lg text-xs hover:bg-primary/20">
-          +5 Tụ Khí Đan
-        </button>
-        <button onClick={() => handleCheatItem('pill_truc_co_dan')} className="px-4 py-2 bg-surface-container border border-primary/30 rounded-lg text-xs hover:bg-primary/20">
-          +5 Trúc Cơ Đan
-        </button>
-        <button onClick={() => handleCheatItem('pill_tay_tuy_dan')} className="px-4 py-2 bg-surface-container border border-primary/30 rounded-lg text-xs hover:bg-primary/20">
-          +5 Tẩy Tủy Đan
-        </button>
-        <button onClick={() => handleCheatItem('pill_tho_nguyen_qua')} className="px-4 py-2 bg-surface-container border border-primary/30 rounded-lg text-xs hover:bg-primary/20">
-          +5 Thọ Nguyên Quả
-        </button>
-      </div>
-
       <div className="flex flex-col lg:flex-row gap-8">
         
         {/* Left: Inventory Grid */}
