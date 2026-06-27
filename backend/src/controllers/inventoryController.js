@@ -111,25 +111,6 @@ export const useItem = async (req, res) => {
       return res.status(400).json({ message: 'Không tìm thấy dữ liệu tu luyện.' });
     }
 
-    // Kiểm tra Đan Độc (Giới hạn dùng thuốc mỗi ngày)
-    const today = new Date().toISOString().split('T')[0];
-    if (cult.dailyPillUsage?.date !== today) {
-      if (!cult.dailyPillUsage) cult.dailyPillUsage = {};
-      cult.dailyPillUsage.count = 0;
-      cult.dailyPillUsage.date = today;
-    }
-
-    // Giới hạn đan dược phụ thuộc vào cảnh giới (Luyện Khí: 5, Trúc Cơ: 7, Kim Đan: 9...)
-    const pillLimit = 5 + (cult.realmIndex * 2);
-
-    if (cult.dailyPillUsage.count + quantity > pillLimit) {
-      return res.status(400).json({ 
-        message: `Cơ thể đã bão hòa (Đan Độc). Cảnh giới hiện tại mỗi ngày chỉ thể luyện hóa tối đa ${pillLimit} đan dược. Hôm nay đã dùng ${cult.dailyPillUsage.count}/${pillLimit}.` 
-      });
-    }
-
-    cult.dailyPillUsage.count += quantity;
-
     const effects = itemData.effects;
     let message = `Sử dụng ${quantity} ${itemData.name} thành công. `;
 

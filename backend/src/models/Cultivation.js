@@ -136,12 +136,6 @@ const cultivationSchema = new mongoose.Schema(
       type: Number,
       default: 100,
     },
-
-    // Giới hạn dùng đan dược mỗi ngày (Đan độc)
-    dailyPillUsage: {
-      count: { type: Number, default: 0 },
-      date: { type: String, default: '' },
-    },
   },
   {
     timestamps: true,
