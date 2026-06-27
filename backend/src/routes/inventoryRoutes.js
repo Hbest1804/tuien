@@ -10,9 +10,11 @@ router.use(protect); // Yêu cầu đăng nhập cho tất cả các route bên 
 router.get('/', getInventoryStatus);
 
 // API Cheat: Thêm item vào túi
-router.post('/add-test-item', addTestItem);
+if (process.env.NODE_ENV === 'development') {
+  router.post('/add-test-item', addTestItem);
+}
 
-// Sử dụng vật phẩm
+// API Sử dụng vật phẩm
 router.post('/use', useItem);
 
 export default router;

@@ -90,7 +90,7 @@ const autoStopIfFull = async (cult, spiritRootGrade, inventory) => {
   if (currentExp < realm.expRequired) return cult;
 
   // EXP đã đầy → tự động dừng và bắt đầu đếm thọ nguyên
-  cult.calculateAndSetBreakthroughReadyAt(spiritRootGrade, realm, inventory.getSpeedBuffMultiplier());
+  cult.calculateAndSetBreakthroughReadyAt(spiritRootGrade, realm, inventory ? inventory.getSpeedBuffMultiplier() : 1.0);
   
   cult.updateLifespan();
   cult.expAccumulated = realm.expRequired;

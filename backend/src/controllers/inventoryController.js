@@ -1,5 +1,5 @@
 import Inventory from '../models/Inventory.js';
-import Cultivation, { REALM_LIFESPAN, PRACTICAL_INFINITY_LIFESPAN } from '../models/Cultivation.js';
+import Cultivation, { REALMS, REALM_LIFESPAN, PRACTICAL_INFINITY_LIFESPAN } from '../models/Cultivation.js';
 import { ITEMS, ITEM_TYPES, ITEM_SUBTYPES } from '../data/items.js';
 
 // Helper: lấy hoặc tạo Inventory
