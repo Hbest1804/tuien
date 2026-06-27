@@ -311,6 +311,11 @@ export const breakthrough = async (req, res) => {
     let totalDefense = 0;
     
     // Gom nhóm và xác thực itemsUsed
+    if (!Array.isArray(itemsUsed)) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({ message: 'Danh sách vật phẩm sử dụng không hợp lệ.' });
+    }
     const itemCounts = {};
     for (const item of itemsUsed) {
       if (!item || typeof item !== 'object' || !item.itemId || typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
