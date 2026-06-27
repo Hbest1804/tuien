@@ -187,6 +187,9 @@ export const useItem = async (req, res) => {
       }
 
       cult.updateLifespan();
+      if (!cult.isTraining) {
+        cult.lastStoppedAt = new Date();
+      }
       const maxLifespan = REALM_LIFESPAN[cult.realmIndex] === Infinity ? PRACTICAL_INFINITY_LIFESPAN : REALM_LIFESPAN[cult.realmIndex];
       cult.lifespan = Math.min(cult.lifespan + effects.lifespanAmount * quantity, maxLifespan);
       message += `Tăng thêm ${effects.lifespanAmount * quantity} năm thọ nguyên. `;
@@ -196,10 +199,10 @@ export const useItem = async (req, res) => {
     if (itemData.subType === ITEM_SUBTYPES.SPEED_BUFF && effects.buffType) {
       // Tính toán lại EXP hiện tại trước khi thay đổi tốc độ
       if (cult.isTraining) {
-        const speedMultiplier = inventory.getSpeedBuffMultiplier();
-        cult.expAccumulated = cult.computeCurrentExp(req.user.spiritRootGrade, speedMultiplier);
+        cult.expAccumulated = cult.computeCurrentExp(req.user.spiritRootGrade, inventory);
         cult.trainingStartedAt = new Date();
       }
+      inventory.cleanExpiredBuffs();
 
       const durationMs = effects.durationHours * 3600 * 1000 * quantity;
       
