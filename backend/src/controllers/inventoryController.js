@@ -119,13 +119,18 @@ export const useItem = async (req, res) => {
       return res.status(400).json({ message: 'Vật phẩm này không thể sử dụng trực tiếp.' });
     }
 
-    let cult = await Cultivation.findOne({ userId: req.user._id });
-    if (!cult) {
-      return res.status(400).json({ message: 'Không tìm thấy dữ liệu tu luyện.' });
-    }
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      let cult = await Cultivation.findOne({ userId: req.user._id }).session(session);
+      if (!cult) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Không tìm thấy dữ liệu tu luyện.' });
+      }
 
-    // Tự động dừng tu luyện nếu EXP đã đầy trước khi sử dụng vật phẩm
-    cult = await autoStopIfFull(cult, req.user.spiritRootGrade, inventory);
+      // Tự động dừng tu luyện nếu EXP đã đầy trước khi sử dụng vật phẩm
+      cult = await autoStopIfFull(cult, req.user.spiritRootGrade, inventory, session);
 
     const effects = itemData.effects;
     let message = `Sử dụng ${quantity} ${itemData.name} thành công. `;
@@ -148,6 +153,8 @@ export const useItem = async (req, res) => {
     // 1. Tác dụng: Cộng EXP
     if (itemData.subType === ITEM_SUBTYPES.EXP && effects.expAmount && effectiveness > 0) {
       if (cult.breakthroughReadyAt) {
+        await session.abortTransaction();
+        session.endSession();
         return res.status(400).json({ message: 'Tu vi đã viên mãn, cắn thuốc lúc này không có tác dụng, hãy đột phá trước!' });
       }
       
@@ -184,7 +191,9 @@ export const useItem = async (req, res) => {
         cult.lifespan = rawLifespan === Infinity ? PRACTICAL_INFINITY_LIFESPAN : rawLifespan;
         cult.breakthroughReadyAt = null;
         cult.lastStoppedAt = new Date();
-        await cult.save();
+        await cult.save({ session });
+        await session.commitTransaction();
+        session.endSession();
         return res.status(400).json({
           message: '💀 Thọ nguyên đã cạn kiệt từ trước! Tinh khí tán tận — tu vi đã bị reset về 0. Không thể sử dụng Thọ Nguyên Quả để khôi phục tu vi cũ.',
         });
@@ -231,23 +240,20 @@ export const useItem = async (req, res) => {
       inventory.items.splice(itemIndex, 1);
     }
     
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    try {
-      await inventory.save({ session });
-      await cult.save({ session });
-      await session.commitTransaction();
-    } catch (saveErr) {
-      await session.abortTransaction();
-      if (saveErr.name === 'VersionError') {
-        return res.status(409).json({ message: 'Dữ liệu thay đổi trong lúc xử lý, vui lòng thử lại.' });
-      }
-      throw saveErr; // chuyển ra catch ngoài cùng
-    } finally {
-      session.endSession();
-    }
+    await inventory.save({ session });
+    await cult.save({ session });
+    await session.commitTransaction();
+    session.endSession();
 
     res.json({ message, inventory: populateInventoryData(inventory) });
+  } catch (saveErr) {
+    await session.abortTransaction();
+    session.endSession();
+    if (saveErr.name === 'VersionError') {
+      return res.status(409).json({ message: 'Dữ liệu thay đổi trong lúc xử lý, vui lòng thử lại.' });
+    }
+    throw saveErr; // chuyển ra catch ngoài cùng
+  }
   } catch (err) {
     console.error('Lỗi useItem:', err);
     res.status(500).json({ message: 'Lỗi server' });

@@ -80,7 +80,7 @@ const formatCultivation = (cult, spiritRootGrade, inventory, speedMultiplier) =>
 };
 
 // ─── Helper: auto-stop training khi EXP đã đầy ───────────────────────────────
-export const autoStopIfFull = async (cult, spiritRootGrade, inventory) => {
+export const autoStopIfFull = async (cult, spiritRootGrade, inventory, session = null) => {
   if (!cult.isTraining) return cult;
 
   const realm = REALMS[cult.realmIndex];
@@ -99,13 +99,15 @@ export const autoStopIfFull = async (cult, spiritRootGrade, inventory) => {
   // lastStoppedAt sẽ được set sau khi updateLifespan nếu isTraining=false:
   cult.lastStoppedAt = cult.breakthroughReadyAt; // cho chuẩn thời gian bắt đầu ngưng
   try {
-    await cult.save();
+    await cult.save({ session: session || undefined });
     return cult;
   } catch (err) {
     if (err.name === 'VersionError') {
-      const updated = await Cultivation.findById(cult._id);
+      let query = Cultivation.findById(cult._id);
+      if (session) query = query.session(session);
+      const updated = await query;
       if (updated) {
-        return await autoStopIfFull(updated, spiritRootGrade, inventory);
+        return await autoStopIfFull(updated, spiritRootGrade, inventory, session);
       }
       return cult;
     }
@@ -130,7 +132,6 @@ export const getStatus = async (req, res) => {
     cult = await autoStopIfFull(cult, user.spiritRootGrade, inventory);
 
     const speedMultiplier = inventory ? inventory.getSpeedBuffMultiplier() : 1.0;
-    if (inventory && inventory.isModified()) await inventory.save(); // lưu lại trạng thái đã xóa buff hết hạn sau khi compute
 
     res.json({ cultivation: formatCultivation(cult, user.spiritRootGrade, inventory, speedMultiplier) });
   } catch (err) {
