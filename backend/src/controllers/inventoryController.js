@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Inventory from '../models/Inventory.js';
 import Cultivation, { REALMS, REALM_LIFESPAN, PRACTICAL_INFINITY_LIFESPAN } from '../models/Cultivation.js';
 import { ITEMS, ITEM_TYPES, ITEM_SUBTYPES } from '../data/items.js';
@@ -229,8 +230,21 @@ export const useItem = async (req, res) => {
       inventory.items.splice(itemIndex, 1);
     }
     
-    await inventory.save();
-    await cult.save();
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      await inventory.save({ session });
+      await cult.save({ session });
+      await session.commitTransaction();
+    } catch (saveErr) {
+      await session.abortTransaction();
+      if (saveErr.name === 'VersionError') {
+        return res.status(409).json({ message: 'Dữ liệu thay đổi trong lúc xử lý, vui lòng thử lại.' });
+      }
+      throw saveErr; // chuyển ra catch ngoài cùng
+    } finally {
+      session.endSession();
+    }
 
     res.json({ message, inventory: populateInventoryData(inventory) });
   } catch (err) {
