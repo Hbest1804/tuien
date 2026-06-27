@@ -62,6 +62,7 @@ const inventorySchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    optimisticConcurrency: true,
   }
 );
 
@@ -71,6 +72,7 @@ inventorySchema.methods.cleanExpiredBuffs = function () {
   const initialLength = this.activeBuffs.length;
   
   this.activeBuffs = this.activeBuffs.filter(buff => buff.expiresAt > now);
+  this.markModified('activeBuffs');
   
   return this.activeBuffs.length !== initialLength; // Trả về true nếu có buff bị xóa
 };

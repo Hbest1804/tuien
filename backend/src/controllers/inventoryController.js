@@ -1,6 +1,7 @@
 import Inventory from '../models/Inventory.js';
 import Cultivation, { REALMS, REALM_LIFESPAN, PRACTICAL_INFINITY_LIFESPAN } from '../models/Cultivation.js';
 import { ITEMS, ITEM_TYPES, ITEM_SUBTYPES } from '../data/items.js';
+import { autoStopIfFull } from './cultivationController.js';
 
 // Helper: lấy hoặc tạo Inventory
 export const getOrCreateInventory = async (userId) => {
@@ -114,11 +115,13 @@ export const useItem = async (req, res) => {
       return res.status(400).json({ message: 'Vật phẩm này không thể sử dụng trực tiếp.' });
     }
 
-    // Lấy Cultivation của user để xử lý hiệu ứng
-    const cult = await Cultivation.findOne({ userId: req.user._id });
+    let cult = await Cultivation.findOne({ userId: req.user._id });
     if (!cult) {
       return res.status(400).json({ message: 'Không tìm thấy dữ liệu tu luyện.' });
     }
+
+    // Tự động dừng tu luyện nếu EXP đã đầy trước khi sử dụng vật phẩm
+    cult = await autoStopIfFull(cult, req.user.spiritRootGrade, inventory);
 
     const effects = itemData.effects;
     let message = `Sử dụng ${quantity} ${itemData.name} thành công. `;
@@ -167,8 +170,22 @@ export const useItem = async (req, res) => {
       message += `Nhận được ${actualExp} EXP. `;
     }
 
-    // 2. Tác dụng: Cộng thọ nguyên
+    // 2. Tác dụng: Tăng thọ nguyên
     if (itemData.subType === ITEM_SUBTYPES.LIFESPAN && effects.lifespanAmount) {
+      const currentLifespan = cult.computeCurrentLifespan();
+      if (currentLifespan <= 0) {
+        // Thọ nguyên đã cạn kiệt, kích hoạt hình phạt cái chết
+        cult.expAccumulated = 0;
+        const rawLifespan = REALM_LIFESPAN[cult.realmIndex] ?? 100;
+        cult.lifespan = rawLifespan === Infinity ? PRACTICAL_INFINITY_LIFESPAN : rawLifespan;
+        cult.breakthroughReadyAt = null;
+        cult.lastStoppedAt = new Date();
+        await cult.save();
+        return res.status(400).json({
+          message: '💀 Thọ nguyên đã cạn kiệt từ trước! Tinh khí tán tận — tu vi đã bị reset về 0. Không thể sử dụng Thọ Nguyên Quả để khôi phục tu vi cũ.',
+        });
+      }
+
       cult.updateLifespan();
       const maxLifespan = REALM_LIFESPAN[cult.realmIndex] === Infinity ? PRACTICAL_INFINITY_LIFESPAN : REALM_LIFESPAN[cult.realmIndex];
       cult.lifespan = Math.min(cult.lifespan + effects.lifespanAmount * quantity, maxLifespan);

@@ -80,7 +80,7 @@ const formatCultivation = (cult, spiritRootGrade, inventory, speedMultiplier) =>
 };
 
 // ─── Helper: auto-stop training khi EXP đã đầy ───────────────────────────────
-const autoStopIfFull = async (cult, spiritRootGrade, inventory) => {
+export const autoStopIfFull = async (cult, spiritRootGrade, inventory) => {
   if (!cult.isTraining) return cult;
 
   const realm = REALMS[cult.realmIndex];
