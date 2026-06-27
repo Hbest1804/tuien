@@ -262,6 +262,9 @@ export const breakthrough = async (req, res) => {
     const { itemsUsed = [] } = req.body; // [{ itemId, quantity }]
 
     let inventory = await Inventory.findOne({ userId: req.user._id }).session(session);
+    if (!inventory) {
+      inventory = new Inventory({ userId: req.user._id });
+    }
     let cult = await getOrCreateCultivation(req.user._id);
 
     cult = await autoStopIfFull(cult, user.spiritRootGrade, inventory, session);
@@ -303,23 +306,31 @@ export const breakthrough = async (req, res) => {
     let bonusSuccessRate = 0;
     let totalDefense = 0;
     
-    // Gom nhóm itemsUsed
+    // Gom nhóm và xác thực itemsUsed
     const itemCounts = {};
     for (const item of itemsUsed) {
+      if (!item || typeof item !== 'object' || !item.itemId || typeof item.quantity !== 'number' || !Number.isInteger(item.quantity) || item.quantity <= 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: 'Danh sách vật phẩm sử dụng không hợp lệ.' });
+      }
       itemCounts[item.itemId] = (itemCounts[item.itemId] || 0) + item.quantity;
     }
 
     for (const [itemId, quantity] of Object.entries(itemCounts)) {
-      if (quantity <= 0) continue;
-      
+      const itemData = ITEMS[itemId];
+      if (!itemData) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Vật phẩm ${itemId} không tồn tại.` });
+      }
+
       const idx = inventory.items.findIndex(i => i.itemId === itemId);
       if (idx === -1 || inventory.items[idx].quantity < quantity) {
         await session.abortTransaction();
         session.endSession();
-        return res.status(400).json({ message: `Không đủ số lượng vật phẩm ${ITEMS[itemId]?.name || itemId} trong túi đồ.` });
+        return res.status(400).json({ message: `Không đủ số lượng vật phẩm ${itemData.name || itemId} trong túi đồ.` });
       }
-
-      const itemData = ITEMS[itemId];
       if (itemData.subType === ITEM_SUBTYPES.BREAKTHROUGH && itemData.effects?.successRateBonus) {
         bonusSuccessRate += itemData.effects.successRateBonus * quantity;
       }
