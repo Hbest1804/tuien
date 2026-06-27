@@ -160,6 +160,31 @@ export const useItem = async (req, res) => {
       message += `Do chênh lệch cảnh giới, hiệu lực đan dược bị giảm còn ${effectiveness * 100}%. `;
     }
 
+    // Kiểm tra & Cập nhật số đan dược trong ngày
+    const today = new Date().toISOString().split('T')[0];
+    if (cult.dailyPillsConsumed?.date !== today) {
+      cult.dailyPillsConsumed = { count: 0, date: today };
+    }
+    
+    cult.dailyPillsConsumed.count += quantity;
+    
+    // Nếu dùng quá 10 viên đan dược 1 ngày -> Tâm ma
+    if (cult.dailyPillsConsumed.count > 10) {
+      message += `💀 Cảnh báo! Bạn đã sử dụng quá 10 đan dược trong ngày hôm nay. Dược độc tích tụ dẫn đến Tẩu hỏa nhập ma! Tốc độ tu luyện giảm 50% trong 24h. `;
+      const durationMs = 24 * 3600 * 1000;
+      const existingHeartDemon = inventory.activeBuffs.find(b => b.buffType === 'SPEED_HEART_DEMON');
+      if (existingHeartDemon) {
+        existingHeartDemon.expiresAt = new Date(Math.max(Date.now(), existingHeartDemon.expiresAt.getTime()) + durationMs);
+      } else {
+        inventory.activeBuffs.push({
+          buffType: 'SPEED_HEART_DEMON',
+          multiplier: 0.5,
+          expiresAt: new Date(Date.now() + durationMs),
+        });
+      }
+      inventory.markModified('activeBuffs');
+    }
+
     // 1. Tác dụng: Cộng EXP
     if (itemData.subType === ITEM_SUBTYPES.EXP && effects.expAmount && effectiveness > 0) {
       if (cult.breakthroughReadyAt) {
