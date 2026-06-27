@@ -7,6 +7,7 @@ const navItems: { key: string; label: string; path: string }[] = [
   { key: 'map',         label: 'Bản Đồ',        path: '/map' },
   { key: 'roots',       label: 'Linh Căn',      path: '/roots' },
   { key: 'cultivation', label: 'Tu Luyện',      path: '/cultivation' },
+  { key: 'inventory',   label: 'Túi Đồ',        path: '/inventory' },
   { key: 'pavilion',    label: 'Tàng Kinh Các', path: '/pavilion' },
 ];
 

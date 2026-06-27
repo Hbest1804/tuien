@@ -183,7 +183,7 @@ export default function Cultivation() {
 
   // ─── Derived values ───────────────────────────────────────────────────────
   const realm = REALMS[cult?.realmIndex ?? 0] || REALMS[0];
-  const isBreakthroughReady = cult?.isBreakthroughReady ?? false;
+  const isBreakthroughReady = (cult?.isBreakthroughReady) || (cult?.realmExpRequired != null && cult.realmExpRequired !== Infinity && localExp >= cult.realmExpRequired);
   const progress = cult
     ? (cult.realmExpRequired === null || cult.realmExpRequired === Infinity)
       ? 1
