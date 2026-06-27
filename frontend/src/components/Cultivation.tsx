@@ -18,6 +18,7 @@ import CultivationCard from './CultivationCard';
 import SpeedBreakdown from './SpeedBreakdown';
 import SectPanel from './SectPanel';
 import SectModal from './SectModal';
+import BreakthroughModal from './BreakthroughModal';
 
 export default function Cultivation() {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ export default function Cultivation() {
   const [actionLoading, setActionLoading] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [showSectModal, setShowSectModal] = useState(false);
+  const [showBreakthroughModal, setShowBreakthroughModal] = useState(false);
   
   const [localExp, setLocalExp] = useState(0);
   const [localYearsWaiting, setLocalYearsWaiting] = useState(0);
@@ -137,15 +139,16 @@ export default function Cultivation() {
     }
   };
 
-  const handleBreakthrough = async () => {
+  const handleBreakthrough = async (itemsUsed: { itemId: string; quantity: number }[]) => {
     setActionLoading(true);
     try {
-      const res = await doBreakthrough();
+      const res = await doBreakthrough(itemsUsed);
       updateCultivationData(res.data.cultivation);
+      setShowBreakthroughModal(false);
       showToast(res.data.message || '🌟 Đột phá thành công!');
     } catch (err: unknown) {
-      const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Chưa đủ EXP';
-      showToast(msg || 'Chưa đủ EXP', 'error');
+      const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Lỗi đột phá';
+      showToast(msg || 'Lỗi đột phá', 'error');
     } finally {
       setActionLoading(false);
     }
@@ -276,6 +279,16 @@ export default function Cultivation() {
         />
       )}
 
+      {/* ── Breakthrough Modal ── */}
+      {showBreakthroughModal && cult && (
+        <BreakthroughModal
+          onClose={() => setShowBreakthroughModal(false)}
+          onConfirm={handleBreakthrough}
+          cult={cult}
+          loading={actionLoading}
+        />
+      )}
+
       {/* ── Header ── */}
       <div className="text-center mb-2 relative">
         <div className="font-label-caps text-primary tracking-[0.2em] mb-2">Con Đường Tu Tiên</div>
@@ -314,7 +327,7 @@ export default function Cultivation() {
         actionLoading={actionLoading}
         canBreakthrough={canBreakthrough}
         onToggleTraining={handleToggleTraining}
-        onBreakthrough={handleBreakthrough}
+        onBreakthrough={() => setShowBreakthroughModal(true)}
       />
 
       <SpeedBreakdown

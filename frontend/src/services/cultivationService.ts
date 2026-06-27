@@ -45,8 +45,8 @@ export const startCultivation = () =>
 export const stopCultivation = () =>
   api.post<CultivationResponse>('/cultivation/stop');
 
-export const doBreakthrough = () =>
-  api.post<CultivationResponse>('/cultivation/breakthrough');
+export const doBreakthrough = (itemsUsed?: { itemId: string; quantity: number }[]) =>
+  api.post<CultivationResponse>('/cultivation/breakthrough', { itemsUsed });
 
 export const joinSect = (sectName: string) =>
   api.post<CultivationResponse>('/cultivation/join-sect', { sectName });
