@@ -14,6 +14,7 @@ export const ITEM_SUBTYPES = {
   // ARTIFACT
   WEAPON: 'WEAPON',         // Vũ khí
   ARMOR: 'ARMOR',           // Phòng cụ
+  PROTECTION: 'PROTECTION', // Pháp bảo đỡ lôi kiếp
 };
 
 export const ITEMS = {
@@ -69,6 +70,19 @@ export const ITEMS = {
     }
   },
 
+  'pill_pha_canh_dan': {
+    id: 'pill_pha_canh_dan',
+    name: 'Phá Cảnh Đan',
+    type: ITEM_TYPES.PILL,
+    subType: ITEM_SUBTYPES.BREAKTHROUGH,
+    description: 'Tăng 15% tỷ lệ đột phá thành công. Có hiệu lực cho mọi cảnh giới.',
+    rarity: 'Hiếm',
+    targetRealmIndex: 99,
+    effects: {
+      successRateBonus: 0.15,
+    }
+  },
+
   // ─── PHÁP BẢO (ARTIFACTS) ──────────────────────────────────────────────────
   'weapon_moc_kiem': {
     id: 'weapon_moc_kiem',
@@ -90,6 +104,28 @@ export const ITEMS = {
     rarity: 'Hiếm',
     effects: {
       atkBonus: 150,
+    }
+  },
+  'artifact_ti_loi_phu': {
+    id: 'artifact_ti_loi_phu',
+    name: 'Tị Lôi Phù',
+    type: ITEM_TYPES.ARTIFACT,
+    subType: ITEM_SUBTYPES.PROTECTION,
+    description: 'Bùa chú đỡ lôi kiếp, có thể cản 500 điểm sát thương thiên lôi.',
+    rarity: 'Thường',
+    effects: {
+      tribulationDefense: 500,
+    }
+  },
+  'artifact_huyen_vu_khien': {
+    id: 'artifact_huyen_vu_khien',
+    name: 'Huyền Vũ Khiên',
+    type: ITEM_TYPES.ARTIFACT,
+    subType: ITEM_SUBTYPES.PROTECTION,
+    description: 'Pháp bảo phòng ngự cao cấp, cản được 5000 điểm sát thương lôi kiếp.',
+    rarity: 'Cực Phẩm',
+    effects: {
+      tribulationDefense: 5000,
     }
   },
 

@@ -15,6 +15,8 @@ export const REALMS = [
     color: '#7ed99e',
     expRequired: 1000,        // tán tu ~1000 giây, tông môn ~500 giây
     stages: REALM_STAGES,
+    successRate: 0.9,         // Tỷ lệ cơ bản 90%
+    tribulationDamage: 0,     // Đột phá lên Trúc Cơ không có lôi kiếp
   },
   {
     id: 1,
@@ -22,6 +24,8 @@ export const REALMS = [
     color: '#f2ca50',
     expRequired: 5000,
     stages: REALM_STAGES,
+    successRate: 0.75,        // Tỷ lệ cơ bản 75%
+    tribulationDamage: 500,   // Đột phá lên Kim Đan chịu 500 dmg Lôi kiếp
   },
   {
     id: 2,
@@ -29,6 +33,8 @@ export const REALMS = [
     color: '#f2ca50',
     expRequired: 20000,
     stages: REALM_STAGES,
+    successRate: 0.5,         // Tỷ lệ cơ bản 50%
+    tribulationDamage: 2000,  // Đột phá lên Nguyên Anh chịu 2000 dmg
   },
   {
     id: 3,
@@ -36,13 +42,17 @@ export const REALMS = [
     color: '#b066ff',
     expRequired: 80000,
     stages: REALM_STAGES,
+    successRate: 0.3,         // Tỷ lệ cơ bản 30%
+    tribulationDamage: 10000, // Đột phá lên Hóa Thần chịu 10000 dmg
   },
   {
     id: 4,
     name: 'Hóa Thần',
     color: '#b066ff',
     expRequired: Infinity,
-    stages: REALM_STAGES,// cảnh giới cao nhất của phàm giới
+    stages: REALM_STAGES,     // cảnh giới cao nhất của phàm giới
+    successRate: 0.1,
+    tribulationDamage: 50000,
   },
 ];
 
@@ -135,6 +145,19 @@ const cultivationSchema = new mongoose.Schema(
     lifespan: {
       type: Number,
       default: 100,
+    },
+
+    // ─── Trạng thái Rủi ro & Tâm Ma ─────────────────────────────────────────
+    // Số lần đột phá thất bại liên tiếp (>= 3 sẽ sinh Tâm Ma)
+    failedBreakthroughs: {
+      type: Number,
+      default: 0,
+    },
+    
+    // Số đan dược sử dụng trong ngày (Nếu dùng quá nhiều sẽ bị Tâm ma)
+    dailyPillsConsumed: {
+      count: { type: Number, default: 0 },
+      date: { type: String, default: '' }, // Lưu ngày dạng YYYY-MM-DD
     },
   },
   {
