@@ -390,11 +390,16 @@ export const breakthrough = async (req, res) => {
       if (cult.failedBreakthroughs >= 3) {
         message += `💀 Cảnh báo: Tẩu hỏa nhập ma do thất bại 3 lần liên tiếp! Tốc độ tu luyện giảm 50% trong 24h.`;
         const durationMs = 24 * 3600 * 1000;
-        inventory.activeBuffs.push({
-          buffType: 'SPEED_HEART_DEMON',
-          multiplier: 0.5,
-          expiresAt: new Date(Date.now() + durationMs),
-        });
+        const existingHeartDemon = inventory.activeBuffs.find(b => b.buffType === 'SPEED_HEART_DEMON');
+        if (existingHeartDemon) {
+          existingHeartDemon.expiresAt = new Date(Math.max(Date.now(), existingHeartDemon.expiresAt.getTime()) + durationMs);
+        } else {
+          inventory.activeBuffs.push({
+            buffType: 'SPEED_HEART_DEMON',
+            multiplier: 0.5,
+            expiresAt: new Date(Date.now() + durationMs),
+          });
+        }
         inventory.markModified('activeBuffs');
       }
     }
