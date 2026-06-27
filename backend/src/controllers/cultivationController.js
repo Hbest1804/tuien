@@ -265,7 +265,11 @@ export const breakthrough = async (req, res) => {
     if (!inventory) {
       inventory = new Inventory({ userId: req.user._id });
     }
-    let cult = await getOrCreateCultivation(req.user._id);
+    let cult = await Cultivation.findOne({ userId: req.user._id }).session(session);
+    if (!cult) {
+      await getOrCreateCultivation(req.user._id);
+      cult = await Cultivation.findOne({ userId: req.user._id }).session(session);
+    }
 
     cult = await autoStopIfFull(cult, user.spiritRootGrade, inventory, session);
     const speedMultiplier = inventory ? inventory.getSpeedBuffMultiplier() : 1.0;
@@ -323,6 +327,11 @@ export const breakthrough = async (req, res) => {
         await session.abortTransaction();
         session.endSession();
         return res.status(400).json({ message: `Vật phẩm ${itemId} không tồn tại.` });
+      }
+      if (itemData.subType !== ITEM_SUBTYPES.BREAKTHROUGH && itemData.subType !== ITEM_SUBTYPES.PROTECTION) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(400).json({ message: `Vật phẩm ${itemData.name || itemId} không thể sử dụng để đột phá.` });
       }
 
       const idx = inventory.items.findIndex(i => i.itemId === itemId);
