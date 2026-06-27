@@ -133,8 +133,23 @@ export const useItem = async (req, res) => {
     const effects = itemData.effects;
     let message = `Sử dụng ${quantity} ${itemData.name} thành công. `;
 
+    // Tính toán tỷ lệ hiệu quả (Kháng thuốc theo cảnh giới)
+    let effectiveness = 1.0;
+    if (itemData.targetRealmIndex !== undefined && itemData.targetRealmIndex !== 99) {
+      const realmDiff = cult.realmIndex - itemData.targetRealmIndex;
+      if (realmDiff === 1) effectiveness = 0.5; // Kém 1 cảnh giới: giảm 50%
+      else if (realmDiff === 2) effectiveness = 0.1; // Kém 2 cảnh giới: còn 10%
+      else if (realmDiff >= 3) effectiveness = 0; // Vô tác dụng
+    }
+
+    if (effectiveness === 0) {
+      message = `Sử dụng ${quantity} ${itemData.name}. Tu vi của bạn quá cao, loại đan dược này hoàn toàn không còn tác dụng! `;
+    } else if (effectiveness < 1.0) {
+      message += `Do chênh lệch cảnh giới, hiệu lực đan dược bị giảm còn ${effectiveness * 100}%. `;
+    }
+
     // 1. Tác dụng: Cộng EXP
-    if (itemData.subType === ITEM_SUBTYPES.EXP && effects.expAmount) {
+    if (itemData.subType === ITEM_SUBTYPES.EXP && effects.expAmount && effectiveness > 0) {
       if (cult.breakthroughReadyAt) {
         return res.status(400).json({ message: 'Tu vi đã viên mãn, cắn thuốc lúc này không có tác dụng, hãy đột phá trước!' });
       }
@@ -144,8 +159,10 @@ export const useItem = async (req, res) => {
         cult.expAccumulated = cult.computeCurrentExp(req.user.spiritRootGrade, speedMultiplier);
         cult.trainingStartedAt = new Date(); // reset start time
       }
-      cult.expAccumulated += effects.expAmount * quantity;
-      message += `Nhận được ${effects.expAmount * quantity} EXP. `;
+      
+      const actualExp = Math.floor(effects.expAmount * quantity * effectiveness);
+      cult.expAccumulated += actualExp;
+      message += `Nhận được ${actualExp} EXP. `;
     }
 
     // 2. Tác dụng: Cộng thọ nguyên

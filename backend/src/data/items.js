@@ -23,8 +23,9 @@ export const ITEMS = {
     name: 'Tụ Khí Đan',
     type: ITEM_TYPES.PILL,
     subType: ITEM_SUBTYPES.EXP,
-    description: 'Đan dược cấp thấp giúp gia tăng 500 EXP ngay lập tức.',
+    description: 'Đan dược cấp thấp giúp gia tăng 500 EXP. Hiệu quả tốt nhất cho Luyện Khí kỳ.',
     rarity: 'Thường',
+    targetRealmIndex: 0,
     effects: {
       expAmount: 500,
     }
@@ -34,8 +35,9 @@ export const ITEMS = {
     name: 'Trúc Cơ Đan',
     type: ITEM_TYPES.PILL,
     subType: ITEM_SUBTYPES.EXP,
-    description: 'Đan dược quý giá chứa lượng linh khí khổng lồ. Cộng ngay 5000 EXP.',
+    description: 'Đan dược quý giá chứa lượng linh khí khổng lồ. Cộng ngay 5000 EXP. Hiệu quả tốt nhất cho Trúc Cơ kỳ.',
     rarity: 'Hiếm',
+    targetRealmIndex: 1,
     effects: {
       expAmount: 5000,
     }
@@ -45,8 +47,9 @@ export const ITEMS = {
     name: 'Tẩy Tủy Đan',
     type: ITEM_TYPES.PILL,
     subType: ITEM_SUBTYPES.SPEED_BUFF,
-    description: 'Tẩy rửa kinh mạch, giúp x2 tốc độ tu luyện trong 2 giờ thực.',
+    description: 'Tẩy rửa kinh mạch, giúp x2 tốc độ tu luyện trong 2 giờ. Phù hợp mọi cảnh giới.',
     rarity: 'Hiếm',
+    targetRealmIndex: 99, // Không giảm hiệu quả
     effects: {
       buffType: 'SPEED_X2',
       multiplier: 2.0,
@@ -58,8 +61,9 @@ export const ITEMS = {
     name: 'Thọ Nguyên Quả',
     type: ITEM_TYPES.PILL,
     subType: ITEM_SUBTYPES.LIFESPAN,
-    description: 'Linh quả sinh trưởng ngàn năm, ăn vào gia tăng 50 năm thọ nguyên.',
+    description: 'Linh quả sinh trưởng ngàn năm, ăn vào gia tăng 50 năm thọ nguyên. Hiệu quả mọi cảnh giới.',
     rarity: 'Cực Phẩm',
+    targetRealmIndex: 99, // Không giảm hiệu quả
     effects: {
       lifespanAmount: 50,
     }
