@@ -7,6 +7,7 @@ import Pavilion from './components/Pavilion';
 import SpiritRoots from './components/SpiritRoots';
 import WorldMap from './components/WorldMap';
 import Cultivation from './components/Cultivation';
+import Inventory from './components/Inventory';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CharacterSetupModal from './components/CharacterSetupModal';
@@ -57,6 +58,7 @@ function MainLayout() {
           <Route path="/roots" element={<SpiritRoots />} />
           <Route path="/pavilion" element={<Pavilion />} />
           <Route path="/cultivation" element={<Cultivation />} />
+          <Route path="/inventory" element={<Inventory />} />
         </Routes>
       </main>
       <Footer />
