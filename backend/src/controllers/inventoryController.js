@@ -196,17 +196,10 @@ export const useItem = async (req, res) => {
     if (itemData.subType === ITEM_SUBTYPES.LIFESPAN && effects.lifespanAmount) {
       const currentLifespan = cult.computeCurrentLifespan();
       if (currentLifespan <= 0) {
-        // Thọ nguyên đã cạn kiệt, kích hoạt hình phạt cái chết
-        cult.expAccumulated = 0;
-        const rawLifespan = REALM_LIFESPAN[cult.realmIndex] ?? 100;
-        cult.lifespan = rawLifespan === Infinity ? PRACTICAL_INFINITY_LIFESPAN : rawLifespan;
-        cult.breakthroughReadyAt = null;
-        cult.lastStoppedAt = new Date();
-        await cult.save({ session });
-        await session.commitTransaction();
+        await session.abortTransaction();
         session.endSession();
         return res.status(400).json({
-          message: '💀 Thọ nguyên đã cạn kiệt từ trước! Tinh khí tán tận — tu vi đã bị reset về 0. Không thể sử dụng Thọ Nguyên Quả để khôi phục tu vi cũ.',
+          message: '💀 Thọ nguyên đã cạn kiệt! Nhân vật đã tử vong, không thể sử dụng vật phẩm.',
         });
       }
 
