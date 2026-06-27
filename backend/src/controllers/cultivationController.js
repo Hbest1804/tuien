@@ -1,3 +1,4 @@
+import Inventory from '../models/Inventory.js';
 import Cultivation, {
   REALMS,
   SPIRIT_ROOT_MULTIPLIER,
@@ -19,10 +20,15 @@ const getOrCreateCultivation = async (userId) => {
   );
 };
 
+const getInventorySpeedMultiplier = async (userId) => {
+  const inv = await Inventory.findOne({ userId });
+  return inv ? inv.getSpeedBuffMultiplier() : 1.0;
+};
+
 // ─── Helper: chuẩn hóa trạng thái trả về client ─────────────────────────────
-const formatCultivation = (cult, spiritRootGrade) => {
-  const currentExp = cult.computeCurrentExp(spiritRootGrade);
-  const speed = cult.computeSpeed(spiritRootGrade);
+const formatCultivation = (cult, spiritRootGrade, speedMultiplier = 1.0) => {
+  const currentExp = cult.computeCurrentExp(spiritRootGrade, speedMultiplier);
+  const speed = cult.computeSpeed(spiritRootGrade, speedMultiplier);
   const realm = REALMS[cult.realmIndex] || REALMS[0];
   const nextRealm = REALMS[cult.realmIndex + 1] || null;
 
@@ -66,6 +72,7 @@ const formatCultivation = (cult, spiritRootGrade) => {
     // bonus info
     baseSpeed: cult.sectName ? BASE_SPEED['宗门'] : BASE_SPEED['散修'],
     spiritRootMultiplier: SPIRIT_ROOT_MULTIPLIER[spiritRootGrade] || 1.0,
+    inventorySpeedMultiplier: speedMultiplier,
     // breakthrough & lifespan
     isBreakthroughReady,
     breakthroughReadyAt: cult.breakthroughReadyAt,
@@ -78,17 +85,17 @@ const formatCultivation = (cult, spiritRootGrade) => {
 };
 
 // ─── Helper: auto-stop training khi EXP đã đầy ───────────────────────────────
-const autoStopIfFull = async (cult, spiritRootGrade) => {
+const autoStopIfFull = async (cult, spiritRootGrade, speedMultiplier = 1.0) => {
   if (!cult.isTraining) return cult;
 
   const realm = REALMS[cult.realmIndex];
   if (!realm || realm.expRequired === Infinity) return cult;
 
-  const currentExp = cult.computeCurrentExp(spiritRootGrade);
+  const currentExp = cult.computeCurrentExp(spiritRootGrade, speedMultiplier);
   if (currentExp < realm.expRequired) return cult;
 
   // EXP đã đầy → tự động dừng và bắt đầu đếm thọ nguyên
-  cult.calculateAndSetBreakthroughReadyAt(spiritRootGrade, realm);
+  cult.calculateAndSetBreakthroughReadyAt(spiritRootGrade, realm, speedMultiplier);
   
   cult.updateLifespan();
   cult.expAccumulated = realm.expRequired;
@@ -103,7 +110,7 @@ const autoStopIfFull = async (cult, spiritRootGrade) => {
     if (err.name === 'VersionError') {
       const updated = await Cultivation.findById(cult._id);
       if (updated) {
-        return await autoStopIfFull(updated, spiritRootGrade);
+        return await autoStopIfFull(updated, spiritRootGrade, speedMultiplier);
       }
       return cult;
     }
@@ -121,12 +128,13 @@ export const getStatus = async (req, res) => {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
 
+    const speedMultiplier = await getInventorySpeedMultiplier(req.user._id);
     let cult = await getOrCreateCultivation(req.user._id);
 
     // Auto-stop nếu EXP đã đầy
-    cult = await autoStopIfFull(cult, user.spiritRootGrade);
+    cult = await autoStopIfFull(cult, user.spiritRootGrade, speedMultiplier);
 
-    res.json({ cultivation: formatCultivation(cult, user.spiritRootGrade) });
+    res.json({ cultivation: formatCultivation(cult, user.spiritRootGrade, speedMultiplier) });
   } catch (err) {
     console.error('Lỗi server:', err);
     res.status(500).json({ message: 'Lỗi server' });
@@ -156,6 +164,8 @@ export const startTraining = async (req, res) => {
       });
     }
 
+    const speedMultiplier = await getInventorySpeedMultiplier(req.user._id);
+
     cult.updateLifespan();
     if (cult.lifespan <= 0) {
       // Tinh khí tán tận — thọ nguyên cạn kiệt, phải tu luyện lại từ đầu
@@ -167,7 +177,7 @@ export const startTraining = async (req, res) => {
       await cult.save();
       return res.status(400).json({
         message: '💀 Thọ nguyên cạn kiệt! Tinh khí tán tận — phải tu luyện lại từ đầu trong cảnh giới này.',
-        cultivation: formatCultivation(cult, user.spiritRootGrade),
+        cultivation: formatCultivation(cult, user.spiritRootGrade, speedMultiplier),
       });
     }
 
@@ -178,7 +188,7 @@ export const startTraining = async (req, res) => {
 
     res.json({
       message: '⚡ Bắt đầu tu luyện! Linh khí đang chảy vào thể phách...',
-      cultivation: formatCultivation(cult, user.spiritRootGrade),
+      cultivation: formatCultivation(cult, user.spiritRootGrade, speedMultiplier),
     });
   } catch (err) {
     console.error('Lỗi server:', err);
@@ -196,6 +206,7 @@ export const stopTraining = async (req, res) => {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
 
+    const speedMultiplier = await getInventorySpeedMultiplier(req.user._id);
     const cult = await getOrCreateCultivation(req.user._id);
 
     if (!cult.isTraining) {
@@ -203,12 +214,12 @@ export const stopTraining = async (req, res) => {
     }
 
     // Flush EXP tích lũy vào DB
-    const currentExp = cult.computeCurrentExp(user.spiritRootGrade);
+    const currentExp = cult.computeCurrentExp(user.spiritRootGrade, speedMultiplier);
     const gained = currentExp - cult.expAccumulated;
     // Kiểm tra nếu EXP đã đầy thì bắt đầu đếm thời gian chờ từ thời điểm đạt mốc
     const realm = REALMS[cult.realmIndex];
     if (realm && realm.expRequired !== Infinity && currentExp >= realm.expRequired) {
-      cult.calculateAndSetBreakthroughReadyAt(user.spiritRootGrade, realm);
+      cult.calculateAndSetBreakthroughReadyAt(user.spiritRootGrade, realm, speedMultiplier);
     }
 
     cult.updateLifespan();
@@ -222,7 +233,7 @@ export const stopTraining = async (req, res) => {
     res.json({
       message: '🧘 Ngưng tu luyện. Linh khí được cất giữ trong đan điền.',
       gained: Math.floor(gained),
-      cultivation: formatCultivation(cult, user.spiritRootGrade),
+      cultivation: formatCultivation(cult, user.spiritRootGrade, speedMultiplier),
     });
   } catch (err) {
     console.error('Lỗi server:', err);
@@ -241,15 +252,15 @@ export const breakthrough = async (req, res) => {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
 
+    const speedMultiplier = await getInventorySpeedMultiplier(req.user._id);
     let cult = await getOrCreateCultivation(req.user._id);
 
     // Auto-stop if EXP is full to correctly calculate breakthroughReadyAt and lifespan drain
-    cult = await autoStopIfFull(cult, user.spiritRootGrade);
+    cult = await autoStopIfFull(cult, user.spiritRootGrade, speedMultiplier);
 
     if (cult.realmIndex >= REALMS.length - 1) {
       return res.status(400).json({ message: 'Đã đạt cảnh giới tối thượng!' });
     }
-
 
     const currentRealm = REALMS[cult.realmIndex];
     if (cult.expAccumulated < currentRealm.expRequired) {
@@ -292,7 +303,7 @@ export const breakthrough = async (req, res) => {
     const newRealm = REALMS[cult.realmIndex];
     res.json({
       message: `🌟 Đột phá thành công! Bước vào cảnh giới ${newRealm.name}! Thọ nguyên phục hồi về ${newLifespanMax === Infinity ? '∞' : newLifespanMax} năm.`,
-      cultivation: formatCultivation(cult, user.spiritRootGrade),
+      cultivation: formatCultivation(cult, user.spiritRootGrade, speedMultiplier),
     });
   } catch (err) {
     console.error('Lỗi server:', err);
@@ -316,6 +327,7 @@ export const joinSect = async (req, res) => {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
 
+    const speedMultiplier = await getInventorySpeedMultiplier(req.user._id);
     let cult = await getOrCreateCultivation(req.user._id);
 
     if (cult.sectName) {
@@ -325,10 +337,10 @@ export const joinSect = async (req, res) => {
     }
 
     // Auto-stop if EXP is full before joining
-    cult = await autoStopIfFull(cult, user.spiritRootGrade);
+    cult = await autoStopIfFull(cult, user.spiritRootGrade, speedMultiplier);
     // Flush EXP nếu đang train
     if (cult.isTraining) {
-      cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
+      cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade, speedMultiplier);
       cult.trainingStartedAt = new Date();
     }
 
@@ -336,10 +348,10 @@ export const joinSect = async (req, res) => {
     cult.sectJoinedAt = new Date();
     await cult.save();
 
-    const newSpeed = cult.computeSpeed(user.spiritRootGrade);
+    const newSpeed = cult.computeSpeed(user.spiritRootGrade, speedMultiplier);
     res.json({
       message: `🏯 Gia nhập ${cult.sectName} thành công! Tốc độ tu luyện tăng lên ${newSpeed.toFixed(3)} EXP/giây!`,
-      cultivation: formatCultivation(cult, user.spiritRootGrade),
+      cultivation: formatCultivation(cult, user.spiritRootGrade, speedMultiplier),
     });
   } catch (err) {
     console.error('Lỗi server:', err);
@@ -357,6 +369,7 @@ export const leaveSect = async (req, res) => {
     if (!user?.isCharacterCreated) {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
+    const speedMultiplier = await getInventorySpeedMultiplier(req.user._id);
     let cult = await getOrCreateCultivation(req.user._id);
 
     if (!cult.sectName) {
@@ -366,10 +379,10 @@ export const leaveSect = async (req, res) => {
     const oldSect = cult.sectName;
 
     // Auto-stop if EXP is full before leaving
-    cult = await autoStopIfFull(cult, user.spiritRootGrade);
+    cult = await autoStopIfFull(cult, user.spiritRootGrade, speedMultiplier);
     // Flush EXP nếu đang train
     if (cult.isTraining) {
-      cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade);
+      cult.expAccumulated = cult.computeCurrentExp(user.spiritRootGrade, speedMultiplier);
       cult.trainingStartedAt = new Date();
     }
 
@@ -377,10 +390,10 @@ export const leaveSect = async (req, res) => {
     cult.sectJoinedAt = null;
     await cult.save();
 
-    const newSpeed = cult.computeSpeed(user.spiritRootGrade);
+    const newSpeed = cult.computeSpeed(user.spiritRootGrade, speedMultiplier);
     res.json({
       message: `💨 Đã rời ${oldSect}. Tốc độ tu luyện giảm xuống ${newSpeed.toFixed(3)} EXP/giây.`,
-      cultivation: formatCultivation(cult, user.spiritRootGrade),
+      cultivation: formatCultivation(cult, user.spiritRootGrade, speedMultiplier),
     });
   } catch (err) {
     console.error('Lỗi server:', err);

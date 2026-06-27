@@ -144,14 +144,14 @@ const cultivationSchema = new mongoose.Schema(
 );
 
 // ─── Method: tính EXP hiện tại (bao gồm offline, có cap ở ngưỡng cảnh giới) ──
-cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade) {
+cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade, inventorySpeedMultiplier = 1.0) {
   if (!this.isTraining || !this.trainingStartedAt) {
     return this.expAccumulated;
   }
 
   const now = Date.now();
   const elapsed = (now - this.trainingStartedAt.getTime()) / 1000; // giây
-  const speed = this.computeSpeed(spiritRootGrade);
+  const speed = this.computeSpeed(spiritRootGrade, inventorySpeedMultiplier);
   const gained = Math.max(0, elapsed * speed);
   const raw = this.expAccumulated + gained;
 
@@ -162,10 +162,10 @@ cultivationSchema.methods.computeCurrentExp = function (spiritRootGrade) {
 };
 
 // ─── Method: tốc độ tu luyện hiện tại (EXP/giây) ─────────────────────────────
-cultivationSchema.methods.computeSpeed = function (spiritRootGrade) {
+cultivationSchema.methods.computeSpeed = function (spiritRootGrade, inventorySpeedMultiplier = 1.0) {
   const base = this.sectName ? BASE_SPEED['宗门'] : BASE_SPEED['散修'];
   const multiplier = SPIRIT_ROOT_MULTIPLIER[spiritRootGrade] || 1.0;
-  return base * multiplier;
+  return base * multiplier * inventorySpeedMultiplier;
 };
 
 // ─── Method: thọ nguyên hiện tại (sau khi trừ hao mòn real-time) ─────────────
@@ -187,9 +187,9 @@ cultivationSchema.methods.updateLifespan = function () {
 };
 
 // ─── Method: Tính toán thời điểm đầy EXP (chờ đột phá) ───────────────────────
-cultivationSchema.methods.calculateAndSetBreakthroughReadyAt = function (spiritRootGrade, realm) {
+cultivationSchema.methods.calculateAndSetBreakthroughReadyAt = function (spiritRootGrade, realm, inventorySpeedMultiplier = 1.0) {
   if (!this.breakthroughReadyAt) {
-    const speed = this.computeSpeed(spiritRootGrade);
+    const speed = this.computeSpeed(spiritRootGrade, inventorySpeedMultiplier);
     const expNeeded = Math.max(0, realm.expRequired - this.expAccumulated);
     const secondsToMax = speed > 0 ? expNeeded / speed : 0;
     const startTime = this.trainingStartedAt ? this.trainingStartedAt.getTime() : Date.now();
