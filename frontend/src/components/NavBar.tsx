@@ -1,6 +1,8 @@
-import { Bell, User, Flame, LogOut, LogIn } from 'lucide-react';
+import { Bell, User, Flame, LogOut, LogIn, ShoppingBag, Gavel } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useEconomy } from '../context/EconomyContext';
+import { useEffect } from 'react';
 
 const navItems: { key: string; label: string; path: string }[] = [
   { key: 'home',        label: 'Tông Đỉnh',     path: '/' },
@@ -8,13 +10,21 @@ const navItems: { key: string; label: string; path: string }[] = [
   { key: 'roots',       label: 'Linh Căn',      path: '/roots' },
   { key: 'cultivation', label: 'Tu Luyện',      path: '/cultivation' },
   { key: 'inventory',   label: 'Túi Đồ',        path: '/inventory' },
+  { key: 'shop',        label: 'Thương Hội',    path: '/shop' },
+  { key: 'auction',     label: 'Đấu Giá',       path: '/auction' },
   { key: 'pavilion',    label: 'Tàng Kinh Các', path: '/pavilion' },
 ];
 
 export default function NavBar() {
   const { user, logout } = useAuth();
+  const { spiritStones, fetchBalance } = useEconomy();
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Load balance khi user đăng nhập
+  useEffect(() => {
+    if (user?.isCharacterCreated) fetchBalance();
+  }, [user, fetchBalance]);
 
   return (
     <nav className="fixed top-0 w-full z-50 glass-panel border-b border-primary/15">
@@ -61,6 +71,13 @@ export default function NavBar() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Spirit Stone balance */}
+          {user?.isCharacterCreated && spiritStones !== null && (
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/8 border border-primary/20 cursor-pointer hover:bg-primary/15 transition-all duration-200" onClick={() => navigate('/shop')}>
+              <span className="text-xs">💎</span>
+              <span className="font-label-caps text-primary text-[11px]">{spiritStones.toLocaleString()}</span>
+            </div>
+          )}
           <button
             className="text-on-surface-variant hover:text-primary transition-all duration-300 flex items-center justify-center w-9 h-9 rounded-lg hover:bg-surface-container/60 relative"
             title="Thông báo"
