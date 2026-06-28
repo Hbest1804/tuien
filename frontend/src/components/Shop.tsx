@@ -1,13 +1,13 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShoppingBag, Sparkles, Gem, Shield, Leaf, X, CheckCircle, AlertCircle, Coins } from 'lucide-react';
 import { getShopItems, buyShopItem, ShopItem } from '../services/economyService';
 import { useEconomy } from '../context/EconomyContext';
 import { useAuth } from '../context/AuthContext';
 
 const RARITY_CONFIG: Record<string, { color: string; glow: string; bg: string; border: string }> = {
-  'Thường':    { color: '#a0a0a0', glow: 'rgba(160,160,160,0.3)', bg: 'rgba(160,160,160,0.08)', border: 'rgba(160,160,160,0.2)' },
-  'Hiếm':      { color: '#f2ca50', glow: 'rgba(242,202,80,0.4)',  bg: 'rgba(242,202,80,0.08)',  border: 'rgba(242,202,80,0.3)' },
-  'Cực Phẩm':  { color: '#b066ff', glow: 'rgba(176,102,255,0.45)',bg: 'rgba(176,102,255,0.1)',  border: 'rgba(176,102,255,0.35)' },
+  'Thường': { color: '#a0a0a0', glow: 'rgba(160,160,160,0.3)', bg: 'rgba(160,160,160,0.08)', border: 'rgba(160,160,160,0.2)' },
+  'Hiếm': { color: '#f2ca50', glow: 'rgba(242,202,80,0.4)', bg: 'rgba(242,202,80,0.08)', border: 'rgba(242,202,80,0.3)' },
+  'Cực Phẩm': { color: '#b066ff', glow: 'rgba(176,102,255,0.45)', bg: 'rgba(176,102,255,0.1)', border: 'rgba(176,102,255,0.35)' },
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -97,8 +97,13 @@ function BuyModal({ item, onConfirm, onClose, spiritStones }: {
   );
 }
 
-// ─── Shop Item Card ───────────────────────────────────────────────────────────
-function ShopItemCard({ item, onBuy }: { item: ShopItem; onBuy: (item: ShopItem) => void }) {
+// ─── Shop Item Card ────────────────────────────────────────────────────────────────
+interface ShopItemCardProps {
+  item: ShopItem;
+  onBuy: (item: ShopItem) => void;
+}
+
+const ShopItemCard: React.FC<ShopItemCardProps> = ({ item, onBuy }) => {
   const cfg = getRarityConfig(item.rarity);
 
   const getIcon = () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Gavel, Plus, Clock, TrendingUp, AlertCircle, CheckCircle, X, RefreshCw, Tag, ChevronDown } from 'lucide-react';
 import {
   getAuctionListings, getMyAuctionListings, listAuctionItem, placeBid,
@@ -42,14 +42,16 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
 }
 
 // ─── Listing Card ─────────────────────────────────────────────────────────────
-function ListingCard({ listing, userId, onBid, onBuyout, onClaim, onCancel }: {
+interface ListingCardProps {
   listing: AuctionListing;
   userId: string;
   onBid: (l: AuctionListing) => void;
-  onBuyout: (l: AuctionListing) => void;
-  onClaim: (l: AuctionListing) => void;
-  onCancel: (l: AuctionListing) => void;
-}) {
+  onBuyout: (l: AuctionListing) => void | Promise<void>;
+  onClaim: (l: AuctionListing) => void | Promise<void>;
+  onCancel: (l: AuctionListing) => void | Promise<void>;
+}
+
+const ListingCard: React.FC<ListingCardProps> = ({ listing, userId, onBid, onBuyout, onClaim, onCancel }) => {
   const cfg = getRarity(listing.itemRarity);
   const isMine = listing.sellerId === userId;
   const isTopBidder = listing.bidderId === userId;
