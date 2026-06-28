@@ -11,13 +11,13 @@ const MIN_BID_INCREMENT = 0.05;
 // Thời hạn hợp lệ (giờ)
 const VALID_DURATIONS_H = [12, 24, 48];
 
-const getOrCreateInventory = async (userId) => {
-  const existing = await Inventory.findOne({ userId });
+const getOrCreateInventory = async (userId, session = null) => {
+  const existing = await Inventory.findOne({ userId }).session(session);
   if (existing) return existing;
   return await Inventory.findOneAndUpdate(
     { userId },
     { $setOnInsert: { userId } },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, new: true, setDefaultsOnInsert: true, session }
   );
 };
 
@@ -39,11 +39,10 @@ const resolveExpiredListings = async () => {
 // ─── GET /auction — Lấy danh sách đấu giá ─────────────────────────────────────
 export const getListings = async (req, res) => {
   try {
-    await resolveExpiredListings();
-
     const { itemType, rarity, sort = 'newest', page = 1, limit = 20 } = req.query;
 
-    const filter = { status: 'active' };
+    const now = new Date();
+    const filter = { status: 'active', expiresAt: { $gt: now } };
     if (itemType) filter.itemType = itemType;
     if (rarity) filter.itemRarity = rarity;
 
@@ -123,8 +122,7 @@ export const listItem = async (req, res) => {
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-      await getOrCreateInventory(user._id);
-      const inventory = await Inventory.findOne({ userId: user._id }).session(session);
+      const inventory = await getOrCreateInventory(user._id, session);
 
       const itemIdx = inventory.items.findIndex(i => i.itemId === itemId);
       if (itemIdx === -1 || inventory.items[itemIdx].quantity < quantity) {
@@ -295,8 +293,7 @@ export const buyout = async (req, res) => {
       await User.findByIdAndUpdate(listing.sellerId, { $inc: { spiritStones: sellerReceives } }, { session });
 
       // Thêm item vào túi người mua
-      await getOrCreateInventory(user._id);
-      const inventory = await Inventory.findOne({ userId: user._id }).session(session);
+      const inventory = await getOrCreateInventory(user._id, session);
       const existingItem = inventory.items.find(i => i.itemId === listing.itemId);
       if (existingItem) {
         existingItem.quantity += listing.quantity;
@@ -374,8 +371,7 @@ export const claimListing = async (req, res) => {
 
       // Người mua claim hàng
       if (isBuyer && !listing.buyerClaimed && listing.status === 'pending_claim') {
-        await getOrCreateInventory(user._id);
-        const inventory = await Inventory.findOne({ userId: user._id }).session(session);
+        const inventory = await getOrCreateInventory(user._id, session);
         const existingItem = inventory.items.find(i => i.itemId === listing.itemId);
         if (existingItem) {
           existingItem.quantity += listing.quantity;
@@ -393,8 +389,7 @@ export const claimListing = async (req, res) => {
 
       // Người bán claim lại hàng khi listing expired
       if (isSeller && !listing.sellerClaimed && listing.status === 'expired') {
-        await getOrCreateInventory(user._id);
-        const inventory = await Inventory.findOne({ userId: user._id }).session(session);
+        const inventory = await getOrCreateInventory(user._id, session);
         const existingItem = inventory.items.find(i => i.itemId === listing.itemId);
         if (existingItem) {
           existingItem.quantity += listing.quantity;
@@ -451,8 +446,7 @@ export const cancelListing = async (req, res) => {
       if (listing.bidderId) { await session.abortTransaction(); session.endSession(); return res.status(400).json({ message: 'Đã có người đặt thầu, không thể huỷ.' }); }
 
       // Trả lại hàng cho người bán
-      await getOrCreateInventory(user._id);
-      const inventory = await Inventory.findOne({ userId: user._id }).session(session);
+      const inventory = await getOrCreateInventory(user._id, session);
       const existingItem = inventory.items.find(i => i.itemId === listing.itemId);
       if (existingItem) {
         existingItem.quantity += listing.quantity;

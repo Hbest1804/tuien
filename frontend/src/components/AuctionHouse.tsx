@@ -20,16 +20,21 @@ const getRarity = (r: string) => RARITY_CONFIG[r] ?? RARITY_CONFIG['Thường'];
 function Countdown({ expiresAt }: { expiresAt: string }) {
   const [remaining, setRemaining] = useState('');
   useEffect(() => {
+    let id: NodeJS.Timeout;
     const update = () => {
       const diff = new Date(expiresAt).getTime() - Date.now();
-      if (diff <= 0) { setRemaining('Hết hạn'); return; }
+      if (diff <= 0) {
+        setRemaining('Hết hạn');
+        if (id) clearInterval(id);
+        return;
+      }
       const h = Math.floor(diff / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
       setRemaining(`${h}h ${m}m ${s}s`);
     };
     update();
-    const id = setInterval(update, 1000);
+    id = setInterval(update, 1000);
     return () => clearInterval(id);
   }, [expiresAt]);
 
@@ -319,7 +324,11 @@ function ListItemModal({ inventoryItems, onConfirm, onClose }: {
             </div>
 
             <button onClick={handleSubmit}
-              disabled={typeof startPrice !== 'number' || startPrice < 1 || typeof qty !== 'number' || qty < 1}
+              disabled={
+                typeof startPrice !== 'number' || startPrice < 1 || 
+                typeof qty !== 'number' || qty < 1 ||
+                (buyoutPrice !== '' && typeof buyoutPrice === 'number' && buyoutPrice <= startPrice)
+              }
               className="w-full py-3 rounded-xl font-headline-md text-[15px] text-primary transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: 'rgba(242,202,80,0.15)', border: '1px solid rgba(242,202,80,0.4)' }}>
               Đăng bán

@@ -25,13 +25,13 @@ const SHOP_PRICE_MAP = {
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-const getOrCreateInventory = async (userId) => {
-  const existing = await Inventory.findOne({ userId });
+const getOrCreateInventory = async (userId, session = null) => {
+  const existing = await Inventory.findOne({ userId }).session(session);
   if (existing) return existing;
   return await Inventory.findOneAndUpdate(
     { userId },
     { $setOnInsert: { userId } },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, new: true, setDefaultsOnInsert: true, session }
   );
 };
 
@@ -71,18 +71,21 @@ export const collectIdleStones = async (req, res) => {
     const cult = await Cultivation.findOne({ userId: user._id }).lean();
     const realmIndex = cult?.realmIndex || 0;
 
-    const pending = computePendingStones(user, realmIndex);
+    const freshUser = await User.findById(user._id);
+    if (!freshUser) {
+      return res.status(404).json({ message: 'User không tồn tại' });
+    }
+
+    const pending = computePendingStones(freshUser, realmIndex);
     if (pending <= 0) {
       return res.json({
         message: 'Chưa có Linh Thạch để thu thập.',
-        spiritStones: user.spiritStones,
+        spiritStones: freshUser.spiritStones,
         collected: 0,
       });
     }
 
-    const freshUser = await User.findById(user._id);
-    const collectedNow = computePendingStones(freshUser, realmIndex);
-    freshUser.spiritStones = (freshUser.spiritStones || 0) + collectedNow;
+    freshUser.spiritStones = (freshUser.spiritStones || 0) + pending;
     freshUser.lastStoneCollectedAt = new Date();
     await freshUser.save();
 
@@ -106,7 +109,7 @@ function computePendingStones(user, realmIndex = 0) {
   // Lấy realmIndex từ cultivation (không có thì dùng 0)
   // Giới hạn tối đa 24h để tránh kho đầy
   const cappedMinutes = Math.min(elapsedMinutes, 24 * 60);
-  const ratePerMinute = IDLE_STONES_PER_MINUTE[Math.min(realmIndex, IDLE_STONES_PER_MINUTE.length - 1)]; 
+  const ratePerMinute = IDLE_STONES_PER_MINUTE[Math.max(0, Math.min(realmIndex, IDLE_STONES_PER_MINUTE.length - 1))]; 
   return Math.floor(cappedMinutes * ratePerMinute);
 }
 
@@ -181,8 +184,7 @@ export const buyShopItem = async (req, res) => {
       await freshUser.save({ session });
 
       // Thêm vào túi đồ
-      await getOrCreateInventory(user._id);
-      const inventory = await Inventory.findOne({ userId: user._id }).session(session);
+      const inventory = await getOrCreateInventory(user._id, session);
 
       const existingItem = inventory.items.find(i => i.itemId === itemId);
       if (existingItem) {
