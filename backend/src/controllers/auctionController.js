@@ -264,6 +264,7 @@ export const buyout = async (req, res) => {
       const listing = await AuctionListing.findById(listingId).session(session);
       if (!listing) { await session.abortTransaction(); session.endSession(); return res.status(404).json({ message: 'Phiên đấu giá không tồn tại.' }); }
       if (listing.status !== 'active') { await session.abortTransaction(); session.endSession(); return res.status(400).json({ message: 'Phiên đấu giá đã kết thúc.' }); }
+      if (new Date() >= listing.expiresAt) { await session.abortTransaction(); session.endSession(); return res.status(400).json({ message: 'Phiên đấu giá đã hết hạn.' }); }
       if (!listing.buyoutPrice) { await session.abortTransaction(); session.endSession(); return res.status(400).json({ message: 'Phiên này không hỗ trợ mua ngay.' }); }
       if (listing.sellerId.toString() === user._id.toString()) { await session.abortTransaction(); session.endSession(); return res.status(400).json({ message: 'Không thể mua vật phẩm của chính mình.' }); }
 

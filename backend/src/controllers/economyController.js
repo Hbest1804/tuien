@@ -71,29 +71,43 @@ export const collectIdleStones = async (req, res) => {
     const cult = await Cultivation.findOne({ userId: user._id }).lean();
     const realmIndex = cult?.realmIndex || 0;
 
-    const freshUser = await User.findById(user._id);
-    if (!freshUser) {
-      return res.status(404).json({ message: 'User không tồn tại' });
-    }
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const freshUser = await User.findById(user._id).session(session);
+      if (!freshUser) {
+        await session.abortTransaction(); session.endSession();
+        return res.status(404).json({ message: 'User không tồn tại' });
+      }
 
-    const pending = computePendingStones(freshUser, realmIndex);
-    if (pending <= 0) {
-      return res.json({
-        message: 'Chưa có Linh Thạch để thu thập.',
+      const pending = computePendingStones(freshUser, realmIndex);
+      if (pending <= 0) {
+        await session.abortTransaction(); session.endSession();
+        return res.json({
+          message: 'Chưa có Linh Thạch để thu thập.',
+          spiritStones: freshUser.spiritStones,
+          collected: 0,
+        });
+      }
+
+      freshUser.spiritStones = (freshUser.spiritStones || 0) + pending;
+      freshUser.lastStoneCollectedAt = new Date();
+      await freshUser.save({ session });
+
+      await session.commitTransaction();
+      session.endSession();
+
+      res.json({
+        message: `Thu thập được ${pending} Linh Thạch!`,
         spiritStones: freshUser.spiritStones,
-        collected: 0,
+        collected: pending,
       });
+    } catch (innerErr) {
+      await session.abortTransaction();
+      session.endSession();
+      if (innerErr.name === 'VersionError') return res.status(409).json({ message: 'Dữ liệu thay đổi, vui lòng thử lại.' });
+      throw innerErr;
     }
-
-    freshUser.spiritStones = (freshUser.spiritStones || 0) + pending;
-    freshUser.lastStoneCollectedAt = new Date();
-    await freshUser.save();
-
-    res.json({
-      message: `Thu thập được ${collectedNow} Linh Thạch!`,
-      spiritStones: freshUser.spiritStones,
-      collected: collectedNow,
-    });
   } catch (err) {
     console.error('Lỗi collectIdleStones:', err);
     res.status(500).json({ message: 'Lỗi server' });
