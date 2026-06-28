@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Inventory from '../models/Inventory.js';
+import Cultivation from '../models/Cultivation.js';
 import { ITEMS, ITEM_TYPES } from '../data/items.js';
 
 // ─── Hằng số ──────────────────────────────────────────────────────────────────
@@ -42,8 +43,11 @@ export const getBalance = async (req, res) => {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
 
+    const cult = await Cultivation.findOne({ userId: user._id }).lean();
+    const realmIndex = cult?.realmIndex || 0;
+
     // Tính Linh Thạch idle đang tích lũy (chưa thu)
-    const pendingStones = computePendingStones(user);
+    const pendingStones = computePendingStones(user, realmIndex);
 
     res.json({
       spiritStones: user.spiritStones,
@@ -64,7 +68,10 @@ export const collectIdleStones = async (req, res) => {
       return res.status(403).json({ message: 'Chưa tạo nhân vật' });
     }
 
-    const pending = computePendingStones(user);
+    const cult = await Cultivation.findOne({ userId: user._id }).lean();
+    const realmIndex = cult?.realmIndex || 0;
+
+    const pending = computePendingStones(user, realmIndex);
     if (pending <= 0) {
       return res.json({
         message: 'Chưa có Linh Thạch để thu thập.',
@@ -74,7 +81,7 @@ export const collectIdleStones = async (req, res) => {
     }
 
     const freshUser = await User.findById(user._id);
-    const collectedNow = computePendingStones(freshUser);
+    const collectedNow = computePendingStones(freshUser, realmIndex);
     freshUser.spiritStones = (freshUser.spiritStones || 0) + collectedNow;
     freshUser.lastStoneCollectedAt = new Date();
     await freshUser.save();
@@ -91,7 +98,7 @@ export const collectIdleStones = async (req, res) => {
 };
 
 // Helper: tính Linh Thạch idle tích lũy
-function computePendingStones(user) {
+function computePendingStones(user, realmIndex = 0) {
   const lastCollected = user.lastStoneCollectedAt || user.createdAt || new Date();
   const elapsedMs = Date.now() - new Date(lastCollected).getTime();
   const elapsedMinutes = elapsedMs / 60000;
@@ -99,7 +106,7 @@ function computePendingStones(user) {
   // Lấy realmIndex từ cultivation (không có thì dùng 0)
   // Giới hạn tối đa 24h để tránh kho đầy
   const cappedMinutes = Math.min(elapsedMinutes, 24 * 60);
-  const ratePerMinute = IDLE_STONES_PER_MINUTE[0]; // default Luyện Khí
+  const ratePerMinute = IDLE_STONES_PER_MINUTE[Math.min(realmIndex, IDLE_STONES_PER_MINUTE.length - 1)]; 
   return Math.floor(cappedMinutes * ratePerMinute);
 }
 

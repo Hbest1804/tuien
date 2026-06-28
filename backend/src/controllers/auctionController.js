@@ -53,12 +53,14 @@ export const getListings = async (req, res) => {
     else if (sort === 'ending_soon') sortOption = { expiresAt: 1 };
     else sortOption = { createdAt: -1 }; // newest
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit) || 20));
+    const skip = (pageNum - 1) * limitNum;
     const [listings, total] = await Promise.all([
       AuctionListing.find(filter)
         .sort(sortOption)
         .skip(skip)
-        .limit(parseInt(limit))
+        .limit(limitNum)
         .lean(),
       AuctionListing.countDocuments(filter),
     ]);
@@ -66,8 +68,8 @@ export const getListings = async (req, res) => {
     res.json({
       listings,
       total,
-      page: parseInt(page),
-      totalPages: Math.ceil(total / parseInt(limit)),
+      page: pageNum,
+      totalPages: Math.ceil(total / limitNum),
     });
   } catch (err) {
     console.error('Lỗi getListings:', err);
@@ -212,7 +214,11 @@ export const placeBid = async (req, res) => {
 
       // Hoàn tiền người thầu cũ
       if (listing.bidderId && listing.currentBid > 0) {
-        await User.findByIdAndUpdate(listing.bidderId, { $inc: { spiritStones: listing.currentBid } }, { session });
+        if (listing.bidderId.toString() === user._id.toString()) {
+          freshUser.spiritStones += listing.currentBid;
+        } else {
+          await User.findByIdAndUpdate(listing.bidderId, { $inc: { spiritStones: listing.currentBid } }, { session });
+        }
       }
 
       // Trừ tiền người thầu mới
@@ -264,14 +270,19 @@ export const buyout = async (req, res) => {
       if (listing.sellerId.toString() === user._id.toString()) { await session.abortTransaction(); session.endSession(); return res.status(400).json({ message: 'Không thể mua vật phẩm của chính mình.' }); }
 
       const freshUser = await User.findById(user._id).session(session);
-      if (freshUser.spiritStones < listing.buyoutPrice) {
+      const activeBidRefund = (listing.bidderId && listing.bidderId.toString() === user._id.toString()) ? listing.currentBid : 0;
+      if (freshUser.spiritStones + activeBidRefund < listing.buyoutPrice) {
         await session.abortTransaction(); session.endSession();
         return res.status(400).json({ message: `Không đủ Linh Thạch! Cần ${listing.buyoutPrice} nhưng chỉ có ${freshUser.spiritStones}.` });
       }
 
       // Hoàn tiền người thầu cũ (nếu có)
-      if (listing.bidderId && listing.currentBid > 0 && listing.bidderId.toString() !== user._id.toString()) {
-        await User.findByIdAndUpdate(listing.bidderId, { $inc: { spiritStones: listing.currentBid } }, { session });
+      if (listing.bidderId && listing.currentBid > 0) {
+        if (listing.bidderId.toString() === user._id.toString()) {
+          freshUser.spiritStones += listing.currentBid;
+        } else {
+          await User.findByIdAndUpdate(listing.bidderId, { $inc: { spiritStones: listing.currentBid } }, { session });
+        }
       }
 
       // Trừ tiền người mua
@@ -388,6 +399,10 @@ export const claimListing = async (req, res) => {
         if (existingItem) {
           existingItem.quantity += listing.quantity;
         } else {
+          if (inventory.items.length >= inventory.maxSlots) {
+            await session.abortTransaction(); session.endSession();
+            return res.status(400).json({ message: 'Túi đồ đã đầy!' });
+          }
           inventory.items.push({ itemId: listing.itemId, quantity: listing.quantity });
         }
         await inventory.save({ session });
@@ -442,6 +457,10 @@ export const cancelListing = async (req, res) => {
       if (existingItem) {
         existingItem.quantity += listing.quantity;
       } else {
+        if (inventory.items.length >= inventory.maxSlots) {
+          await session.abortTransaction(); session.endSession();
+          return res.status(400).json({ message: 'Túi đồ đã đầy!' });
+        }
         inventory.items.push({ itemId: listing.itemId, quantity: listing.quantity });
       }
       await inventory.save({ session });

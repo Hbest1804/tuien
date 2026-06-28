@@ -156,8 +156,9 @@ function BidModal({ listing, onConfirm, onClose, spiritStones }: {
 }) {
   const currentPrice = listing.currentBid > 0 ? listing.currentBid : listing.startingPrice;
   const minBid = Math.ceil(currentPrice * 1.05);
-  const [bidAmount, setBidAmount] = useState(minBid);
-  const canAfford = spiritStones !== null && spiritStones >= bidAmount;
+  const [bidAmount, setBidAmount] = useState<number | ''>(minBid);
+  const isValidBid = typeof bidAmount === 'number' && bidAmount >= minBid;
+  const canAfford = spiritStones !== null && typeof bidAmount === 'number' && spiritStones >= bidAmount;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
@@ -175,7 +176,7 @@ function BidModal({ listing, onConfirm, onClose, spiritStones }: {
             type="number"
             value={bidAmount}
             min={minBid}
-            onChange={e => setBidAmount(Math.max(minBid, parseInt(e.target.value) || minBid))}
+            onChange={e => setBidAmount(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
             className="w-full bg-surface-container border border-on-surface-variant/20 rounded-lg px-4 py-3 text-on-background font-body-md focus:outline-none focus:border-primary"
           />
         </div>
@@ -187,12 +188,12 @@ function BidModal({ listing, onConfirm, onClose, spiritStones }: {
         )}
 
         <button
-          onClick={() => canAfford && onConfirm(bidAmount)}
-          disabled={!canAfford}
+          onClick={() => canAfford && isValidBid && typeof bidAmount === 'number' && onConfirm(bidAmount)}
+          disabled={!canAfford || !isValidBid}
           className="w-full py-3 rounded-xl font-headline-md text-[15px] text-primary transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.01]"
           style={{ background: 'rgba(242,202,80,0.15)', border: '1px solid rgba(242,202,80,0.4)' }}
         >
-          Đặt {bidAmount.toLocaleString()} 💎
+          Đặt {typeof bidAmount === 'number' ? bidAmount.toLocaleString() : minBid.toLocaleString()} 💎
         </button>
       </div>
     </div>
@@ -206,8 +207,8 @@ function ListItemModal({ inventoryItems, onConfirm, onClose }: {
   onClose: () => void;
 }) {
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [qty, setQty] = useState(1);
-  const [startPrice, setStartPrice] = useState(50);
+  const [qty, setQty] = useState<number | ''>(1);
+  const [startPrice, setStartPrice] = useState<number | ''>(50);
   const [buyoutPrice, setBuyoutPrice] = useState<number | ''>('');
   const [duration, setDuration] = useState<12 | 24 | 48>(24);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -215,7 +216,7 @@ function ListItemModal({ inventoryItems, onConfirm, onClose }: {
   const sellableItems = inventoryItems.filter(i => i.type !== 'ARTIFACT' || i.quantity > 0);
 
   const handleSubmit = () => {
-    if (!selectedItem) return;
+    if (!selectedItem || typeof qty !== 'number' || typeof startPrice !== 'number' || startPrice < 1 || qty < 1) return;
     onConfirm({
       itemId: selectedItem.itemId,
       quantity: qty,
@@ -269,9 +270,12 @@ function ListItemModal({ inventoryItems, onConfirm, onClose }: {
             <div className="mb-4">
               <label className="font-label-caps text-[10px] text-on-surface-variant block mb-2">Số lượng (max: {selectedItem.quantity})</label>
               <div className="flex items-center gap-3">
-                <button onClick={() => setQty(q => Math.max(1, q-1))} className="w-8 h-8 rounded-full border border-on-surface-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all flex items-center justify-center">−</button>
+                <button onClick={() => setQty(q => Math.max(1, typeof q === 'number' ? q - 1 : 1))} className="w-8 h-8 rounded-full border border-on-surface-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all flex items-center justify-center">−</button>
                 <input type="number" value={qty} min={1} max={selectedItem.quantity}
-                  onChange={e => setQty(Math.min(selectedItem.quantity, Math.max(1, parseInt(e.target.value) || 1)))}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setQty(v === '' ? '' : Math.min(selectedItem.quantity, parseInt(v) || 0));
+                  }}
                   className="flex-1 bg-surface-container border border-on-surface-variant/20 rounded-lg px-3 py-2 text-center text-on-background font-body-md focus:outline-none focus:border-primary"
                 />
                 <button onClick={() => setQty(selectedItem.quantity)} className="w-8 h-8 rounded-full border border-on-surface-variant/30 text-on-surface-variant hover:border-primary hover:text-primary transition-all flex items-center justify-center text-xs">All</button>
@@ -282,7 +286,7 @@ function ListItemModal({ inventoryItems, onConfirm, onClose }: {
             <div className="mb-4">
               <label className="font-label-caps text-[10px] text-on-surface-variant block mb-2">Giá khởi điểm (Linh Thạch)</label>
               <input type="number" value={startPrice} min={1}
-                onChange={e => setStartPrice(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={e => setStartPrice(e.target.value === '' ? '' : parseInt(e.target.value) || 0)}
                 className="w-full bg-surface-container border border-on-surface-variant/20 rounded-lg px-4 py-3 text-on-background font-body-md focus:outline-none focus:border-primary"
               />
             </div>
@@ -315,7 +319,8 @@ function ListItemModal({ inventoryItems, onConfirm, onClose }: {
             </div>
 
             <button onClick={handleSubmit}
-              className="w-full py-3 rounded-xl font-headline-md text-[15px] text-primary transition-all hover:scale-[1.01]"
+              disabled={typeof startPrice !== 'number' || startPrice < 1 || typeof qty !== 'number' || qty < 1}
+              className="w-full py-3 rounded-xl font-headline-md text-[15px] text-primary transition-all hover:scale-[1.01] disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: 'rgba(242,202,80,0.15)', border: '1px solid rgba(242,202,80,0.4)' }}>
               Đăng bán
             </button>
