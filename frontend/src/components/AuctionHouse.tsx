@@ -218,7 +218,7 @@ function ListItemModal({ inventoryItems, onConfirm, onClose }: {
   const [duration, setDuration] = useState<12 | 24 | 48>(24);
   const [showDropdown, setShowDropdown] = useState(false);
 
-  const sellableItems = inventoryItems.filter(i => i.type !== 'ARTIFACT' || i.quantity > 0);
+  const sellableItems = inventoryItems.filter(i => i.quantity > 0);
 
   const handleSubmit = () => {
     if (!selectedItem || typeof qty !== 'number' || typeof startPrice !== 'number' || startPrice < 1 || qty < 1) return;
