@@ -27,12 +27,12 @@ const resolveExpiredListings = async () => {
   // active + hết hạn + có bid → pending_claim
   await AuctionListing.updateMany(
     { status: 'active', expiresAt: { $lte: now }, bidderId: { $ne: null } },
-    { $set: { status: 'pending_claim' } }
+    { $set: { status: 'pending_claim' }, $inc: { __v: 1 } }
   );
   // active + hết hạn + không có bid → expired
   await AuctionListing.updateMany(
     { status: 'active', expiresAt: { $lte: now }, bidderId: null },
-    { $set: { status: 'expired' } }
+    { $set: { status: 'expired' }, $inc: { __v: 1 } }
   );
 };
 
@@ -221,7 +221,11 @@ export const placeBid = async (req, res) => {
         if (listing.bidderId.toString() === user._id.toString()) {
           freshUser.spiritStones += listing.currentBid;
         } else {
-          await User.findByIdAndUpdate(listing.bidderId, { $inc: { spiritStones: listing.currentBid } }, { session });
+          const oldBidder = await User.findById(listing.bidderId).session(session);
+          if (oldBidder) {
+            oldBidder.spiritStones += listing.currentBid;
+            await oldBidder.save({ session });
+          }
         }
       }
 
@@ -286,7 +290,11 @@ export const buyout = async (req, res) => {
         if (listing.bidderId.toString() === user._id.toString()) {
           freshUser.spiritStones += listing.currentBid;
         } else {
-          await User.findByIdAndUpdate(listing.bidderId, { $inc: { spiritStones: listing.currentBid } }, { session });
+          const oldBidder = await User.findById(listing.bidderId).session(session);
+          if (oldBidder) {
+            oldBidder.spiritStones += listing.currentBid;
+            await oldBidder.save({ session });
+          }
         }
       }
 
@@ -297,7 +305,11 @@ export const buyout = async (req, res) => {
       // Người bán nhận tiền (trừ phí 5%)
       const fee = Math.ceil(listing.buyoutPrice * AUCTION_FEE_RATE);
       const sellerReceives = listing.buyoutPrice - fee;
-      await User.findByIdAndUpdate(listing.sellerId, { $inc: { spiritStones: sellerReceives } }, { session });
+      const seller = await User.findById(listing.sellerId).session(session);
+      if (seller) {
+        seller.spiritStones += sellerReceives;
+        await seller.save({ session });
+      }
 
       // Thêm item vào túi người mua
       const inventory = await getOrCreateInventory(user._id, session);
