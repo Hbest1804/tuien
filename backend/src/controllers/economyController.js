@@ -91,7 +91,22 @@ export const collectIdleStones = async (req, res) => {
       }
 
       freshUser.spiritStones = (freshUser.spiritStones || 0) + pending;
-      freshUser.lastStoneCollectedAt = new Date();
+
+      // Giữ phần dư tiến độ thay vì reset về now (tránh mất phần lẻ phút)
+      const lastCollected = freshUser.lastStoneCollectedAt || freshUser.createdAt || new Date();
+      const elapsedMs = Date.now() - new Date(lastCollected).getTime();
+      const elapsedMinutes = elapsedMs / 60000;
+
+      if (elapsedMinutes >= 24 * 60) {
+        // Đã chạm cap 24h → reset về now (toàn bộ tiến độ đã dùng hết)
+        freshUser.lastStoneCollectedAt = new Date();
+      } else {
+        // Tiến lên đúng số phút tương ứng với số đá đã thu, giữ lại phần lẻ
+        const ratePerMinute = IDLE_STONES_PER_MINUTE[Math.max(0, Math.min(realmIndex, IDLE_STONES_PER_MINUTE.length - 1))];
+        const collectedMinutes = pending / ratePerMinute;
+        freshUser.lastStoneCollectedAt = new Date(new Date(lastCollected).getTime() + collectedMinutes * 60000);
+      }
+
       await freshUser.save({ session });
 
       await session.commitTransaction();
