@@ -195,6 +195,12 @@ export const placeBid = async (req, res) => {
       if (new Date() >= listing.expiresAt) { await session.abortTransaction(); session.endSession(); return res.status(400).json({ message: 'Phiên đấu giá đã hết hạn.' }); }
       if (listing.sellerId.toString() === user._id.toString()) { await session.abortTransaction(); session.endSession(); return res.status(400).json({ message: 'Không thể tự đấu giá vật phẩm của mình.' }); }
 
+      // Ngăn đặt thầu >= giá mua ngay (phải dùng tính năng Mua Ngay)
+      if (listing.buyoutPrice !== null && bidAmount >= listing.buyoutPrice) {
+        await session.abortTransaction(); session.endSession();
+        return res.status(400).json({ message: `Giá thầu lớn hơn hoặc bằng giá mua ngay (${listing.buyoutPrice}). Vui lòng sử dụng tính năng Mua Ngay.` });
+      }
+
       // Kiểm tra giá thầu tối thiểu
       const currentPrice = listing.currentBid > 0 ? listing.currentBid : listing.startingPrice;
       const minBid = Math.ceil(currentPrice * (1 + MIN_BID_INCREMENT));
@@ -348,6 +354,12 @@ export const claimListing = async (req, res) => {
     try {
       const listing = await AuctionListing.findById(listingId).session(session);
       if (!listing) { await session.abortTransaction(); session.endSession(); return res.status(404).json({ message: 'Phiên đấu giá không tồn tại.' }); }
+
+      // Tự động chuyển trạng thái nếu listing đã hết hạn nhưng chưa được resolve
+      if (listing.status === 'active' && new Date() >= listing.expiresAt) {
+        listing.status = listing.bidderId ? 'pending_claim' : 'expired';
+        await listing.save({ session });
+      }
 
       const isSeller = listing.sellerId.toString() === user._id.toString();
       const isBuyer = listing.bidderId?.toString() === user._id.toString();
