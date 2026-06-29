@@ -105,12 +105,14 @@ export const registerUser = async (req, res) => {
       token,
       user: {
         id: user._id,
+        _id: user._id,
         username: user.username,
         email: user.email,
         isCharacterCreated: user.isCharacterCreated,
         gender: user.gender,
         spiritRoot: user.spiritRoot,
         spiritRootGrade: user.spiritRootGrade,
+        spiritStones: user.spiritStones,
       },
     });
   } catch (error) {
@@ -149,12 +151,14 @@ export const loginUser = async (req, res) => {
       token,
       user: {
         id: user._id,
+        _id: user._id,
         username: user.username,
         email: user.email,
         isCharacterCreated: user.isCharacterCreated,
         gender: user.gender,
         spiritRoot: user.spiritRoot,
         spiritRootGrade: user.spiritRootGrade,
+        spiritStones: user.spiritStones,
       },
     });
   } catch (error) {
@@ -203,12 +207,14 @@ export const setupCharacter = async (req, res) => {
       message: 'Khai mở linh căn thành công!',
       user: {
         id: user._id,
+        _id: user._id,
         username: user.username,
         email: user.email,
         isCharacterCreated: user.isCharacterCreated,
         gender: user.gender,
         spiritRoot: user.spiritRoot,
         spiritRootGrade: user.spiritRootGrade,
+        spiritStones: user.spiritStones,
       },
     });
   } catch (error) {
@@ -228,12 +234,14 @@ export const getMe = async (req, res) => {
     res.status(200).json({
       user: {
         id: user._id,
+        _id: user._id,
         username: user.username,
         email: user.email,
         isCharacterCreated: user.isCharacterCreated,
         gender: user.gender,
         spiritRoot: user.spiritRoot,
         spiritRootGrade: user.spiritRootGrade,
+        spiritStones: user.spiritStones,
       },
     });
   } catch (error) {

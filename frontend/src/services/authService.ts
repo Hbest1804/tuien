@@ -8,12 +8,14 @@ export interface AuthPayload {
 
 export interface UserData {
   id: string;
+  _id: string;
   username: string;
   email: string;
   isCharacterCreated: boolean;
   gender: 'male' | 'female' | null;
   spiritRoot: string | null;
   spiritRootGrade: 'Thiên' | 'Địa' | 'Huyền' | 'Hoàng' | null;
+  spiritStones?: number;
 }
 
 export interface AuthResponse {

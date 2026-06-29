@@ -8,6 +8,8 @@ import SpiritRoots from './components/SpiritRoots';
 import WorldMap from './components/WorldMap';
 import Cultivation from './components/Cultivation';
 import Inventory from './components/Inventory';
+import Shop from './components/Shop';
+import AuctionHouse from './components/AuctionHouse';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CharacterSetupModal from './components/CharacterSetupModal';
@@ -59,6 +61,8 @@ function MainLayout() {
           <Route path="/pavilion" element={<Pavilion />} />
           <Route path="/cultivation" element={<Cultivation />} />
           <Route path="/inventory" element={<Inventory />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/auction" element={<AuctionHouse />} />
         </Routes>
       </main>
       <Footer />

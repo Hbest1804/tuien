@@ -42,9 +42,23 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    // ─── Linh Thạch (Spirit Stones) ─────────────────────────────────────────
+    spiritStones: {
+      type: Number,
+      default: 100,
+      min: 0,
+    },
+
+    // Thời điểm thu thập Linh Thạch idle lần cuối
+    lastStoneCollectedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
+    optimisticConcurrency: true,
   }
 );
 
