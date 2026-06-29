@@ -62,7 +62,7 @@ const ListingCard: React.FC<ListingCardProps> = ({ listing, userId, onBid, onBuy
   const isTopBidder = listing.bidderId === userId;
   const displayPrice = listing.currentBid > 0 ? listing.currentBid : listing.startingPrice;
   const canClaim =
-    (listing.status === 'pending_claim' && (isMine || isTopBidder)) ||
+    (listing.status === 'pending_claim' && ((isMine && !listing.sellerClaimed) || (isTopBidder && !listing.buyerClaimed))) ||
     (listing.status === 'expired' && isMine && !listing.sellerClaimed);
 
   return (

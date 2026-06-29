@@ -209,11 +209,12 @@ export const placeBid = async (req, res) => {
         return res.status(400).json({ message: `Giá thầu tối thiểu là ${minBid} Linh Thạch.` });
       }
 
-      // Kiểm tra Linh Thạch
+      // Kiểm tra Linh Thạch (tính cả hoàn tiền nếu user đang là bidder cao nhất)
       const freshUser = await User.findById(user._id).session(session);
-      if (freshUser.spiritStones < bidAmount) {
+      const activeBidRefund = (listing.bidderId && listing.bidderId.toString() === user._id.toString()) ? listing.currentBid : 0;
+      if (freshUser.spiritStones + activeBidRefund < bidAmount) {
         await session.abortTransaction(); session.endSession();
-        return res.status(400).json({ message: `Không đủ Linh Thạch! Cần ${bidAmount} nhưng chỉ có ${freshUser.spiritStones}.` });
+        return res.status(400).json({ message: `Không đủ Linh Thạch! Cần ${bidAmount} nhưng chỉ có ${freshUser.spiritStones + activeBidRefund}.` });
       }
 
       // Hoàn tiền người thầu cũ
