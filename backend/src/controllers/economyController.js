@@ -199,6 +199,7 @@ export const buyShopItem = async (req, res) => {
     try {
       const freshUser = await User.findById(user._id).session(session);
       if (!freshUser) throw new Error('User không tồn tại');
+      freshUser.spiritStones = freshUser.spiritStones || 0;
 
       if (freshUser.spiritStones < totalCost) {
         await session.abortTransaction();

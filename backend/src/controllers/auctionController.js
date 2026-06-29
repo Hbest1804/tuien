@@ -216,6 +216,7 @@ export const placeBid = async (req, res) => {
         session.endSession();
         return res.status(404).json({ message: 'Người dùng không tồn tại.' });
       }
+      freshUser.spiritStones = freshUser.spiritStones || 0;
       const activeBidRefund = (listing.bidderId && listing.bidderId.toString() === user._id.toString()) ? listing.currentBid : 0;
       if (freshUser.spiritStones + activeBidRefund < bidAmount) {
         await session.abortTransaction(); session.endSession();
@@ -290,6 +291,7 @@ export const buyout = async (req, res) => {
         session.endSession();
         return res.status(404).json({ message: 'Người dùng không tồn tại.' });
       }
+      freshUser.spiritStones = freshUser.spiritStones || 0;
       const activeBidRefund = (listing.bidderId && listing.bidderId.toString() === user._id.toString()) ? listing.currentBid : 0;
       if (freshUser.spiritStones + activeBidRefund < listing.buyoutPrice) {
         await session.abortTransaction(); session.endSession();
@@ -399,6 +401,7 @@ export const claimListing = async (req, res) => {
         session.endSession();
         return res.status(404).json({ message: 'Người dùng không tồn tại.' });
       }
+      freshUser.spiritStones = freshUser.spiritStones || 0;
 
       // Người bán claim tiền
       if (isSeller && !listing.sellerClaimed && listing.status === 'pending_claim') {
