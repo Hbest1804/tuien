@@ -211,6 +211,11 @@ export const placeBid = async (req, res) => {
 
       // Kiểm tra Linh Thạch (tính cả hoàn tiền nếu user đang là bidder cao nhất)
       const freshUser = await User.findById(user._id).session(session);
+      if (!freshUser) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ message: 'Người dùng không tồn tại.' });
+      }
       const activeBidRefund = (listing.bidderId && listing.bidderId.toString() === user._id.toString()) ? listing.currentBid : 0;
       if (freshUser.spiritStones + activeBidRefund < bidAmount) {
         await session.abortTransaction(); session.endSession();
@@ -280,6 +285,11 @@ export const buyout = async (req, res) => {
       if (listing.sellerId.toString() === user._id.toString()) { await session.abortTransaction(); session.endSession(); return res.status(400).json({ message: 'Không thể mua vật phẩm của chính mình.' }); }
 
       const freshUser = await User.findById(user._id).session(session);
+      if (!freshUser) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ message: 'Người dùng không tồn tại.' });
+      }
       const activeBidRefund = (listing.bidderId && listing.bidderId.toString() === user._id.toString()) ? listing.currentBid : 0;
       if (freshUser.spiritStones + activeBidRefund < listing.buyoutPrice) {
         await session.abortTransaction(); session.endSession();
@@ -384,6 +394,11 @@ export const claimListing = async (req, res) => {
 
       let message = '';
       const freshUser = await User.findById(user._id).session(session);
+      if (!freshUser) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({ message: 'Người dùng không tồn tại.' });
+      }
 
       // Người bán claim tiền
       if (isSeller && !listing.sellerClaimed && listing.status === 'pending_claim') {
