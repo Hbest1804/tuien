@@ -1,55 +1,87 @@
-# 📜 Danh sách các chức năng còn thiếu (Roadmap)
+﻿# 📜 Roadmap — Chức năng còn thiếu / cần bổ sung
 
-Dựa trên hiện trạng dự án (hiện tại đã có hệ thống User cơ bản, random Linh Căn, Tu luyện cơ bản tính theo thời gian thực, Thọ nguyên và Tông môn), dưới đây là danh sách các tính năng còn thiếu để hoàn thiện một tựa game Idle Cultivation (Tu Tiên) đúng chuẩn:
+> **Hiện trạng đã có:**
+> User, đăng ký/đăng nhập, tạo nhân vật, random Linh Căn, Tu luyện idle theo thời gian thực, Thọ nguyên, Tông môn (gia nhập/rời), Đột phá (có tỷ lệ thành công, Lôi Kiếp, Tâm Ma), Túi đồ (Inventory), Đan dược (EXP, tăng tốc, Thọ Nguyên Quả, Phá Cảnh Đan), Pháp bảo (vũ khí, phòng hộ lôi kiếp), Nguyên liệu cơ bản, Linh Thạch Idle (thu thập theo cảnh giới), Thương Hội/Shop (mua bán toàn bộ vật phẩm), Đấu giá hội (đặt thầu, mua ngay, claim, huỷ).
 
-## 1. Hệ thống Vật phẩm & Túi đồ (Inventory System)
-*   **Túi đồ (Đan điền/Không gian giới chỉ):** Nơi lưu trữ vật phẩm, có giới hạn ô chứa.
-*   **Đan dược (Pills/Elixirs):**
-    *   Tăng tốc độ tu luyện tạm thời (X2, X3 EXP trong vài giờ).
-    *   Cung cấp EXP ngay lập tức (Tụ Khí Đan, Trúc Cơ Đan...).
-    *   Tăng thọ nguyên (Thọ Nguyên Quả - Cứu nguy khi sắp cạn thọ nguyên).
-    *   Hỗ trợ đột phá (Tăng tỷ lệ thành công).
-*   **Pháp bảo/Trang bị (Artifacts/Weapons):** Vũ khí, phòng cụ để tăng chỉ số chiến đấu.
-*   **Thiên Tài Địa Bảo:** Nguyên liệu dùng để Luyện Đan, Luyện Khí. (Có hỗ trợ tăng thuộc tính nữa).
+---
 
-## 2. Hệ thống Tiền tệ & Kinh tế (Economy)
-*   **Linh Thạch (Spirit Stones):** Đơn vị tiền tệ chính trong game. Có thể thu thập qua việc treo máy (Idle), làm nhiệm vụ, khai thác linh mạch.
-*   **Thương Hội/Tiệm Tạp Hóa (Shop):** Nơi người chơi dùng Linh thạch để mua đan dược, công pháp, nguyên liệu.
-*   **Đấu giá hội (Auction House):** Nơi giao dịch vật phẩm hiếm giữa các người chơi với nhau (Chợ đen).
+## 1. Hệ thống Vật phẩm & Túi đồ
 
-## 3. Hệ thống Kỹ năng & Công pháp (Martial Arts & Techniques)
-*   **Công pháp (Techniques):** Sách kỹ năng (Tâm pháp) giúp tăng vĩnh viễn hệ số nhân tốc độ tu luyện hoặc chỉ số lực chiến.
-*   **Thần thông/Bí thuật (Spells):** Kỹ năng chủ động dùng trong chiến đấu.
-*   **Tàng Kinh Các:** Nơi lưu trữ và cho phép người chơi đổi công pháp (thường đặt ở trong Tông Môn).
+- [ ] **Tăng độ phong phú vật phẩm:** Chỉ có 1 nguyên liệu (`Huyết Linh Thảo`). Cần bổ sung nguyên liệu các cấp (Trúc Cơ, Kim Đan...) để làm nền tảng cho Luyện Đan sau này.
+- [ ] **Công pháp (Kỹ năng sách):** Item loại `TECHNIQUE` giúp tăng vĩnh viễn hệ số tốc độ tu luyện hoặc chỉ số chiến đấu — hiện chưa có loại item này.
+- [ ] **Equip slot cho Vũ khí/Giáp:** Vũ khí và giáp đã có trong data (`atkBonus`, `tribulationDefense`) nhưng **chưa được áp dụng** vào chỉ số thực tế — cần hệ thống "trang bị" (equip slot) riêng.
 
-## 4. Hệ thống Tông môn nâng cao (Advanced Sect)
-*   **Điểm Cống hiến (Sect Contribution):** Nhận được qua làm nhiệm vụ tông môn, dùng để đổi vật phẩm/công pháp.
-*   **Chức vụ Tông môn:** Thăng tiến từ Tạp dịch -> Ngoại môn -> Nội môn -> Chân truyền đệ tử -> Trưởng lão -> Tông chủ. Từng cấp bậc sẽ có bonus tốc độ tu luyện khác nhau.
-*   **Nhiệm vụ Tông môn:** Cung cấp nguồn tài nguyên hàng ngày.
-*   **Chiến tranh Tông môn (Sect Wars):** Các tông môn PK lẫn nhau giành linh mạch (Tính năng mở rộng).
+---
 
-## 5. Rủi ro Đột phá & Thiên Kiếp (Breakthrough Risks & Tribulation)
-*   **Tỷ lệ thành công:** Chức năng đột phá hiện tại đang là 100%. Cần bổ sung tỷ lệ thành công giảm dần ở các cảnh giới cao. Thất bại có thể bị giảm thọ nguyên, trừ thẳng EXP, hoặc hỏng căn cơ.
-*   **Thiên Kiếp (Heavenly Tribulation):** Khi đột phá cảnh giới lớn (Trúc Cơ -> Kim Đan), phải vượt qua Lôi Kiếp. Cần dùng Pháp bảo hoặc Trận pháp để chống đỡ lôi kiếp sát thương.
-*   **Tâm Ma (Heart Demon):** Xuất hiện khi tu luyện quá nhanh hoặc thất bại nhiều lần, làm giảm sinh lực hoặc tốc độ tu luyện.
+## 2. Hệ thống Tiền tệ & Kinh tế
 
-## 6. Hệ thống Chiến đấu & Bí cảnh (Combat & PvE)
-*   **Chỉ số nhân vật (Stats):** Cần cấu trúc thêm Sinh lực (HP), Tấn công (ATK), Phòng thủ (DEF), Bạo kích...
-*   **Bí Cảnh / Lịch Luyện (Dungeons/Ruins):** Chế độ cho phép đưa nhân vật đi khám phá (Treo máy 1-2 tiếng) để mang về linh thạch, thiên tài địa bảo.
-*   **Yêu Thú (Beasts):** Quái vật phân chia theo cấp độ để săn bắn (Luyện Khí Kỳ Yêu thú, Trúc Cơ Kỳ Yêu thú...).
+- [ ] **Nguồn Linh Thạch đa dạng hơn:** Hiện chỉ có idle tự động. Cần thêm: nhiệm vụ, bí cảnh, khai thác linh mạch.
+- [ ] **Bán vật phẩm cho NPC:** Người chơi chưa thể bán lại đồ vào shop — chỉ đấu giá với nhau.
+
+---
+
+## 3. Hệ thống Kỹ năng & Công pháp
+
+- [ ] **Công pháp (Techniques):** Sách kỹ năng tăng vĩnh viễn hệ số tu luyện. Chưa có model, UI, cơ chế học công pháp.
+- [ ] **Thần thông/Bí thuật (Spells):** Kỹ năng chủ động dùng trong chiến đấu. Phụ thuộc vào hệ thống chiến đấu.
+- [ ] **Tàng Kinh Các:** UI và API nơi người chơi đổi điểm cống hiến lấy công pháp (trong Tông Môn).
+
+---
+
+## 4. Hệ thống Tông môn nâng cao
+
+- [ ] **Điểm Cống hiến (Sect Contribution):** Chưa có. Cần thêm field vào model, cơ chế tích điểm và đổi thưởng.
+- [ ] **Chức vụ Tông môn:** Chưa có hệ thống thăng chức (Tạp dịch → Ngoại môn → Nội môn → Chân truyền → Trưởng lão → Tông chủ). Mỗi cấp có bonus tu luyện riêng.
+- [ ] **Nhiệm vụ Tông môn hàng ngày:** Nguồn cung điểm cống hiến và tài nguyên ổn định.
+- [ ] **Chiến tranh Tông môn (Sect Wars):** Tính năng mở rộng dài hạn — các tông môn tranh giành linh mạch.
+
+---
+
+## 5. Rủi ro Đột phá & Thiên Kiếp
+
+> ✅ Đã có: tỷ lệ thành công theo cảnh giới, Lôi Kiếp (`tribulationDamage`), Tâm Ma sau 3 lần thất bại liên tiếp.
+
+- [ ] **Mất căn cơ khi thất bại nặng:** Hiện thất bại chỉ trừ EXP/thọ nguyên. Cảnh giới cao (Nguyên Anh+) có thể thêm cơ chế hỏng Linh Căn tạm thời.
+- [ ] **Hiển thị rõ tỷ lệ đột phá trên UI:** BreakthroughModal cần hiển thị % thành công + sát thương lôi kiếp trước khi người chơi bấm xác nhận.
+
+---
+
+## 6. Hệ thống Chiến đấu & Bí cảnh
+
+- [ ] **Chỉ số nhân vật (Stats):** Chưa có HP, ATK, DEF, Bạo kích. Vũ khí có `atkBonus` trong data nhưng không được dùng ở đâu.
+- [ ] **Bí Cảnh / Lịch Luyện (Dungeons):** Chế độ treo máy 1–2 tiếng để mang về linh thạch và nguyên liệu. Cần model `DungeonRun` và API.
+- [ ] **Yêu Thú (Beasts):** Danh sách quái theo cấp độ để săn bắn (phụ thuộc hệ thống chiến đấu).
+
+---
 
 ## 7. Tương tác Người chơi (Social & PvP)
-*   **Bảng xếp hạng (Leaderboards):** Vinh danh người chơi theo: Tu Vi cao nhất, Giàu nhất, Cảnh giới cao nhất.
-*   **Tỷ võ đài (Arena):** Chế độ PvP. Người chơi thách đấu lẫn nhau để giành thứ hạng và phần thưởng.
-*   **Truyền âm (Chat):** Kênh chat Thế giới, chat Tông môn, nhắn tin riêng.
-*   **Đạo Lữ / Song Tu (Dao Companion):** Kết đôi giữa 2 người chơi để nhận thêm buff cộng hưởng tốc độ tu luyện.
 
-## 8. Hệ thống Nghề nghiệp (Professions/Sub-classes)
-*   **Luyện Đan Sư (Alchemist):** Dùng dược thảo để chế tạo đan dược.
-*   **Luyện Khí Sư (Blacksmith):** Chế tạo pháp bảo.
-*   **Trận Pháp Sư (Array Master):** Thiết lập các trận pháp hỗ trợ.
+- [ ] **Bảng xếp hạng (Leaderboards):** API + UI xếp hạng theo Tu Vi, Linh Thạch, Cảnh giới. Chưa có.
+- [ ] **Tỷ võ đài (Arena / PvP):** Chưa có. Cần hệ thống chiến đấu trước.
+- [ ] **Truyền âm (Chat):** Chưa có. Chat Thế giới, Tông môn, tin nhắn riêng.
+- [ ] **Đạo Lữ / Song Tu:** Kết đôi 2 người chơi nhận buff cộng hưởng. Tính năng mở rộng.
 
-## 9. Nhiệm vụ & Thành tựu (Quests & Achievements)
-*   **Nhiệm vụ hàng ngày (Daily Quests):** Ví dụ: Đăng nhập, nhận exp, điểm danh tông môn...
-*   **Nhiệm vụ chính tuyến (Main Quests):** Hướng dẫn tân thủ theo cốt truyện (Đạt Luyện Khí tầng 3, Gia nhập tông môn...).
-*   **Thành tựu (Achievements):** Mở khóa danh hiệu (Titles) hiển thị trên đầu nhân vật (Ví dụ: "Thiên Đạo Sủng Nhi", "Kết Đan Kỳ Lão Quái").
+---
+
+## 8. Hệ thống Nghề nghiệp (Professions)
+
+- [ ] **Luyện Đan Sư (Alchemist):** Dùng nguyên liệu chế tạo đan dược. Cần recipe system và UI lò luyện đan.
+- [ ] **Luyện Khí Sư (Blacksmith):** Chế tạo pháp bảo từ nguyên liệu kim loại.
+- [ ] **Trận Pháp Sư (Array Master):** Đặt trận pháp tăng buff khu vực (tính năng mở rộng).
+
+---
+
+## 9. Nhiệm vụ & Thành tựu
+
+- [ ] **Nhiệm vụ hàng ngày (Daily Quests):** Đăng nhập, tu luyện X giờ, đặt thầu, điểm danh tông môn... Chưa có model Quest và API.
+- [ ] **Nhiệm vụ chính tuyến (Main Quests):** Hướng dẫn tân thủ theo cốt truyện. Chưa có.
+- [ ] **Thành tựu (Achievements):** Mở khóa danh hiệu hiển thị trên tên nhân vật (ví dụ: "Thiên Đạo Sủng Nhi", "Kết Đan Kỳ Lão Quái"). Chưa có.
+
+---
+
+## 10. UX / Kỹ thuật còn thiếu
+
+- [ ] **Thông báo (Notifications):** Đấu giá bị vượt thầu, đấu giá kết thúc, buff hết hạn... Chưa có hệ thống push/alert.
+- [ ] **Lịch sử giao dịch:** Lịch sử mua bán tại shop và đấu giá hội. Chưa có.
+- [ ] **Filter theo tên vật phẩm tại Đấu giá hội:** Hiện chỉ có filter type/rarity, chưa search theo tên.
+- [ ] **Refresh token / bảo mật nâng cao:** JWT hiện tại chỉ là access token đơn thuần, chưa có refresh token.
