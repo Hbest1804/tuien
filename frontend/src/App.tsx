@@ -10,6 +10,8 @@ import Cultivation from './components/Cultivation';
 import Inventory from './components/Inventory';
 import Shop from './components/Shop';
 import AuctionHouse from './components/AuctionHouse';
+import Leaderboard from './components/Leaderboard';
+import Sect from './components/Sect';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CharacterSetupModal from './components/CharacterSetupModal';
@@ -63,6 +65,8 @@ function MainLayout() {
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/auction" element={<AuctionHouse />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/sect" element={<Sect />} />
         </Routes>
       </main>
       <Footer />

@@ -1,99 +1,121 @@
-import mongoose from 'mongoose';
+import supabase from '../config/supabase.js';
 
-const inventorySchema = new mongoose.Schema(
-  {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      unique: true,
-    },
-    
-    maxSlots: {
-      type: Number,
-      default: 50, // Mặc định 50 ô đồ
-    },
-    
-    // Lưu danh sách vật phẩm. Mỗi ô chứa itemId và số lượng
-    items: [
-      {
-        itemId: {
-          type: String,
-          required: true,
-        },
-        quantity: {
-          type: Number,
-          required: true,
-          default: 1,
-          min: 1,
-        },
-      }
-    ],
-    
-    // Trang bị hiện tại
-    equipment: {
-      weapon: {
-        type: String, // itemId
-        default: null,
-      },
-      armor: {
-        type: String, // itemId
-        default: null,
-      }
-    },
-    
-    // Các trạng thái buff từ đan dược (VD: x2 tốc độ trong 2 giờ)
-    activeBuffs: [
-      {
-        buffType: {
-          type: String, // 'SPEED_X2', vv
-          required: true,
-        },
-        multiplier: {
-          type: Number,
-          required: true,
-        },
-        expiresAt: {
-          type: Date,
-          required: true,
-        },
-      }
-    ]
-  },
-  {
-    timestamps: true,
-    optimisticConcurrency: true,
-  }
-);
-
-// Method: dọn dẹp các buff đã hết hạn
-inventorySchema.methods.cleanExpiredBuffs = function () {
-  const now = new Date();
-  const initialLength = this.activeBuffs.length;
-  
-  const active = this.activeBuffs.filter(buff => buff.expiresAt > now);
-  if (active.length !== initialLength) {
-    this.activeBuffs = active;
-    this.markModified('activeBuffs');
-    return true;
-  }
-  
-  return false;
+// ─── Helper: map DB row → JS object ──────────────────────────────────────────
+export const mapInventory = (row) => {
+  if (!row) return null;
+  return {
+    _id: row.id,
+    id: row.id,
+    userId: row.user_id,
+    maxSlots: row.max_slots,
+    items: row.items || [],
+    equipment: row.equipment || { weapon: null, armor: null },
+    techniquePassiveBonus: row.technique_passive_bonus || 0,
+    activeBuffs: row.active_buffs || [],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    // -- helper methods (attached after map)
+  };
 };
 
-// Method: lấy tổng hệ số buff tốc độ (multiplicative)
-inventorySchema.methods.getSpeedBuffMultiplier = function () {
-  this.cleanExpiredBuffs(); // Dọn dẹp trước khi tính toán
-  
-  let totalMultiplier = 1.0;
-  for (const buff of this.activeBuffs) {
-    if (buff.buffType.startsWith('SPEED_')) {
-      totalMultiplier *= buff.multiplier;
+// ─── Attach methods to inventory plain object ─────────────────────────────────
+const attachMethods = (inv) => {
+  if (!inv) return null;
+
+  inv.cleanExpiredBuffs = function () {
+    const now = new Date();
+    const before = this.activeBuffs.length;
+    this.activeBuffs = this.activeBuffs.filter(b => new Date(b.expiresAt) > now);
+    return this.activeBuffs.length !== before;
+  };
+
+  inv.getSpeedBuffMultiplier = function () {
+    this.cleanExpiredBuffs();
+    let total = 1.0;
+    for (const buff of this.activeBuffs) {
+      if (buff.buffType.startsWith('SPEED_')) {
+        total *= buff.multiplier;
+      }
     }
-  }
-  return totalMultiplier;
+    return total;
+  };
+
+  inv.getTotalSpeedMultiplier = function () {
+    return this.getSpeedBuffMultiplier() * (1 + (this.techniquePassiveBonus || 0));
+  };
+
+  inv.computeEquippedStats = function (ITEMS) {
+    let atkBonus = 0;
+    let defBonus = 0;
+    let tribulationDefense = 0;
+    if (this.equipment.weapon) {
+      const item = ITEMS[this.equipment.weapon];
+      if (item?.effects?.atkBonus)          atkBonus += item.effects.atkBonus;
+      if (item?.effects?.defBonus)          defBonus += item.effects.defBonus;
+      if (item?.effects?.tribulationDefense) tribulationDefense += item.effects.tribulationDefense;
+    }
+    if (this.equipment.armor) {
+      const item = ITEMS[this.equipment.armor];
+      if (item?.effects?.atkBonus)          atkBonus += item.effects.atkBonus;
+      if (item?.effects?.defBonus)          defBonus += item.effects.defBonus;
+      if (item?.effects?.tribulationDefense) tribulationDefense += item.effects.tribulationDefense;
+    }
+    return { atkBonus, defBonus, tribulationDefense };
+  };
+
+  // isModified tracker (to avoid unnecessary saves)
+  inv._modified = false;
+  inv.markModified = function () { this._modified = true; };
+  inv.isModified   = function () { return this._modified; };
+
+  return inv;
 };
 
-const Inventory = mongoose.model('Inventory', inventorySchema);
+// ─── Inventory Model functions ────────────────────────────────────────────────
+export const Inventory = {
+  async findOne(filter) {
+    let query = supabase.from('inventories').select('*');
+    if (filter.userId || filter.user_id) query = query.eq('user_id', filter.userId || filter.user_id);
+    if (filter._id || filter.id)         query = query.eq('id', filter._id || filter.id);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw error;
+    return attachMethods(mapInventory(data));
+  },
+
+  async findOneAndUpdate(filter, updates, opts = {}) {
+    // Upsert scenario
+    if (opts.upsert) {
+      const userId = filter.userId || filter.user_id;
+      const { data: existing } = await supabase
+        .from('inventories').select('*').eq('user_id', userId).maybeSingle();
+      if (existing) return attachMethods(mapInventory(existing));
+
+      const { data, error } = await supabase
+        .from('inventories')
+        .insert({ user_id: userId })
+        .select('*')
+        .single();
+      if (error) throw error;
+      return attachMethods(mapInventory(data));
+    }
+    return null;
+  },
+
+  async save(inv) {
+    const { error } = await supabase
+      .from('inventories')
+      .update({
+        items: inv.items,
+        equipment: inv.equipment,
+        active_buffs: inv.activeBuffs,
+        technique_passive_bonus: inv.techniquePassiveBonus,
+        max_slots: inv.maxSlots,
+      })
+      .eq('id', inv.id || inv._id);
+    if (error) throw error;
+    inv._modified = false;
+    return inv;
+  },
+};
 
 export default Inventory;

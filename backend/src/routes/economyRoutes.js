@@ -1,5 +1,5 @@
 import express from 'express';
-import { getBalance, collectIdleStones, getShopItems, buyShopItem } from '../controllers/economyController.js';
+import { getBalance, collectIdleStones, getShopItems, buyShopItem, sellShopItem, getSellPrices } from '../controllers/economyController.js';
 import protect from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -12,5 +12,7 @@ router.post('/idle-collect', collectIdleStones);
 // ─── Thương Hội (Shop) ────────────────────────────────────────────────────────
 router.get('/shop', getShopItems);
 router.post('/shop/buy', buyShopItem);
+router.post('/shop/sell', sellShopItem);
+router.get('/shop/sell-prices', getSellPrices);
 
 export default router;

@@ -18,8 +18,11 @@ export interface CultivationData {
   sectName: string | null;
   sectJoinedAt: string | null;
   isSectMember: boolean;
+  sectContribution: number;
+  sectRank: string;
   baseSpeed: number;
   spiritRootMultiplier: number;
+  inventorySpeedMultiplier: number;
   // Breakthrough & Lifespan
   isBreakthroughReady: boolean;
   breakthroughReadyAt: string | null;

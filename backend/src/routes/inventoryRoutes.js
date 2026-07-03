@@ -1,5 +1,5 @@
 import express from 'express';
-import { getInventoryStatus, addTestItem, useItem } from '../controllers/inventoryController.js';
+import { getInventoryStatus, addTestItem, useItem, equipItem, unequipItem, learnTechnique } from '../controllers/inventoryController.js';
 import protect from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
@@ -16,5 +16,12 @@ if (process.env.NODE_ENV === 'development') {
 
 // API Sử dụng vật phẩm
 router.post('/use', useItem);
+
+// API Trang bị / tháo trang bị
+router.post('/equip', equipItem);
+router.post('/unequip', unequipItem);
+
+// API Học công pháp
+router.post('/learn-technique', learnTechnique);
 
 export default router;

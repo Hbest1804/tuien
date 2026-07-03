@@ -19,7 +19,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await apiLogin(form);
-      authLogin(res.data.token, res.data.user);
+      authLogin(res.data.token, res.data.user, res.data.refreshToken);
       // GlobalCharacterGuard trong App.tsx sẽ tự xử lý nếu chưa tạo nhân vật
       navigate('/');
     } catch (err: any) {

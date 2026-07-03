@@ -147,6 +147,9 @@ export default function Cultivation() {
       setShowBreakthroughModal(false);
       showToast(res.data.message || '🌟 Đột phá thành công!');
     } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data?.cultivation) {
+        updateCultivationData(err.response.data.cultivation);
+      }
       const msg = axios.isAxiosError(err) ? err.response?.data?.message : 'Lỗi đột phá';
       showToast(msg || 'Lỗi đột phá', 'error');
     } finally {

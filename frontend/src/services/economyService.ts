@@ -9,6 +9,7 @@ export interface ShopItem {
   rarity: string;
   effects: Record<string, unknown>;
   price: number;
+  sellPrice: number;
   stock: number | null;
 }
 
@@ -29,3 +30,9 @@ export const getShopItems = () =>
 
 export const buyShopItem = (itemId: string, quantity: number = 1) =>
   api.post<{ message: string; spiritStones: number }>('/economy/shop/buy', { itemId, quantity });
+
+export const sellShopItem = (itemId: string, quantity: number = 1) =>
+  api.post<{ message: string; spiritStones: number }>('/economy/shop/sell', { itemId, quantity });
+
+export const getSellPrices = () =>
+  api.get<{ prices: { itemId: string; name: string; type: string; rarity: string; sellPrice: number }[] }>('/economy/shop/sell-prices');

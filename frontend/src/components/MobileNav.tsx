@@ -1,4 +1,4 @@
-import { Mountain, Map, UserRound, Store, Flame, ShoppingBag, Gavel } from 'lucide-react';
+import { Map, Store, Gavel, Trophy, Sparkles, Package, Swords, BookOpen, Mountain } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 export default function MobileNav() {
@@ -6,12 +6,13 @@ export default function MobileNav() {
   const path = location.pathname;
 
   const navItems = [
-    { to: '/',           icon: <Mountain size={20} />, label: 'Tông' },
-    { to: '/map',        icon: <Map size={20} />,      label: 'Bản Đồ' },
-    { to: '/cultivation',icon: <Flame size={20} />,   label: 'Tu Luyện' },
-    { to: '/shop',       icon: <ShoppingBag size={20} />, label: 'Shop' },
-    { to: '/auction',    icon: <Gavel size={20} />,   label: 'Đấu Giá' },
-    { to: '/pavilion',   icon: <Store size={20} />,   label: 'Tàng Các' },
+    { label: 'Tông', to: '/', icon: <Mountain size={20} /> },
+    { label: 'Bản Đồ', to: '/map', icon: <Map size={20} /> },
+    { label: 'Tu Luyện', to: '/cultivation', icon: <Sparkles size={20} /> },
+    { label: 'Túi Đồ', to: '/inventory', icon: <Package size={20} /> },
+    { label: 'Tông Môn', to: '/sect', icon: <Swords size={20} /> },
+    { label: 'Tàng Kinh', to: '/pavilion', icon: <BookOpen size={20} /> },
+    { label: 'Thương Hội', to: '/shop', icon: <Store size={20} /> },
   ];
 
   return (
