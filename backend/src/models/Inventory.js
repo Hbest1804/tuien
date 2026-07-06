@@ -83,16 +83,11 @@ export const Inventory = {
   },
 
   async findOneAndUpdate(filter, updates, opts = {}) {
-    // Upsert scenario
     if (opts.upsert) {
       const userId = filter.userId || filter.user_id;
-      const { data: existing } = await supabase
-        .from('inventories').select('*').eq('user_id', userId).maybeSingle();
-      if (existing) return attachMethods(mapInventory(existing));
-
       const { data, error } = await supabase
         .from('inventories')
-        .insert({ user_id: userId })
+        .upsert({ user_id: userId }, { onConflict: 'user_id' })
         .select('*')
         .single();
       if (error) throw error;

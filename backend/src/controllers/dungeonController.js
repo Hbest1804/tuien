@@ -115,6 +115,12 @@ export const claimDungeonRewards = async (req, res) => {
       );
     }
 
+    // Update exploration state first to prevent infinite claim exploits
+    cult.isExploring      = false;
+    cult.currentDungeonId = null;
+    cult.exploreStartedAt = null;
+    await Cultivation.save(cult);
+
     // NOTE: Spirit stones from dungeon go to User
     const freshUser = await User.findById(req.user.id);
     if (freshUser) {
@@ -132,11 +138,6 @@ export const claimDungeonRewards = async (req, res) => {
     }
 
     await Inventory.save(inventory);
-
-    cult.isExploring      = false;
-    cult.currentDungeonId = null;
-    cult.exploreStartedAt = null;
-    await Cultivation.save(cult);
 
     let message = `Thám hiểm kết thúc! Thu được ${spiritStonesGained} Linh Thạch.`;
     if (itemDrops.length > 0) {

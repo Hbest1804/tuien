@@ -99,16 +99,6 @@ export const User = {
    * Atomic update: chỉ cập nhật nếu điều kiện khớp
    */
   async findOneAndUpdate(filter, updates, opts = {}) {
-    // Tìm trước
-    let query = supabase.from('users').select('*');
-    if (filter._id || filter.id) query = query.eq('id', filter._id || filter.id);
-    if (filter.isCharacterCreated !== undefined) query = query.eq('is_character_created', filter.isCharacterCreated);
-
-    const { data: existing, error: findError } = await query.maybeSingle();
-    if (findError) throw findError;
-    if (!existing) return null;
-
-    // Cập nhật
     const dbUpdates = {};
     if (updates.gender !== undefined)              dbUpdates.gender = updates.gender;
     if (updates.spiritRoot !== undefined)          dbUpdates.spirit_root = updates.spiritRoot;
@@ -116,14 +106,13 @@ export const User = {
     if (updates.isCharacterCreated !== undefined)  dbUpdates.is_character_created = updates.isCharacterCreated;
     if (updates.spiritStones !== undefined)        dbUpdates.spirit_stones = updates.spiritStones;
 
-    const { data, error } = await supabase
-      .from('users')
-      .update(dbUpdates)
-      .eq('id', existing.id)
-      .select('*')
-      .single();
+    let query = supabase.from('users').update(dbUpdates);
+    if (filter._id || filter.id) query = query.eq('id', filter._id || filter.id);
+    if (filter.isCharacterCreated !== undefined) query = query.eq('is_character_created', filter.isCharacterCreated);
+
+    const { data, error } = await query.select('*').maybeSingle();
     if (error) throw error;
-    return opts.new ? mapUser(data) : mapUser(existing);
+    return data ? mapUser(data) : null;
   },
 
   /**

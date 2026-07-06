@@ -9,7 +9,7 @@
 | Table | Mô tả |
 |-------|-------|
 | `users` | Thông tin tài khoản + nhân vật |
-| `cultivations` | Dữ liệu tu luyện, cảnh giới, tông môn |
+| `cultivations` | Dữ liệu tu luyện, cảnh giới, tông môn, nhiệm vụ tông môn, bí cảnh |
 | `inventories` | Túi đồ, trang bị, buff tốc độ |
 | `auction_listings` | Phiên đấu giá |
 | `refresh_tokens` | JWT refresh token (server-side) |
@@ -70,7 +70,16 @@
 
 ### Thọ Nguyên & Rủi ro
 
-- Thọ nguyên hao mòn **1 năm/giờ** khi không tu luyện
+| Cảnh giới | Thọ nguyên tối đa | Hao mòn/giờ (khi không tu luyện) |
+|-----------|------------------|---------------------------------|
+| Luyện Khí | 100 năm | 1 năm/giờ |
+| Trúc Cơ | 200 năm | 1 năm/giờ |
+| Kim Đan | 500 năm | 1 năm/giờ |
+| Nguyên Anh | 1,000 năm | 1 năm/giờ |
+| Hóa Thần | ∞ | 0 (bất tử) |
+
+> ⏱️ 1 năm trong game = 1 giờ thực tế (`SECONDS_PER_YEAR = 3600`)
+
 - **Tâm Ma:** Thất bại đột phá 3 lần liên tiếp → tốc độ giảm 50% trong 24h
 - **Thọ nguyên cạn:** EXP về 0, phải tu lại từ đầu trong cảnh giới hiện tại
 
@@ -193,11 +202,21 @@
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
-| `GET`  | `/status` | Trạng thái bí cảnh + danh sách dungeon | ✅ |
+| `GET`  | `/` | Trạng thái bí cảnh + danh sách dungeon | ✅ |
 | `POST` | `/start` | Bắt đầu thám hiểm bí cảnh (treo máy) | ✅ |
 | `POST` | `/claim` | Kết thúc và nhận phần thưởng | ✅ |
 
-> Phần thưởng: Linh Thạch/giờ + rớt đồ ngẫu nhiên (theo `dropRate`)
+> Phần thưởng: Linh Thạch/giờ + rớt đồ ngẫu nhiên (theo `dropRate`). Không thể vừa tu luyện vừa thám hiểm.
+
+### Danh sách Bí Cảnh
+
+| ID | Tên | Cảnh giới yêu cầu | Linh Thạch/giờ | Ghi chú |
+|----|-----|-------------------|---------------|---------|
+| `dung_sect` | Thiên Kiếm Tông | Luyện Khí+ | 0 | Khu vực tông môn, bế quan tu luyện |
+| `dung_thu_thach_coc` | Thử Thách Cốc | Luyện Khí+ | 500 | Bí cảnh tân thủ, rớt linh thảo + Tụ Khí Đan |
+| `dung_thuy_tinh_dong` | Thủy Tinh Động | Trúc Cơ+ | 1,500 | Rớt nguyên liệu Kim Đan + vũ khí hiếm 1% |
+| `dung_van_co_cam_dia` | Vạn Cổ Cấm Địa | Kim Đan+ | 5,000 | Rớt Tho Nguyên Quả, giáp hiếm 1% |
+| `dung_thien_cung_di_tich` | Thiên Cung Di Tích | Nguyên Anh+ | 20,000 | Rớt siêu công pháp 0.5%, vũ khí huyền thoại |
 
 ---
 
@@ -205,7 +224,8 @@
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
-| `GET`  | `/?type=realm` | Top 50 theo Cảnh giới + EXP | ✅ |
+| `GET`  | `/` | Bảng xếp hạng (mặc định: `?type=realm`) | ✅ |
+| `GET`  | `/?type=realm` | Top 50 theo Cảnh giới + EXP (mặc định) | ✅ |
 | `GET`  | `/?type=stones` | Top 50 theo Linh Thạch | ✅ |
 
 ---
@@ -217,7 +237,7 @@
 - [ ] **Đổi mật khẩu** (`POST /api/auth/change-password`) — User nhập mật khẩu cũ + mới
 - [ ] **Quên mật khẩu / Reset qua email** — Gửi link reset, xác thực OTP
 - [ ] **Xem hồ sơ người chơi khác** (`GET /api/users/:username`) — Cảnh giới, linh căn, tông môn
-- [ ] **Refresh token rotation** — Hiện backend đã có bảng `refresh_tokens`, nhưng frontend chưa tự động gọi `/refresh` khi access token hết hạn
+- [x] **Refresh token rotation** — Frontend tự động gọi `/refresh` khi 401, queue request chờ, rotate token — đã có tại `axios.ts`
 
 ### 🟠 Gameplay — Cần để hoàn thiện trải nghiệm
 
@@ -233,7 +253,7 @@
 
 - [ ] **Thông báo real-time** — Bị vượt thầu, đấu giá kết thúc, buff hết hạn (WebSocket / SSE)
 - [ ] **Lịch sử giao dịch** — Lịch sử mua bán shop + đấu giá
-- [ ] **Search theo tên vật phẩm tại Đấu giá hội** — Frontend đã có input nhưng cần verify backend filter
+- [x] **Search theo tên vật phẩm tại Đấu giá hội** — Backend đã hỗ trợ `?name=...` (regex filter) tại `auctionController.js`
 - [ ] **Xóa refresh token hết hạn tự động** — Cron job hoặc pg_cron trong Supabase
 - [ ] **Rate limiting** — Chống spam API (express-rate-limit)
 

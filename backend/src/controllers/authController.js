@@ -224,8 +224,8 @@ export const setupCharacter = async (req, res) => {
 
     const { name: spiritRoot, grade: spiritRootGrade } = randomSpiritRoot();
 
-    const user = await User.findByIdAndUpdate(
-      req.user.id,
+    const user = await User.findOneAndUpdate(
+      { id: req.user.id, isCharacterCreated: false },
       { gender, spiritRoot, spiritRootGrade, isCharacterCreated: true },
       { new: true }
     );

@@ -179,13 +179,9 @@ export const Cultivation = {
   async findOneAndUpdate(filter, updates, opts = {}) {
     if (opts.upsert) {
       const userId = filter.userId || filter.user_id;
-      const { data: existing } = await supabase
-        .from('cultivations').select('*').eq('user_id', userId).maybeSingle();
-      if (existing) return attachMethods(mapCultivation(existing));
-
       const { data, error } = await supabase
         .from('cultivations')
-        .insert({ user_id: userId })
+        .upsert({ user_id: userId }, { onConflict: 'user_id' })
         .select('*')
         .single();
       if (error) throw error;
