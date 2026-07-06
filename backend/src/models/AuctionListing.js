@@ -66,12 +66,22 @@ export const AuctionListing = {
         query = query.eq('status', filter.status);
       }
     }
-    if (filter.sellerId) query = query.eq('seller_id', filter.sellerId);
-    if (filter.bidderId) query = query.eq('bidder_id', filter.bidderId);
+    if (filter.sellerId) {
+      if (filter.sellerId.$ne) {
+        query = query.neq('seller_id', filter.sellerId.$ne);
+      } else {
+        query = query.eq('seller_id', filter.sellerId);
+      }
+    }
+    if (filter.bidderId) {
+      if (filter.bidderId.$ne === null) {
+        query = query.not('bidder_id', 'is', null);
+      } else {
+        query = query.eq('bidder_id', filter.bidderId);
+      }
+    }
     if (filter.expiresAt?.$gt) query = query.gt('expires_at', filter.expiresAt.$gt.toISOString());
     if (filter.expiresAt?.$lte) query = query.lte('expires_at', filter.expiresAt.$lte.toISOString());
-    if (filter.bidderId?.$ne === null) query = query.not('bidder_id', 'is', null);
-    if (filter.sellerId?.$ne) query = query.neq('seller_id', filter.sellerId.$ne);
 
     if (filter.itemType) query = query.eq('item_type', filter.itemType);
     if (filter.itemRarity) query = query.eq('item_rarity', filter.itemRarity);
