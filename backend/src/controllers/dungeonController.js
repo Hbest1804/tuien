@@ -97,10 +97,6 @@ export const claimDungeonRewards = async (req, res) => {
     const elapsedHours = (now.getTime() - new Date(cult.exploreStartedAt).getTime()) / (1000 * 60 * 60);
 
     if (elapsedHours < 0.1) {
-      cult.isExploring      = false;
-      cult.currentDungeonId = null;
-      cult.exploreStartedAt = null;
-      await Cultivation.save(cult);
       return res.json({ message: 'Đã thoát bí cảnh sớm, chưa có thu hoạch gì.' });
     }
 
@@ -118,36 +114,16 @@ export const claimDungeonRewards = async (req, res) => {
       }
     }
 
-    let inventory = await Inventory.findOne({ userId: req.user.id });
-    if (!inventory) {
-      inventory = await Inventory.findOneAndUpdate(
-        { userId: req.user.id }, {}, { upsert: true, new: true }
-      );
+    const { data, error } = await supabase.rpc('claim_dungeon_rewards_tx', {
+      p_user_id: req.user.id,
+      p_spirit_stones: spiritStonesGained,
+      p_item_drops: itemDrops
+    });
+
+    if (error) {
+      console.error('Lỗi RPC claim_dungeon_rewards_tx:', error);
+      return res.status(500).json({ message: 'Lỗi server khi nhận thưởng.' });
     }
-
-    // Update exploration state first to prevent infinite claim exploits
-    cult.isExploring      = false;
-    cult.currentDungeonId = null;
-    cult.exploreStartedAt = null;
-    await Cultivation.save(cult);
-
-    // NOTE: Spirit stones from dungeon go to User
-    const freshUser = await User.findById(req.user.id);
-    if (freshUser) {
-      freshUser.spiritStones = (freshUser.spiritStones || 0) + spiritStonesGained;
-      await User.save(freshUser);
-    }
-
-    for (const drop of itemDrops) {
-      const existing = inventory.items.find(i => i.itemId === drop.itemId);
-      if (existing) {
-        existing.quantity += drop.quantity;
-      } else if (inventory.items.length < inventory.maxSlots) {
-        inventory.items.push(drop);
-      }
-    }
-
-    await Inventory.save(inventory);
 
     let message = `Thám hiểm kết thúc! Thu được ${spiritStonesGained} Linh Thạch.`;
     if (itemDrops.length > 0) {

@@ -1,6 +1,7 @@
 import Cultivation from '../models/Cultivation.js';
 import Inventory from '../models/Inventory.js';
 import { ITEMS } from '../data/items.js';
+import supabase from '../config/supabase.js';
 
 export const getPavilionItems = async (req, res) => {
   try {
@@ -35,37 +36,24 @@ export const exchangeItem = async (req, res) => {
 
     const price = itemData.sectContributionPrice;
 
-    const cult = await Cultivation.findOne({ userId: req.user.id });
-    if (!cult || cult.sectContribution < price) {
-      return res.status(400).json({ message: 'Không đủ Điểm Cống Hiến.' });
+    const { data, error } = await supabase.rpc('exchange_pavilion_item', {
+      p_user_id: req.user.id,
+      p_item_id: itemId,
+      p_price: price
+    });
+
+    if (error) {
+      console.error('Lỗi RPC exchange_pavilion_item:', error);
+      return res.status(500).json({ message: 'Lỗi server khi đổi vật phẩm.' });
     }
 
-    let inventory = await Inventory.findOne({ userId: req.user.id });
-    if (!inventory) {
-      inventory = await Inventory.findOneAndUpdate(
-        { userId: req.user.id }, {}, { upsert: true, new: true }
-      );
+    if (!data.success) {
+      return res.status(400).json({ message: data.message });
     }
-
-    const existingItem = inventory.items.find(i => i.itemId === itemId);
-    if (!existingItem && inventory.items.length >= inventory.maxSlots) {
-      return res.status(400).json({ message: 'Túi đồ đã đầy!' });
-    }
-
-    cult.sectContribution -= price;
-    await Cultivation.save(cult);
-
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      inventory.items.push({ itemId, quantity: 1 });
-    }
-
-    await Inventory.save(inventory);
 
     res.json({
       message: `Đổi thành công ${itemData.name}!`,
-      remainingContribution: cult.sectContribution,
+      remainingContribution: data.remainingContribution,
     });
   } catch (err) {
     console.error('Lỗi đổi vật phẩm:', err);

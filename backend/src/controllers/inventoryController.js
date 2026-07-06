@@ -2,6 +2,7 @@ import Inventory from '../models/Inventory.js';
 import Cultivation, { REALMS, REALM_LIFESPAN, PRACTICAL_INFINITY_LIFESPAN } from '../models/Cultivation.js';
 import { ITEMS, ITEM_TYPES, ITEM_SUBTYPES } from '../data/items.js';
 import { autoStopIfFull } from './cultivationController.js';
+import supabase from '../config/supabase.js';
 
 // Helper: lấy hoặc tạo Inventory
 export const getOrCreateInventory = async (userId) => {
@@ -229,13 +230,37 @@ export const useItem = async (req, res) => {
       message += `Tốc độ tu luyện x${effects.multiplier} trong ${effects.durationHours * quantity} giờ. `;
     }
 
-    inventory.items[itemIndex].quantity -= quantity;
-    if (inventory.items[itemIndex].quantity <= 0) {
-      inventory.items.splice(itemIndex, 1);
+    let speedBuffData = null;
+    if (itemData.subType === ITEM_SUBTYPES.SPEED_BUFF && effects.buffType) {
+      speedBuffData = {
+        buffType: effects.buffType,
+        multiplier: effects.multiplier,
+        durationHours: effects.durationHours * quantity
+      };
     }
 
-    await Inventory.save(inventory);
-    await Cultivation.save(cult);
+    const { data, error } = await supabase.rpc('commit_use_item', {
+      p_user_id: req.user.id,
+      p_item_id: itemId,
+      p_quantity: quantity,
+      p_new_exp: cult.expAccumulated,
+      p_new_lifespan: cult.lifespan,
+      p_breakthrough_ready_at: cult.breakthroughReadyAt,
+      p_heart_demon_duration_ms: (cult.dailyPillsConsumed.count > 10) ? 24 * 3600 * 1000 : 0,
+      p_speed_buff: speedBuffData
+    });
+
+    if (error) {
+      console.error('Lỗi RPC commit_use_item:', error);
+      return res.status(500).json({ message: 'Lỗi server khi sử dụng vật phẩm.' });
+    }
+
+    if (!data.success) {
+      return res.status(400).json({ message: data.message });
+    }
+
+    // Refresh objects from DB to format correctly
+    inventory = await Inventory.findOne({ userId: req.user.id });
 
     res.json({ message, inventory: populateInventoryData(inventory) });
   } catch (err) {

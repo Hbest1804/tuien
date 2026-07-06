@@ -156,33 +156,23 @@ export const buyShopItem = async (req, res) => {
 
     const totalCost = shopMeta.price * quantity;
 
-    const freshUser = await User.findById(user.id);
-    if (!freshUser) throw new Error('User không tồn tại');
-    freshUser.spiritStones = freshUser.spiritStones || 0;
+    const { data, error } = await supabase.rpc('buy_shop_item', {
+      p_user_id: user.id,
+      p_item_id: itemId,
+      p_quantity: quantity,
+      p_total_cost: totalCost
+    });
 
-    if (freshUser.spiritStones < totalCost) {
-      return res.status(400).json({
-        message: `Không đủ Linh Thạch! Cần ${totalCost.toLocaleString()} nhưng chỉ có ${freshUser.spiritStones.toLocaleString()}.`,
-      });
+    if (error) {
+      console.error('Lỗi RPC buy_shop_item:', error);
+      return res.status(500).json({ message: 'Lỗi server khi mua vật phẩm.' });
     }
 
-    const inventory = await getOrCreateInventory(user.id);
-    const existingItem = inventory.items.find(i => i.itemId === itemId);
-    if (!existingItem && inventory.items.length >= inventory.maxSlots) {
-      return res.status(400).json({ message: 'Túi đồ đã đầy!' });
+    if (!data.success) {
+      return res.status(400).json({ message: data.message });
     }
 
-    freshUser.spiritStones -= totalCost;
-    await User.save(freshUser);
-
-    if (existingItem) {
-      existingItem.quantity += quantity;
-    } else {
-      inventory.items.push({ itemId, quantity });
-    }
-    await Inventory.save(inventory);
-
-    res.json({ message: `Mua ${quantity} ${itemData.name} thành công! Đã dùng ${totalCost} Linh Thạch.`, spiritStones: freshUser.spiritStones });
+    res.json({ message: `Mua ${quantity} ${itemData.name} thành công! Đã dùng ${totalCost} Linh Thạch.`, spiritStones: data.spiritStones });
   } catch (err) {
     console.error('Lỗi buyShopItem:', err);
     res.status(500).json({ message: 'Lỗi server' });
@@ -210,23 +200,23 @@ export const sellShopItem = async (req, res) => {
 
     const totalEarned = sellPrice * quantity;
 
-    const inventory = await getOrCreateInventory(user.id);
-    const itemIndex = inventory.items.findIndex(i => i.itemId === itemId);
-    if (itemIndex === -1 || inventory.items[itemIndex].quantity < quantity) {
-      return res.status(400).json({ message: `Không đủ ${itemData.name} trong túi đồ.` });
+    const { data, error } = await supabase.rpc('sell_shop_item', {
+      p_user_id: user.id,
+      p_item_id: itemId,
+      p_quantity: quantity,
+      p_total_earned: totalEarned
+    });
+
+    if (error) {
+      console.error('Lỗi RPC sell_shop_item:', error);
+      return res.status(500).json({ message: 'Lỗi server khi bán vật phẩm.' });
     }
 
-    inventory.items[itemIndex].quantity -= quantity;
-    if (inventory.items[itemIndex].quantity <= 0) {
-      inventory.items.splice(itemIndex, 1);
+    if (!data.success) {
+      return res.status(400).json({ message: data.message });
     }
-    await Inventory.save(inventory);
 
-    const freshUser = await User.findById(user.id);
-    freshUser.spiritStones = (freshUser.spiritStones || 0) + totalEarned;
-    await User.save(freshUser);
-
-    res.json({ message: `Bán ${quantity} ${itemData.name} thành công! Nhận được ${totalEarned} Linh Thạch.`, spiritStones: freshUser.spiritStones });
+    res.json({ message: `Bán ${quantity} ${itemData.name} thành công! Nhận được ${totalEarned} Linh Thạch.`, spiritStones: data.spiritStones });
   } catch (err) {
     console.error('Lỗi sellShopItem:', err);
     res.status(500).json({ message: 'Lỗi server' });

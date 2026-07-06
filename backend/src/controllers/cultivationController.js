@@ -9,6 +9,7 @@ import Cultivation, {
   LIFESPAN_DRAIN_PER_YEAR,
   PRACTICAL_INFINITY_LIFESPAN,
 } from '../models/Cultivation.js';
+import supabase from '../config/supabase.js';
 
 // ─── Helper: lấy hoặc tạo cultivation record ──────────────────────────────────
 const getOrCreateCultivation = async (userId) => {
@@ -367,8 +368,29 @@ export const breakthrough = async (req, res) => {
     cult.breakthroughReadyAt = null;
     cult.lastStoppedAt = cult.isTraining ? null : new Date();
 
-    await Cultivation.save(cult);
-    await Inventory.save(inventory);
+    const { data, error } = await supabase.rpc('commit_breakthrough', {
+      p_user_id: req.user.id,
+      p_items_used: itemCounts,
+      p_expected_realm_index: cult.realmIndex - (success ? 1 : 0),
+      p_new_realm_index: cult.realmIndex,
+      p_new_exp: cult.expAccumulated,
+      p_new_lifespan: cult.lifespan,
+      p_failed_breakthroughs: cult.failedBreakthroughs || 0,
+      p_heart_demon_duration_ms: (success || (cult.failedBreakthroughs || 0) < 3) ? 0 : 24 * 3600 * 1000
+    });
+
+    if (error) {
+      console.error('Lỗi RPC commit_breakthrough:', error);
+      return res.status(500).json({ message: 'Lỗi server khi đột phá.' });
+    }
+
+    if (!data.success) {
+      return res.status(400).json({ message: data.message });
+    }
+    
+    // Refresh objects from DB to format correctly
+    cult = await Cultivation.findOne({ userId: req.user.id });
+    inventory = await Inventory.findOne({ userId: req.user.id });
 
     res.json({
       message,
