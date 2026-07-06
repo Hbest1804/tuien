@@ -104,35 +104,33 @@ export const listItem = async (req, res) => {
       return res.status(400).json({ message: 'Thời hạn không hợp lệ (12h, 24h hoặc 48h).' });
     }
 
-    const inventory = await getOrCreateInventory(user.id);
-    const itemIdx = inventory.items.findIndex(i => i.itemId === itemId);
-    if (itemIdx === -1 || inventory.items[itemIdx].quantity < quantity) {
-      return res.status(400).json({ message: 'Không đủ vật phẩm trong túi đồ.' });
-    }
-
-    inventory.items[itemIdx].quantity -= quantity;
-    if (inventory.items[itemIdx].quantity <= 0) inventory.items.splice(itemIdx, 1);
-    await Inventory.save(inventory);
-
     const itemData = ITEMS[itemId];
-    const expiresAt = new Date(Date.now() + durationHours * 3600 * 1000);
-    const listing = await AuctionListing.create({
-      sellerId:      user.id,
-      sellerName:    user.username,
-      itemId,
-      itemName:      itemData.name,
-      itemRarity:    itemData.rarity || 'Thường',
-      itemType:      itemData.type || 'MATERIAL',
-      quantity,
-      startingPrice,
-      currentBid:    0,
-      buyoutPrice,
-      expiresAt,
+
+    const { data, error } = await supabase.rpc('list_auction_item', {
+      p_user_id: user.id,
+      p_user_name: user.username,
+      p_item_id: itemId,
+      p_item_name: itemData.name,
+      p_item_rarity: itemData.rarity || 'Thường',
+      p_item_type: itemData.type || 'MATERIAL',
+      p_quantity: quantity,
+      p_starting_price: startingPrice,
+      p_buyout_price: buyoutPrice,
+      p_duration_hours: durationHours
     });
 
+    if (error) {
+      console.error('Lỗi RPC list_auction_item:', error);
+      return res.status(500).json({ message: 'Lỗi server khi đăng bán.' });
+    }
+
+    if (!data.success) {
+      return res.status(data.status || 400).json({ message: data.message });
+    }
+
     res.json({
-      message: `Đã đăng bán ${quantity} ${itemData.name} với giá khởi điểm ${startingPrice} Linh Thạch.`,
-      listing,
+      message: data.message,
+      listing: data.listing,
     });
   } catch (err) {
     console.error('Lỗi listItem:', err);
@@ -221,72 +219,25 @@ export const claimListing = async (req, res) => {
     const { listingId } = req.body;
     if (!listingId) return res.status(400).json({ message: 'Thiếu listingId.' });
 
-    const listing = await AuctionListing.findById(listingId);
-    if (!listing) return res.status(404).json({ message: 'Phiên đấu giá không tồn tại.' });
+    const { data, error } = await supabase.rpc('claim_auction_listing', {
+      p_user_id: user.id,
+      p_listing_id: listingId
+    });
 
-    if (listing.status === 'active' && new Date() >= new Date(listing.expiresAt)) {
-      listing.status = listing.bidderId ? 'pending_claim' : 'expired';
-      await listing.save();
+    if (error) {
+      console.error('Lỗi RPC claim_auction_listing:', error);
+      return res.status(500).json({ message: 'Lỗi server khi claim.' });
     }
 
-    const isSeller = listing.sellerId === user.id;
-    const isBuyer  = listing.bidderId === user.id;
-
-    if (!isSeller && !isBuyer) {
-      return res.status(403).json({ message: 'Bạn không liên quan đến phiên đấu giá này.' });
+    if (!data.success) {
+      return res.status(data.status || 400).json({ message: data.message });
     }
 
-    let message = '';
-    const freshUser = await User.findById(user.id);
-    if (!freshUser) return res.status(404).json({ message: 'Người dùng không tồn tại.' });
-    freshUser.spiritStones = freshUser.spiritStones || 0;
-
-    if (isSeller && !listing.sellerClaimed && listing.status === 'pending_claim') {
-      const fee = Math.ceil(listing.currentBid * AUCTION_FEE_RATE);
-      const sellerReceives = listing.currentBid - fee;
-      freshUser.spiritStones += sellerReceives;
-      await User.save(freshUser);
-      listing.sellerClaimed = true;
-      message = `Nhận được ${sellerReceives} Linh Thạch (đã trừ phí ${fee}).`;
-    }
-
-    if (isBuyer && !listing.buyerClaimed && listing.status === 'pending_claim') {
-      const inventory = await getOrCreateInventory(user.id);
-      const existingItem = inventory.items.find(i => i.itemId === listing.itemId);
-      if (existingItem) {
-        existingItem.quantity += listing.quantity;
-      } else {
-        if (inventory.items.length >= inventory.maxSlots) {
-          return res.status(400).json({ message: 'Túi đồ đã đầy!' });
-        }
-        inventory.items.push({ itemId: listing.itemId, quantity: listing.quantity });
-      }
-      await Inventory.save(inventory);
-      listing.buyerClaimed = true;
-      message = `Nhận được ${listing.quantity} ${listing.itemName} vào túi đồ!`;
-    }
-
-    if (isSeller && !listing.sellerClaimed && listing.status === 'expired') {
-      const inventory = await getOrCreateInventory(user.id);
-      const existingItem = inventory.items.find(i => i.itemId === listing.itemId);
-      if (existingItem) {
-        existingItem.quantity += listing.quantity;
-      } else {
-        if (inventory.items.length >= inventory.maxSlots) {
-          return res.status(400).json({ message: 'Túi đồ đã đầy!' });
-        }
-        inventory.items.push({ itemId: listing.itemId, quantity: listing.quantity });
-      }
-      await Inventory.save(inventory);
-      listing.sellerClaimed = true;
-      message = `Không ai mua. Đã thu hồi ${listing.quantity} ${listing.itemName}.`;
-    }
-
-    if (listing.sellerClaimed && listing.buyerClaimed) listing.status = 'sold';
-    if (listing.sellerClaimed && listing.status === 'expired') listing.status = 'cancelled';
-
-    await listing.save();
-    res.json({ message: message || 'Không có gì để claim.', spiritStones: freshUser.spiritStones, listing });
+    res.json({ 
+      message: data.message, 
+      spiritStones: data.spiritStones, 
+      listing: data.listing 
+    });
   } catch (err) {
     console.error('Lỗi claimListing:', err);
     res.status(500).json({ message: 'Lỗi server' });
@@ -299,30 +250,23 @@ export const cancelListing = async (req, res) => {
     const user = req.user;
     const { id } = req.params;
 
-    const listing = await AuctionListing.findById(id);
-    if (!listing) return res.status(404).json({ message: 'Phiên đấu giá không tồn tại.' });
-    if (listing.sellerId !== user.id) return res.status(403).json({ message: 'Chỉ người bán mới có thể huỷ.' });
-    if (listing.status !== 'active') return res.status(400).json({ message: 'Phiên đấu giá đã kết thúc, không thể huỷ.' });
-    if (listing.bidderId) return res.status(400).json({ message: 'Đã có người đặt thầu, không thể huỷ.' });
+    const { data, error } = await supabase.rpc('cancel_auction_listing', {
+      p_user_id: user.id,
+      p_listing_id: id
+    });
 
-    const inventory = await getOrCreateInventory(user.id);
-    const existingItem = inventory.items.find(i => i.itemId === listing.itemId);
-    if (existingItem) {
-      existingItem.quantity += listing.quantity;
-    } else {
-      if (inventory.items.length >= inventory.maxSlots) {
-        return res.status(400).json({ message: 'Túi đồ đã đầy!' });
-      }
-      inventory.items.push({ itemId: listing.itemId, quantity: listing.quantity });
+    if (error) {
+      console.error('Lỗi RPC cancel_auction_listing:', error);
+      return res.status(500).json({ message: 'Lỗi server khi huỷ đấu giá.' });
     }
-    await Inventory.save(inventory);
 
-    listing.status = 'cancelled';
-    await listing.save();
+    if (!data.success) {
+      return res.status(data.status || 400).json({ message: data.message });
+    }
 
     res.json({
-      message: `Đã huỷ đấu giá và thu hồi ${listing.quantity} ${listing.itemName}.`,
-      listing,
+      message: data.message,
+      listing: data.listing,
     });
   } catch (err) {
     console.error('Lỗi cancelListing:', err);

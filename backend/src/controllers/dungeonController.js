@@ -3,6 +3,7 @@ import Inventory from '../models/Inventory.js';
 import User from '../models/User.js';
 import { DUNGEONS } from '../data/dungeons.js';
 import { ITEMS } from '../data/items.js';
+import supabase from '../config/supabase.js';
 
 export const getDungeonStatus = async (req, res) => {
   try {
@@ -74,12 +75,21 @@ export const claimDungeonRewards = async (req, res) => {
       return res.status(400).json({ message: 'Bạn không đang thám hiểm bí cảnh nào.' });
     }
 
+    // Thực hiện khóa dòng (atomic update) để ngăn race condition (double claim)
+    const { data: updatedCult, error: updateError } = await supabase
+      .from('cultivations')
+      .update({ is_exploring: false, current_dungeon_id: null, explore_started_at: null })
+      .eq('user_id', req.user.id)
+      .eq('is_exploring', true)
+      .select()
+      .maybeSingle();
+
+    if (updateError || !updatedCult) {
+      return res.status(400).json({ message: 'Đã nhận thưởng hoặc trạng thái thám hiểm đã bị thay đổi.' });
+    }
+
     const dungeon = DUNGEONS[cult.currentDungeonId];
     if (!dungeon) {
-      cult.isExploring      = false;
-      cult.currentDungeonId = null;
-      cult.exploreStartedAt = null;
-      await Cultivation.save(cult);
       return res.status(400).json({ message: 'Bí cảnh không hợp lệ, đã tự động thoát.' });
     }
 

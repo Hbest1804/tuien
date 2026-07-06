@@ -40,9 +40,6 @@ export const exchangeItem = async (req, res) => {
       return res.status(400).json({ message: 'Không đủ Điểm Cống Hiến.' });
     }
 
-    cult.sectContribution -= price;
-    await Cultivation.save(cult);
-
     let inventory = await Inventory.findOne({ userId: req.user.id });
     if (!inventory) {
       inventory = await Inventory.findOneAndUpdate(
@@ -51,15 +48,16 @@ export const exchangeItem = async (req, res) => {
     }
 
     const existingItem = inventory.items.find(i => i.itemId === itemId);
+    if (!existingItem && inventory.items.length >= inventory.maxSlots) {
+      return res.status(400).json({ message: 'Túi đồ đã đầy!' });
+    }
+
+    cult.sectContribution -= price;
+    await Cultivation.save(cult);
+
     if (existingItem) {
       existingItem.quantity += 1;
     } else {
-      if (inventory.items.length >= inventory.maxSlots) {
-        // Hoàn điểm nếu túi đầy
-        cult.sectContribution += price;
-        await Cultivation.save(cult);
-        return res.status(400).json({ message: 'Túi đồ đã đầy!' });
-      }
       inventory.items.push({ itemId, quantity: 1 });
     }
 

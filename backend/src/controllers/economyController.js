@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Inventory from '../models/Inventory.js';
 import Cultivation from '../models/Cultivation.js';
 import { ITEMS, ITEM_TYPES } from '../data/items.js';
+import supabase from '../config/supabase.js';
 
 // ─── Hằng số ──────────────────────────────────────────────────────────────────
 const IDLE_STONES_PER_MINUTE = [1, 2, 4, 8, 15];
@@ -86,31 +87,21 @@ export const collectIdleStones = async (req, res) => {
     const cult = await Cultivation.findOne({ userId: user.id });
     const realmIndex = cult?.realmIndex || 0;
 
-    const freshUser = await User.findById(user.id);
-    if (!freshUser) return res.status(404).json({ message: 'User không tồn tại' });
+    const { data, error } = await supabase.rpc('collect_idle_stones', {
+      p_user_id: user.id,
+      p_realm_index: realmIndex
+    });
 
-    const pending = computePendingStones(freshUser, realmIndex);
-    if (pending <= 0) {
-      return res.json({ message: 'Chưa có Linh Thạch để thu thập.', spiritStones: freshUser.spiritStones, collected: 0 });
+    if (error) {
+      console.error('Lỗi RPC collect_idle_stones:', error);
+      return res.status(500).json({ message: 'Lỗi server khi thu thập Linh Thạch.' });
     }
 
-    freshUser.spiritStones = (freshUser.spiritStones || 0) + pending;
-
-    const lastCollected = freshUser.lastStoneCollectedAt || freshUser.createdAt || new Date();
-    const elapsedMs = Date.now() - new Date(lastCollected).getTime();
-    const elapsedMinutes = elapsedMs / 60000;
-
-    if (elapsedMinutes >= 24 * 60) {
-      freshUser.lastStoneCollectedAt = new Date();
-    } else {
-      const ratePerMinute = IDLE_STONES_PER_MINUTE[Math.max(0, Math.min(realmIndex, IDLE_STONES_PER_MINUTE.length - 1))];
-      const collectedMinutes = pending / ratePerMinute;
-      freshUser.lastStoneCollectedAt = new Date(new Date(lastCollected).getTime() + collectedMinutes * 60000);
+    if (!data.success) {
+      return res.status(data.status || 400).json({ message: data.message });
     }
 
-    await User.save(freshUser);
-
-    res.json({ message: `Thu thập được ${pending} Linh Thạch!`, spiritStones: freshUser.spiritStones, collected: pending });
+    res.json({ message: data.message, spiritStones: data.spiritStones, collected: data.pending });
   } catch (err) {
     console.error('Lỗi collectIdleStones:', err);
     res.status(500).json({ message: 'Lỗi server' });
@@ -175,20 +166,18 @@ export const buyShopItem = async (req, res) => {
       });
     }
 
+    const inventory = await getOrCreateInventory(user.id);
+    const existingItem = inventory.items.find(i => i.itemId === itemId);
+    if (!existingItem && inventory.items.length >= inventory.maxSlots) {
+      return res.status(400).json({ message: 'Túi đồ đã đầy!' });
+    }
+
     freshUser.spiritStones -= totalCost;
     await User.save(freshUser);
 
-    const inventory = await getOrCreateInventory(user.id);
-    const existingItem = inventory.items.find(i => i.itemId === itemId);
     if (existingItem) {
       existingItem.quantity += quantity;
     } else {
-      if (inventory.items.length >= inventory.maxSlots) {
-        // Hoàn tiền nếu túi đầy
-        freshUser.spiritStones += totalCost;
-        await User.save(freshUser);
-        return res.status(400).json({ message: 'Túi đồ đã đầy!' });
-      }
       inventory.items.push({ itemId, quantity });
     }
     await Inventory.save(inventory);
