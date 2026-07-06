@@ -54,7 +54,10 @@ export const getMissions = async (req, res) => {
         newMissions.push(generateMission('Địa'));
       }
 
-      cult.sectMissions = newMissions;
+      const activeOrCompletedMissions = (cult.sectMissions || []).filter(
+        m => m.status === 'active' || m.status === 'completed'
+      );
+      cult.sectMissions = [...activeOrCompletedMissions, ...newMissions];
       cult.lastMissionRefresh = now;
       await Cultivation.save(cult);
     }

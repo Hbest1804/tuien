@@ -173,5 +173,199 @@ ALTER TABLE auction_listings DISABLE ROW LEVEL SECURITY;
 ALTER TABLE refresh_tokens  DISABLE ROW LEVEL SECURITY;
 
 -- ============================================================
+-- RPC: place_auction_bid
+-- ============================================================
+CREATE OR REPLACE FUNCTION place_auction_bid(
+  p_user_id UUID,
+  p_user_name VARCHAR,
+  p_listing_id UUID,
+  p_bid_amount INT
+) RETURNS JSONB
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_listing auction_listings%ROWTYPE;
+  v_user users%ROWTYPE;
+  v_current_price INT;
+  v_min_bid INT;
+  v_active_refund INT := 0;
+BEGIN
+  SELECT * INTO v_listing FROM auction_listings WHERE id = p_listing_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'status', 404, 'message', 'Phiên đấu giá không tồn tại.');
+  END IF;
+
+  IF v_listing.status != 'active' THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Phiên đấu giá đã kết thúc.');
+  END IF;
+
+  IF NOW() >= v_listing.expires_at THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Phiên đấu giá đã hết hạn.');
+  END IF;
+
+  IF v_listing.seller_id = p_user_id THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Không thể tự đấu giá vật phẩm của mình.');
+  END IF;
+
+  IF v_listing.buyout_price IS NOT NULL AND p_bid_amount >= v_listing.buyout_price THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Giá thầu lớn hơn hoặc bằng giá mua ngay. Vui lòng Mua Ngay.');
+  END IF;
+
+  v_current_price := GREATEST(v_listing.current_bid, v_listing.starting_price);
+  v_min_bid := CEIL(v_current_price * 1.05);
+  IF p_bid_amount < v_min_bid THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Giá thầu tối thiểu là ' || v_min_bid || ' Linh Thạch.');
+  END IF;
+
+  SELECT * INTO v_user FROM users WHERE id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'status', 404, 'message', 'Người dùng không tồn tại.');
+  END IF;
+
+  IF v_listing.bidder_id = p_user_id THEN
+    v_active_refund := v_listing.current_bid;
+  END IF;
+
+  IF (COALESCE(v_user.spirit_stones, 0) + v_active_refund) < p_bid_amount THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Không đủ Linh Thạch!');
+  END IF;
+
+  IF v_listing.bidder_id IS NOT NULL AND v_listing.current_bid > 0 THEN
+    IF v_listing.bidder_id = p_user_id THEN
+      v_user.spirit_stones := COALESCE(v_user.spirit_stones, 0) + v_listing.current_bid;
+    ELSE
+      UPDATE users SET spirit_stones = COALESCE(spirit_stones, 0) + v_listing.current_bid WHERE id = v_listing.bidder_id;
+    END IF;
+  END IF;
+
+  v_user.spirit_stones := COALESCE(v_user.spirit_stones, 0) - p_bid_amount;
+  UPDATE users SET spirit_stones = v_user.spirit_stones WHERE id = p_user_id;
+
+  UPDATE auction_listings 
+  SET current_bid = p_bid_amount, bidder_id = p_user_id, bidder_name = p_user_name, updated_at = NOW() 
+  WHERE id = p_listing_id RETURNING * INTO v_listing;
+
+  RETURN jsonb_build_object(
+    'success', true, 
+    'message', 'Đặt thầu ' || p_bid_amount || ' Linh Thạch thành công!', 
+    'spiritStones', v_user.spirit_stones,
+    'listing', to_jsonb(v_listing)
+  );
+END;
+$$;
+
+-- ============================================================
+-- RPC: auction_buyout
+-- ============================================================
+CREATE OR REPLACE FUNCTION auction_buyout(
+  p_user_id UUID,
+  p_user_name VARCHAR,
+  p_listing_id UUID
+) RETURNS JSONB
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  v_listing auction_listings%ROWTYPE;
+  v_user users%ROWTYPE;
+  v_active_refund INT := 0;
+  v_fee INT;
+  v_seller_receives INT;
+  v_inventory inventories%ROWTYPE;
+  v_items JSONB;
+  v_item JSONB;
+  v_found BOOLEAN := false;
+  v_new_items JSONB := '[]'::JSONB;
+BEGIN
+  SELECT * INTO v_listing FROM auction_listings WHERE id = p_listing_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'status', 404, 'message', 'Phiên đấu giá không tồn tại.');
+  END IF;
+
+  IF v_listing.status != 'active' THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Phiên đấu giá đã kết thúc.');
+  END IF;
+
+  IF NOW() >= v_listing.expires_at THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Phiên đấu giá đã hết hạn.');
+  END IF;
+
+  IF v_listing.buyout_price IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Phiên này không hỗ trợ mua ngay.');
+  END IF;
+
+  IF v_listing.seller_id = p_user_id THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Không thể tự mua.');
+  END IF;
+
+  SELECT * INTO v_user FROM users WHERE id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'status', 404, 'message', 'Người dùng không tồn tại.');
+  END IF;
+
+  IF v_listing.bidder_id = p_user_id THEN
+    v_active_refund := v_listing.current_bid;
+  END IF;
+
+  IF (COALESCE(v_user.spirit_stones, 0) + v_active_refund) < v_listing.buyout_price THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Không đủ Linh Thạch!');
+  END IF;
+  
+  SELECT * INTO v_inventory FROM inventories WHERE user_id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN
+    INSERT INTO inventories (user_id) VALUES (p_user_id) RETURNING * INTO v_inventory;
+  END IF;
+  
+  v_items := v_inventory.items;
+  IF v_items IS NULL OR jsonb_typeof(v_items) != 'array' THEN
+    v_items := '[]'::JSONB;
+  END IF;
+  
+  FOR v_item IN SELECT * FROM jsonb_array_elements(v_items) LOOP
+    IF v_item->>'itemId' = v_listing.item_id THEN
+      v_item := jsonb_set(v_item, '{quantity}', to_jsonb((v_item->>'quantity')::int + v_listing.quantity));
+      v_found := true;
+    END IF;
+    v_new_items := v_new_items || v_item;
+  END LOOP;
+  
+  IF NOT v_found THEN
+    IF jsonb_array_length(v_items) >= v_inventory.max_slots THEN
+      RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Túi đồ đã đầy!');
+    END IF;
+    v_new_items := v_new_items || jsonb_build_object('itemId', v_listing.item_id, 'quantity', v_listing.quantity);
+  END IF;
+
+  IF v_listing.bidder_id IS NOT NULL AND v_listing.current_bid > 0 THEN
+    IF v_listing.bidder_id = p_user_id THEN
+      v_user.spirit_stones := COALESCE(v_user.spirit_stones, 0) + v_listing.current_bid;
+    ELSE
+      UPDATE users SET spirit_stones = COALESCE(spirit_stones, 0) + v_listing.current_bid WHERE id = v_listing.bidder_id;
+    END IF;
+  END IF;
+
+  v_user.spirit_stones := COALESCE(v_user.spirit_stones, 0) - v_listing.buyout_price;
+  UPDATE users SET spirit_stones = v_user.spirit_stones WHERE id = p_user_id;
+
+  v_fee := CEIL(v_listing.buyout_price * 0.05);
+  v_seller_receives := v_listing.buyout_price - v_fee;
+  UPDATE users SET spirit_stones = COALESCE(spirit_stones, 0) + v_seller_receives WHERE id = v_listing.seller_id;
+
+  UPDATE inventories SET items = v_new_items, updated_at = NOW() WHERE id = v_inventory.id;
+
+  UPDATE auction_listings 
+  SET status = 'sold', bidder_id = p_user_id, bidder_name = p_user_name, current_bid = v_listing.buyout_price,
+      seller_claimed = true, buyer_claimed = true, updated_at = NOW()
+  WHERE id = p_listing_id RETURNING * INTO v_listing;
+
+  RETURN jsonb_build_object(
+    'success', true, 
+    'message', 'Mua thành công ' || v_listing.quantity || ' ' || v_listing.item_name || ' với giá ' || v_listing.buyout_price || ' Linh Thạch!', 
+    'spiritStones', v_user.spirit_stones,
+    'listing', to_jsonb(v_listing)
+  );
+END;
+$$;
+
+-- ============================================================
 -- Done! All tables created successfully.
 -- ============================================================

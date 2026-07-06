@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Inventory from '../models/Inventory.js';
 import AuctionListing from '../models/AuctionListing.js';
 import { ITEMS } from '../data/items.js';
+import supabase from '../config/supabase.js';
 
 const AUCTION_FEE_RATE = 0.05;
 const MIN_BID_INCREMENT = 0.05;
@@ -151,55 +152,26 @@ export const placeBid = async (req, res) => {
     if (!listingId || !bidAmount) return res.status(400).json({ message: 'Thiếu thông tin đấu giá.' });
     if (!Number.isInteger(bidAmount) || bidAmount < 1) return res.status(400).json({ message: 'Số tiền đặt thầu không hợp lệ.' });
 
-    const listing = await AuctionListing.findById(listingId);
-    if (!listing) return res.status(404).json({ message: 'Phiên đấu giá không tồn tại.' });
-    if (listing.status !== 'active') return res.status(400).json({ message: 'Phiên đấu giá đã kết thúc.' });
-    if (new Date() >= new Date(listing.expiresAt)) return res.status(400).json({ message: 'Phiên đấu giá đã hết hạn.' });
-    if (listing.sellerId === user.id) return res.status(400).json({ message: 'Không thể tự đấu giá vật phẩm của mình.' });
+    const { data, error } = await supabase.rpc('place_auction_bid', {
+      p_user_id: user.id,
+      p_user_name: user.username,
+      p_listing_id: listingId,
+      p_bid_amount: bidAmount
+    });
 
-    if (listing.buyoutPrice !== null && bidAmount >= listing.buyoutPrice) {
-      return res.status(400).json({ message: `Giá thầu lớn hơn hoặc bằng giá mua ngay (${listing.buyoutPrice}). Vui lòng sử dụng tính năng Mua Ngay.` });
+    if (error) {
+      console.error('Lỗi RPC place_auction_bid:', error);
+      return res.status(500).json({ message: 'Lỗi server khi đặt thầu.' });
     }
 
-    const currentPrice = listing.currentBid > 0 ? listing.currentBid : listing.startingPrice;
-    const minBid = Math.ceil(currentPrice * (1 + MIN_BID_INCREMENT));
-    if (bidAmount < minBid) {
-      return res.status(400).json({ message: `Giá thầu tối thiểu là ${minBid} Linh Thạch.` });
+    if (!data.success) {
+      return res.status(data.status || 400).json({ message: data.message });
     }
-
-    const freshUser = await User.findById(user.id);
-    if (!freshUser) return res.status(404).json({ message: 'Người dùng không tồn tại.' });
-
-    const activeBidRefund = (listing.bidderId && listing.bidderId === user.id) ? listing.currentBid : 0;
-    if ((freshUser.spiritStones || 0) + activeBidRefund < bidAmount) {
-      return res.status(400).json({ message: `Không đủ Linh Thạch! Cần ${bidAmount} nhưng chỉ có ${(freshUser.spiritStones || 0) + activeBidRefund}.` });
-    }
-
-    // Hoàn tiền người thầu cũ
-    if (listing.bidderId && listing.currentBid > 0) {
-      if (listing.bidderId === user.id) {
-        freshUser.spiritStones = (freshUser.spiritStones || 0) + listing.currentBid;
-      } else {
-        const oldBidder = await User.findById(listing.bidderId);
-        if (oldBidder) {
-          oldBidder.spiritStones = (oldBidder.spiritStones || 0) + listing.currentBid;
-          await User.save(oldBidder);
-        }
-      }
-    }
-
-    freshUser.spiritStones = (freshUser.spiritStones || 0) - bidAmount;
-    await User.save(freshUser);
-
-    listing.currentBid  = bidAmount;
-    listing.bidderId    = user.id;
-    listing.bidderName  = user.username;
-    await listing.save();
 
     res.json({
-      message: `Đặt thầu ${bidAmount} Linh Thạch thành công!`,
-      spiritStones: freshUser.spiritStones,
-      listing,
+      message: data.message,
+      spiritStones: data.spiritStones,
+      listing: data.listing,
     });
   } catch (err) {
     console.error('Lỗi placeBid:', err);
@@ -216,71 +188,25 @@ export const buyout = async (req, res) => {
     const { listingId } = req.body;
     if (!listingId) return res.status(400).json({ message: 'Thiếu listingId.' });
 
-    const listing = await AuctionListing.findById(listingId);
-    if (!listing) return res.status(404).json({ message: 'Phiên đấu giá không tồn tại.' });
-    if (listing.status !== 'active') return res.status(400).json({ message: 'Phiên đấu giá đã kết thúc.' });
-    if (new Date() >= new Date(listing.expiresAt)) return res.status(400).json({ message: 'Phiên đấu giá đã hết hạn.' });
-    if (!listing.buyoutPrice) return res.status(400).json({ message: 'Phiên này không hỗ trợ mua ngay.' });
-    if (listing.sellerId === user.id) return res.status(400).json({ message: 'Không thể mua vật phẩm của chính mình.' });
+    const { data, error } = await supabase.rpc('auction_buyout', {
+      p_user_id: user.id,
+      p_user_name: user.username,
+      p_listing_id: listingId
+    });
 
-    const freshUser = await User.findById(user.id);
-    if (!freshUser) return res.status(404).json({ message: 'Người dùng không tồn tại.' });
-
-    const activeBidRefund = (listing.bidderId && listing.bidderId === user.id) ? listing.currentBid : 0;
-    if ((freshUser.spiritStones || 0) + activeBidRefund < listing.buyoutPrice) {
-      return res.status(400).json({ message: `Không đủ Linh Thạch! Cần ${listing.buyoutPrice} nhưng chỉ có ${freshUser.spiritStones}.` });
+    if (error) {
+      console.error('Lỗi RPC auction_buyout:', error);
+      return res.status(500).json({ message: 'Lỗi server khi mua ngay.' });
     }
 
-    // Hoàn tiền người thầu cũ
-    if (listing.bidderId && listing.currentBid > 0) {
-      if (listing.bidderId === user.id) {
-        freshUser.spiritStones = (freshUser.spiritStones || 0) + listing.currentBid;
-      } else {
-        const oldBidder = await User.findById(listing.bidderId);
-        if (oldBidder) {
-          oldBidder.spiritStones = (oldBidder.spiritStones || 0) + listing.currentBid;
-          await User.save(oldBidder);
-        }
-      }
+    if (!data.success) {
+      return res.status(data.status || 400).json({ message: data.message });
     }
-
-    freshUser.spiritStones = (freshUser.spiritStones || 0) - listing.buyoutPrice;
-    await User.save(freshUser);
-
-    // Người bán nhận tiền
-    const fee = Math.ceil(listing.buyoutPrice * AUCTION_FEE_RATE);
-    const sellerReceives = listing.buyoutPrice - fee;
-    const seller = await User.findById(listing.sellerId);
-    if (seller) {
-      seller.spiritStones = (seller.spiritStones || 0) + sellerReceives;
-      await User.save(seller);
-    }
-
-    // Thêm vào túi người mua
-    const inventory = await getOrCreateInventory(user.id);
-    const existingItem = inventory.items.find(i => i.itemId === listing.itemId);
-    if (existingItem) {
-      existingItem.quantity += listing.quantity;
-    } else {
-      if (inventory.items.length >= inventory.maxSlots) {
-        return res.status(400).json({ message: 'Túi đồ đã đầy!' });
-      }
-      inventory.items.push({ itemId: listing.itemId, quantity: listing.quantity });
-    }
-    await Inventory.save(inventory);
-
-    listing.status       = 'sold';
-    listing.bidderId     = user.id;
-    listing.bidderName   = user.username;
-    listing.currentBid   = listing.buyoutPrice;
-    listing.sellerClaimed = true;
-    listing.buyerClaimed  = true;
-    await listing.save();
 
     res.json({
-      message: `Mua thành công ${listing.quantity} ${listing.itemName} với giá ${listing.buyoutPrice} Linh Thạch!`,
-      spiritStones: freshUser.spiritStones,
-      listing,
+      message: data.message,
+      spiritStones: data.spiritStones,
+      listing: data.listing,
     });
   } catch (err) {
     console.error('Lỗi buyout:', err);
