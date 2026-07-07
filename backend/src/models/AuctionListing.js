@@ -112,8 +112,35 @@ export const AuctionListing = {
 
   async countDocuments(filter = {}) {
     let query = supabase.from('auction_listings').select('id', { count: 'exact', head: true });
-    if (filter.status) query = query.eq('status', filter.status);
+    if (filter.status) {
+      if (filter.status.$in) {
+        query = query.in('status', filter.status.$in);
+      } else {
+        query = query.eq('status', filter.status);
+      }
+    }
+    if (filter.sellerId) {
+      if (filter.sellerId.$ne) {
+        query = query.neq('seller_id', filter.sellerId.$ne);
+      } else {
+        query = query.eq('seller_id', filter.sellerId);
+      }
+    }
+    if (filter.bidderId) {
+      if (filter.bidderId.$ne === null) {
+        query = query.not('bidder_id', 'is', null);
+      } else {
+        query = query.eq('bidder_id', filter.bidderId);
+      }
+    }
     if (filter.expiresAt?.$gt) query = query.gt('expires_at', filter.expiresAt.$gt.toISOString());
+    if (filter.expiresAt?.$lte) query = query.lte('expires_at', filter.expiresAt.$lte.toISOString());
+
+    if (filter.itemType) query = query.eq('item_type', filter.itemType);
+    if (filter.itemRarity) query = query.eq('item_rarity', filter.itemRarity);
+    if (filter.itemName?.$regex) {
+      query = query.ilike('item_name', `%${filter.itemName.$regex}%`);
+    }
     const { count, error } = await query;
     if (error) throw error;
     return count || 0;

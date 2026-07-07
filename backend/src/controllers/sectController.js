@@ -55,7 +55,7 @@ export const getMissions = async (req, res) => {
       }
 
       const activeOrCompletedMissions = (cult.sectMissions || []).filter(
-        m => m.status === 'active' || m.status === 'completed'
+        m => m.status === 'active'
       );
       cult.sectMissions = [...activeOrCompletedMissions, ...newMissions];
       cult.lastMissionRefresh = now;

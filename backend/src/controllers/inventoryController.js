@@ -247,7 +247,8 @@ export const useItem = async (req, res) => {
       p_new_lifespan: cult.lifespan,
       p_breakthrough_ready_at: cult.breakthroughReadyAt,
       p_heart_demon_duration_ms: (cult.dailyPillsConsumed.count > 10) ? 24 * 3600 * 1000 : 0,
-      p_speed_buff: speedBuffData
+      p_speed_buff: speedBuffData,
+      p_daily_pills_consumed: cult.dailyPillsConsumed
     });
 
     if (error) {

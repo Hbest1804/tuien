@@ -1001,7 +1001,7 @@ BEGIN
     FOR v_buff IN SELECT * FROM jsonb_array_elements(v_active_buffs) LOOP
       IF v_buff->>'buffType' = 'SPEED_HEART_DEMON' THEN
         v_buff := jsonb_set(v_buff, '{expiresAt}', to_jsonb(
-          TO_CHAR(TO_TIMESTAMP((GREATEST(EXTRACT(EPOCH FROM NOW()) * 1000, EXTRACT(EPOCH FROM (v_buff->>'expiresAt')::TIMESTAMPTZ) * 1000) + p_heart_demon_duration_ms) / 1000.0), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+          TO_CHAR(TO_TIMESTAMP((GREATEST(EXTRACT(EPOCH FROM NOW()) * 1000, EXTRACT(EPOCH FROM (v_buff->>'expiresAt')::TIMESTAMPTZ) * 1000) + p_heart_demon_duration_ms) / 1000.0) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
         ));
         v_demon_found := true;
       END IF;
@@ -1041,7 +1041,8 @@ CREATE OR REPLACE FUNCTION commit_use_item(
   p_new_lifespan INT,
   p_breakthrough_ready_at TIMESTAMPTZ,
   p_heart_demon_duration_ms BIGINT,
-  p_speed_buff JSONB
+  p_speed_buff JSONB,
+  p_daily_pills_consumed JSONB
 ) RETURNS JSONB
 LANGUAGE plpgsql
 AS $BODY
@@ -1094,7 +1095,7 @@ BEGIN
     FOR v_buff IN SELECT * FROM jsonb_array_elements(v_active_buffs) LOOP
       IF v_buff->>'buffType' = 'SPEED_HEART_DEMON' THEN
         v_buff := jsonb_set(v_buff, '{expiresAt}', to_jsonb(
-          TO_CHAR(TO_TIMESTAMP((GREATEST(EXTRACT(EPOCH FROM NOW()) * 1000, EXTRACT(EPOCH FROM (v_buff->>'expiresAt')::TIMESTAMPTZ) * 1000) + p_heart_demon_duration_ms) / 1000.0), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+          TO_CHAR(TO_TIMESTAMP((GREATEST(EXTRACT(EPOCH FROM NOW()) * 1000, EXTRACT(EPOCH FROM (v_buff->>'expiresAt')::TIMESTAMPTZ) * 1000) + p_heart_demon_duration_ms) / 1000.0) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
         ));
         v_demon_found := true;
       END IF;
@@ -1129,7 +1130,8 @@ BEGIN
   END IF;
 
   UPDATE cultivations 
-  SET exp_accumulated = p_new_exp, lifespan = p_new_lifespan, breakthrough_ready_at = p_breakthrough_ready_at, updated_at = NOW() 
+  SET exp_accumulated = p_new_exp, lifespan = p_new_lifespan, breakthrough_ready_at = p_breakthrough_ready_at,
+      daily_pills_consumed = p_daily_pills_consumed, updated_at = NOW() 
   WHERE id = v_cult.id;
   
   UPDATE inventories SET items = v_items, active_buffs = v_active_buffs, updated_at = NOW() WHERE id = v_inventory.id;
