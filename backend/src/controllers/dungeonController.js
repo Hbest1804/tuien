@@ -1,6 +1,4 @@
 import Cultivation from '../models/Cultivation.js';
-import Inventory from '../models/Inventory.js';
-import User from '../models/User.js';
 import { DUNGEONS } from '../data/dungeons.js';
 import { ITEMS } from '../data/items.js';
 import supabase from '../config/supabase.js';

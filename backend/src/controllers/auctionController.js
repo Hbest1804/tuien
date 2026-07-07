@@ -1,5 +1,3 @@
-import User from '../models/User.js';
-import Inventory from '../models/Inventory.js';
 import AuctionListing from '../models/AuctionListing.js';
 import { ITEMS } from '../data/items.js';
 import supabase from '../config/supabase.js';
@@ -7,14 +5,6 @@ import supabase from '../config/supabase.js';
 const AUCTION_FEE_RATE = 0.05;
 const MIN_BID_INCREMENT = 0.05;
 const VALID_DURATIONS_H = [12, 24, 48];
-
-const getOrCreateInventory = async (userId) => {
-  return await Inventory.findOneAndUpdate(
-    { userId },
-    {},
-    { upsert: true, new: true, setDefaultsOnInsert: true }
-  );
-};
 
 const resolveExpiredListings = async () => {
   const now = new Date();

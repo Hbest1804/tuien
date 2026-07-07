@@ -462,6 +462,10 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Không đủ vật phẩm trong túi đồ.');
   END IF;
 
+  IF v_inventory.equipment->>'weapon' = p_item_id OR v_inventory.equipment->>'armor' = p_item_id THEN
+    RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Không thể đăng bán vật phẩm đang trang bị.');
+  END IF;
+
   v_items := v_inventory.items;
   IF v_items IS NULL OR jsonb_typeof(v_items) != 'array' THEN
     RETURN jsonb_build_object('success', false, 'status', 400, 'message', 'Không đủ vật phẩm trong túi đồ.');
@@ -782,6 +786,10 @@ BEGIN
   SELECT * INTO v_inventory FROM inventories WHERE user_id = p_user_id FOR UPDATE;
   IF NOT FOUND THEN RETURN jsonb_build_object('success', false, 'message', 'Không đủ vật phẩm trong túi đồ.'); END IF;
 
+  IF v_inventory.equipment->>'weapon' = p_item_id OR v_inventory.equipment->>'armor' = p_item_id THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Không thể bán vật phẩm đang trang bị.');
+  END IF;
+
   v_items := v_inventory.items;
   IF v_items IS NULL OR jsonb_typeof(v_items) != 'array' THEN v_items := '[]'::JSONB; END IF;
 
@@ -968,6 +976,10 @@ BEGIN
   IF v_items IS NULL OR jsonb_typeof(v_items) != 'array' THEN v_items := '[]'::JSONB; END IF;
 
   FOR v_item_id, v_qty IN SELECT key, value::int FROM jsonb_each(p_items_used) LOOP
+    IF v_inventory.equipment->>'weapon' = v_item_id OR v_inventory.equipment->>'armor' = v_item_id THEN
+      RETURN jsonb_build_object('success', false, 'message', 'Không thể sử dụng vật phẩm đang trang bị để đột phá.');
+    END IF;
+
     DECLARE
       v_found_item BOOLEAN := false;
     BEGIN
@@ -1135,6 +1147,116 @@ BEGIN
   WHERE id = v_cult.id;
   
   UPDATE inventories SET items = v_items, active_buffs = v_active_buffs, updated_at = NOW() WHERE id = v_inventory.id;
+
+  RETURN jsonb_build_object('success', true);
+END;
+$BODY;
+
+-- ============================================================
+-- RPC: complete_sect_mission_tx
+-- ============================================================
+CREATE OR REPLACE FUNCTION complete_sect_mission_tx(
+  p_user_id UUID,
+  p_mission_id VARCHAR
+) RETURNS JSONB
+LANGUAGE plpgsql
+AS $BODY
+DECLARE
+  v_cult cultivations%ROWTYPE;
+  v_missions JSONB;
+  v_mission JSONB;
+  v_new_missions JSONB := '[]'::JSONB;
+  v_found BOOLEAN := false;
+  v_reward INT := 0;
+BEGIN
+  SELECT * INTO v_cult FROM cultivations WHERE user_id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Không tìm thấy dữ liệu tu vi.');
+  END IF;
+
+  v_missions := v_cult.sect_missions;
+  IF v_missions IS NULL OR jsonb_typeof(v_missions) != 'array' THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Không có nhiệm vụ.');
+  END IF;
+
+  FOR v_mission IN SELECT * FROM jsonb_array_elements(v_missions) LOOP
+    IF v_mission->>'id' = p_mission_id THEN
+      IF v_mission->>'status' != 'active' THEN
+        RETURN jsonb_build_object('success', false, 'message', 'Nhiệm vụ không ở trạng thái đang thực hiện.');
+      END IF;
+      v_reward := (v_mission->>'reward')::int;
+      v_mission := jsonb_set(v_mission, '{status}', '"completed"');
+      v_found := true;
+    END IF;
+    v_new_missions := v_new_missions || v_mission;
+  END LOOP;
+
+  IF NOT v_found THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Không tìm thấy nhiệm vụ.');
+  END IF;
+
+  UPDATE cultivations 
+  SET sect_missions = v_new_missions, 
+      sect_contribution = COALESCE(sect_contribution, 0) + v_reward, 
+      updated_at = NOW() 
+  WHERE id = v_cult.id;
+
+  RETURN jsonb_build_object('success', true, 'message', 'Hoàn thành nhiệm vụ, nhận ' || v_reward || ' Điểm Cống Hiến.');
+END;
+$BODY;
+
+-- ============================================================
+-- RPC: learn_technique_tx
+-- ============================================================
+CREATE OR REPLACE FUNCTION learn_technique_tx(
+  p_user_id UUID,
+  p_item_id VARCHAR,
+  p_speed_bonus FLOAT
+) RETURNS JSONB
+LANGUAGE plpgsql
+AS $BODY
+DECLARE
+  v_inventory inventories%ROWTYPE;
+  v_items JSONB;
+  v_item JSONB;
+  v_new_items JSONB := '[]'::JSONB;
+  v_found BOOLEAN := false;
+BEGIN
+  SELECT * INTO v_inventory FROM inventories WHERE user_id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Không tìm thấy túi đồ.');
+  END IF;
+
+  v_items := v_inventory.items;
+  IF v_items IS NULL OR jsonb_typeof(v_items) != 'array' THEN 
+    RETURN jsonb_build_object('success', false, 'message', 'Không có vật phẩm.'); 
+  END IF;
+
+  FOR v_item IN SELECT * FROM jsonb_array_elements(v_items) LOOP
+    IF v_item->>'itemId' = p_item_id THEN
+      IF (v_item->>'quantity')::int >= 1 THEN
+        v_found := true;
+        IF (v_item->>'quantity')::int > 1 THEN
+          v_item := jsonb_set(v_item, '{quantity}', to_jsonb((v_item->>'quantity')::int - 1));
+          v_new_items := v_new_items || v_item;
+        END IF;
+      ELSE
+        RETURN jsonb_build_object('success', false, 'message', 'Không đủ vật phẩm.');
+      END IF;
+    ELSE
+      v_new_items := v_new_items || v_item;
+    END IF;
+  END LOOP;
+
+  IF NOT v_found THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Không tìm thấy công pháp trong túi đồ.');
+  END IF;
+
+  UPDATE inventories 
+  SET items = v_new_items, 
+      technique_passive_bonus = COALESCE(technique_passive_bonus, 0) + p_speed_bonus, 
+      updated_at = NOW() 
+  WHERE id = v_inventory.id;
 
   RETURN jsonb_build_object('success', true);
 END;

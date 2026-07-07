@@ -12,6 +12,9 @@ export const getLeaderboard = async (req, res) => {
       );
 
       const userIds = topUsers.map(u => u.id);
+      if (userIds.length === 0) {
+        return res.json({ leaderboard: [], type });
+      }
       const cultivations = await Cultivation.find(
         { userId: { $in: userIds } },
         {}
@@ -50,6 +53,9 @@ export const getLeaderboard = async (req, res) => {
     );
 
     const userIds = topCults.map(c => c.userId);
+    if (userIds.length === 0) {
+      return res.json({ leaderboard: [], type });
+    }
     const users = await User.find({ isCharacterCreated: true, _id: { $in: userIds } }, { limit: 200 });
 
     const userMap = {};

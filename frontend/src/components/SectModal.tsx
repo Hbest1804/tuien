@@ -36,12 +36,11 @@ export default function SectModal({ onConfirm, onCancel, loading }: SectModalPro
                 <div className="w-10 h-10 rounded-full border border-primary/40 overflow-hidden flex-shrink-0">
                   {/* Fallback to initials if image fails or missing */}
                   {sect.masterAvatar ? (
-                    <img src={sect.masterAvatar} alt="Sect Master" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                  ) : (
-                    <div className="w-full h-full bg-surface-container flex items-center justify-center font-bold text-primary">
-                      {sect.name[0]}
-                    </div>
-                  )}
+                    <img src={sect.masterAvatar} alt="Sect Master" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextElementSibling) (e.currentTarget.nextElementSibling as HTMLElement).style.display = 'flex'; }} />
+                  ) : null}
+                  <div className="w-full h-full bg-surface-container flex items-center justify-center font-bold text-primary" style={{ display: sect.masterAvatar ? 'none' : 'flex' }}>
+                    {sect.name[0]}
+                  </div>
                 </div>
                 <div>
                   <h3 className="font-headline-md text-on-background">{sect.name}</h3>

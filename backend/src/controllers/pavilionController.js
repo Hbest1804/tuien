@@ -1,5 +1,3 @@
-import Cultivation from '../models/Cultivation.js';
-import Inventory from '../models/Inventory.js';
 import { ITEMS } from '../data/items.js';
 import supabase from '../config/supabase.js';
 
