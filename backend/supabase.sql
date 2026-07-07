@@ -1006,7 +1006,7 @@ BEGIN
   v_items := v_inventory.items;
   IF v_items IS NULL OR jsonb_typeof(v_items) != 'array' THEN v_items := '[]'::JSONB; END IF;
 
-  FOR v_item_id, v_qty IN SELECT key, value::int FROM jsonb_each(p_items_used) LOOP
+  FOR v_item_id, v_qty IN SELECT key, value::int FROM jsonb_each_text(p_items_used) LOOP
     IF v_inventory.equipment->>'weapon' = v_item_id OR v_inventory.equipment->>'armor' = v_item_id THEN
       RETURN jsonb_build_object('success', false, 'message', 'Không thể sử dụng vật phẩm đang trang bị để đột phá.');
     END IF;
