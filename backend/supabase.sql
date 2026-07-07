@@ -164,6 +164,37 @@ CREATE TRIGGER set_updated_at_auction_listings
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================
+-- Auto-update sect_rank via trigger
+-- ============================================================
+CREATE OR REPLACE FUNCTION update_sect_rank()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.sect_name IS NULL THEN
+    NEW.sect_rank := 'Tạp Dịch';
+  ELSE
+    IF NEW.sect_contribution >= 10000 THEN
+      NEW.sect_rank := 'Tông Chủ';
+    ELSIF NEW.sect_contribution >= 5000 THEN
+      NEW.sect_rank := 'Trưởng Lão';
+    ELSIF NEW.sect_contribution >= 2000 THEN
+      NEW.sect_rank := 'Chân Truyền';
+    ELSIF NEW.sect_contribution >= 500 THEN
+      NEW.sect_rank := 'Nội Môn';
+    ELSIF NEW.sect_contribution >= 100 THEN
+      NEW.sect_rank := 'Ngoại Môn';
+    ELSE
+      NEW.sect_rank := 'Tạp Dịch';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_sect_rank
+  BEFORE INSERT OR UPDATE OF sect_contribution, sect_name ON cultivations
+  FOR EACH ROW EXECUTE FUNCTION update_sect_rank();
+
+-- ============================================================
 -- Disable Row Level Security (backend uses service_role key)
 -- ============================================================
 ALTER TABLE users           DISABLE ROW LEVEL SECURITY;
@@ -1024,7 +1055,7 @@ BEGIN
       v_new_buffs := v_new_buffs || jsonb_build_object(
         'buffType', 'SPEED_HEART_DEMON', 
         'multiplier', 0.5, 
-        'expiresAt', TO_CHAR(NOW() + (p_heart_demon_duration_ms || ' milliseconds')::interval, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+        'expiresAt', TO_CHAR((NOW() + (p_heart_demon_duration_ms || ' milliseconds')::interval) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
       );
     END IF;
   ELSE
@@ -1114,7 +1145,7 @@ BEGIN
       v_new_buffs := v_new_buffs || v_buff;
     END LOOP;
     IF NOT v_demon_found THEN
-      v_new_buffs := v_new_buffs || jsonb_build_object('buffType', 'SPEED_HEART_DEMON', 'multiplier', 0.5, 'expiresAt', TO_CHAR(NOW() + (p_heart_demon_duration_ms || ' milliseconds')::interval, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'));
+      v_new_buffs := v_new_buffs || jsonb_build_object('buffType', 'SPEED_HEART_DEMON', 'multiplier', 0.5, 'expiresAt', TO_CHAR((NOW() + (p_heart_demon_duration_ms || ' milliseconds')::interval) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'));
     END IF;
     v_active_buffs := v_new_buffs;
   END IF;
@@ -1125,7 +1156,7 @@ BEGIN
     FOR v_buff IN SELECT * FROM jsonb_array_elements(v_active_buffs) LOOP
       IF v_buff->>'buffType' = p_speed_buff->>'buffType' THEN
         v_buff := jsonb_set(v_buff, '{expiresAt}', to_jsonb(
-          TO_CHAR(TO_TIMESTAMP((GREATEST(EXTRACT(EPOCH FROM NOW()) * 1000, EXTRACT(EPOCH FROM (v_buff->>'expiresAt')::TIMESTAMPTZ) * 1000) + (p_speed_buff->>'durationHours')::FLOAT * 3600 * 1000) / 1000.0), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+          TO_CHAR(TO_TIMESTAMP((GREATEST(EXTRACT(EPOCH FROM NOW()) * 1000, EXTRACT(EPOCH FROM (v_buff->>'expiresAt')::TIMESTAMPTZ) * 1000) + (p_speed_buff->>'durationHours')::FLOAT * 3600 * 1000) / 1000.0) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
         ));
         v_speed_found := true;
       END IF;
@@ -1135,7 +1166,7 @@ BEGIN
       v_new_buffs := v_new_buffs || jsonb_build_object(
         'buffType', p_speed_buff->>'buffType', 
         'multiplier', p_speed_buff->>'multiplier', 
-        'expiresAt', TO_CHAR(NOW() + ((p_speed_buff->>'durationHours')::FLOAT || ' hours')::interval, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+        'expiresAt', TO_CHAR((NOW() + ((p_speed_buff->>'durationHours')::FLOAT || ' hours')::interval) AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
       );
     END IF;
     v_active_buffs := v_new_buffs;

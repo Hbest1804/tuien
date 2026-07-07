@@ -26,7 +26,11 @@ const attachMethods = (inv) => {
     const now = new Date();
     const before = this.activeBuffs.length;
     this.activeBuffs = this.activeBuffs.filter(b => new Date(b.expiresAt) > now);
-    return this.activeBuffs.length !== before;
+    if (this.activeBuffs.length !== before) {
+      this.markModified();
+      return true;
+    }
+    return false;
   };
 
   inv.getSpeedBuffMultiplier = function () {

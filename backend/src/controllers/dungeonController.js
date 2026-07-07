@@ -76,6 +76,10 @@ export const claimDungeonRewards = async (req, res) => {
     // RPC sẽ thực hiện khóa dòng (atomic update) để ngăn race condition và set is_exploring = false
     const dungeon = DUNGEONS[cult.currentDungeonId];
     if (!dungeon) {
+      cult.isExploring = false;
+      cult.currentDungeonId = null;
+      cult.exploreStartedAt = null;
+      await Cultivation.save(cult);
       return res.status(400).json({ message: 'Bí cảnh không hợp lệ, đã tự động thoát.' });
     }
 
@@ -83,6 +87,10 @@ export const claimDungeonRewards = async (req, res) => {
     const elapsedHours = (now.getTime() - new Date(cult.exploreStartedAt).getTime()) / (1000 * 60 * 60);
 
     if (elapsedHours < 0.1) {
+      cult.isExploring = false;
+      cult.currentDungeonId = null;
+      cult.exploreStartedAt = null;
+      await Cultivation.save(cult);
       return res.json({ message: 'Đã thoát bí cảnh sớm, chưa có thu hoạch gì.' });
     }
 
@@ -111,9 +119,14 @@ export const claimDungeonRewards = async (req, res) => {
       return res.status(500).json({ message: 'Lỗi server khi nhận thưởng.' });
     }
 
-    if (!data.success) {
-      return res.status(400).json({ message: data.message });
+    if (!data || !data.success) {
+      return res.status(400).json({ message: data ? data.message : 'Lỗi không xác định khi nhận thưởng.' });
     }
+
+    cult.isExploring = false;
+    cult.currentDungeonId = null;
+    cult.exploreStartedAt = null;
+    await Cultivation.save(cult);
 
     let message = `Thám hiểm kết thúc! Thu được ${spiritStonesGained} Linh Thạch.`;
     if (itemDrops.length > 0) {
