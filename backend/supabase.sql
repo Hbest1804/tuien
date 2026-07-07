@@ -917,12 +917,26 @@ AS $BODY
 DECLARE
   v_user users%ROWTYPE;
   v_inventory inventories%ROWTYPE;
+  v_cult cultivations%ROWTYPE;
   v_items JSONB;
   v_item JSONB;
   v_drop JSONB;
   v_found BOOLEAN;
   v_new_items JSONB;
 BEGIN
+  -- Lock and update cultivation state to prevent double claiming
+  SELECT * INTO v_cult FROM cultivations WHERE user_id = p_user_id FOR UPDATE;
+  IF NOT FOUND OR NOT v_cult.is_exploring THEN
+    RETURN jsonb_build_object('success', false, 'message', 'Bạn không đang thám hiểm bí cảnh nào hoặc đã nhận thưởng rồi.');
+  END IF;
+
+  UPDATE cultivations 
+  SET is_exploring = false, 
+      current_dungeon_id = null, 
+      explore_started_at = null, 
+      updated_at = NOW() 
+  WHERE user_id = p_user_id;
+
   IF p_spirit_stones > 0 THEN
     SELECT * INTO v_user FROM users WHERE id = p_user_id FOR UPDATE;
     UPDATE users SET spirit_stones = COALESCE(spirit_stones, 0) + p_spirit_stones, updated_at = NOW() WHERE id = p_user_id;

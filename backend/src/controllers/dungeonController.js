@@ -123,10 +123,7 @@ export const claimDungeonRewards = async (req, res) => {
       return res.status(400).json({ message: data ? data.message : 'Lỗi không xác định khi nhận thưởng.' });
     }
 
-    cult.isExploring = false;
-    cult.currentDungeonId = null;
-    cult.exploreStartedAt = null;
-    await Cultivation.save(cult);
+    // Cultivation state is now updated atomically inside the claim_dungeon_rewards_tx RPC.
 
     let message = `Thám hiểm kết thúc! Thu được ${spiritStonesGained} Linh Thạch.`;
     if (itemDrops.length > 0) {
