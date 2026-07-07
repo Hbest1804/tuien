@@ -75,19 +75,7 @@ export const claimDungeonRewards = async (req, res) => {
       return res.status(400).json({ message: 'Bạn không đang thám hiểm bí cảnh nào.' });
     }
 
-    // Thực hiện khóa dòng (atomic update) để ngăn race condition (double claim)
-    const { data: updatedCult, error: updateError } = await supabase
-      .from('cultivations')
-      .update({ is_exploring: false, current_dungeon_id: null, explore_started_at: null })
-      .eq('user_id', req.user.id)
-      .eq('is_exploring', true)
-      .select()
-      .maybeSingle();
-
-    if (updateError || !updatedCult) {
-      return res.status(400).json({ message: 'Đã nhận thưởng hoặc trạng thái thám hiểm đã bị thay đổi.' });
-    }
-
+    // RPC sẽ thực hiện khóa dòng (atomic update) để ngăn race condition và set is_exploring = false
     const dungeon = DUNGEONS[cult.currentDungeonId];
     if (!dungeon) {
       return res.status(400).json({ message: 'Bí cảnh không hợp lệ, đã tự động thoát.' });
@@ -123,6 +111,10 @@ export const claimDungeonRewards = async (req, res) => {
     if (error) {
       console.error('Lỗi RPC claim_dungeon_rewards_tx:', error);
       return res.status(500).json({ message: 'Lỗi server khi nhận thưởng.' });
+    }
+
+    if (!data.success) {
+      return res.status(400).json({ message: data.message });
     }
 
     let message = `Thám hiểm kết thúc! Thu được ${spiritStonesGained} Linh Thạch.`;

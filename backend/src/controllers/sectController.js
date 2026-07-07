@@ -1,5 +1,6 @@
 import Cultivation from '../models/Cultivation.js';
 import crypto from 'crypto';
+import supabase from '../config/supabase.js';
 
 const MISSION_CONFIGS = {
   'Hoàng': { durationSeconds: 600,  reward: 20,  titles: ['Thu thập linh thảo', 'Chăm sóc linh thú', 'Quét dọn tông môn', 'Tuần tra ngoại vi'] },
@@ -109,24 +110,27 @@ export const completeMission = async (req, res) => {
       return res.status(400).json({ message: 'Chưa đủ thời gian hoàn thành nhiệm vụ' });
     }
 
-    mission.status = 'completed';
-    cult.sectContribution = (cult.sectContribution || 0) + mission.reward;
+    const { data, error } = await supabase.rpc('complete_sect_mission_tx', {
+      p_user_id: req.user.id,
+      p_mission_id: missionId
+    });
 
-    const c = cult.sectContribution;
-    if (c >= 10000)     cult.sectRank = 'Tông Chủ';
-    else if (c >= 5000) cult.sectRank = 'Trưởng Lão';
-    else if (c >= 2000) cult.sectRank = 'Chân Truyền';
-    else if (c >= 500)  cult.sectRank = 'Nội Môn';
-    else if (c >= 100)  cult.sectRank = 'Ngoại Môn';
-    else                cult.sectRank = 'Tạp Dịch';
+    if (error) {
+      console.error('Lỗi RPC complete_sect_mission_tx:', error);
+      return res.status(500).json({ message: 'Lỗi server' });
+    }
 
-    await Cultivation.save(cult);
+    if (!data.success) {
+      return res.status(400).json({ message: data.message });
+    }
+
+    const updatedCult = await Cultivation.findOne({ userId: req.user.id });
 
     res.json({
-      message: `Hoàn thành nhiệm vụ! Nhận được ${mission.reward} điểm cống hiến.`,
-      missions: cult.sectMissions,
-      sectRank: cult.sectRank,
-      sectContribution: cult.sectContribution,
+      message: data.message,
+      missions: updatedCult.sectMissions,
+      sectRank: updatedCult.sectRank,
+      sectContribution: updatedCult.sectContribution,
     });
   } catch (err) {
     console.error('Lỗi completeMission:', err);

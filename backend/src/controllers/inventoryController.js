@@ -368,23 +368,26 @@ export const learnTechnique = async (req, res) => {
       return res.status(400).json({ message: 'Công pháp này không có hiệu ứng hợp lệ.' });
     }
 
-    const inventory = await getOrCreateInventory(user.id);
-    const itemIndex = inventory.items.findIndex(i => i.itemId === itemId);
-    if (itemIndex === -1 || inventory.items[itemIndex].quantity < 1) {
-      return res.status(400).json({ message: 'Không đủ số lượng trong túi đồ.' });
+    const { data, error } = await supabase.rpc('learn_technique_tx', {
+      p_user_id: req.user.id,
+      p_item_id: itemId,
+      p_speed_bonus: speedBonus
+    });
+
+    if (error) {
+      console.error('Lỗi RPC learn_technique_tx:', error);
+      return res.status(500).json({ message: 'Lỗi server khi học công pháp.' });
     }
 
-    inventory.items[itemIndex].quantity -= 1;
-    if (inventory.items[itemIndex].quantity <= 0) {
-      inventory.items.splice(itemIndex, 1);
+    if (!data.success) {
+      return res.status(400).json({ message: data.message });
     }
-    inventory.techniquePassiveBonus = (inventory.techniquePassiveBonus || 0) + speedBonus;
-    inventory.markModified('items');
-    await Inventory.save(inventory);
+
+    const updatedInventory = await getOrCreateInventory(user.id);
 
     res.json({
       message: `Học công pháp ${itemData.name} thành công! Tốc độ tu luyện tăng thêm ${Math.round(speedBonus * 100)}% vĩnh viễn.`,
-      inventory: populateInventoryData(inventory),
+      inventory: populateInventoryData(updatedInventory),
     });
   } catch (err) {
     console.error('Lỗi learnTechnique:', err);
