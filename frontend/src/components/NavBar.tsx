@@ -1,4 +1,4 @@
-import { Bell, User, Flame, LogOut, LogIn, ShoppingBag, Gavel } from 'lucide-react';
+import { Sparkles, Package, Swords, LogOut, Gavel, Store, BookOpen, Trophy, Map, Bell, User, LogIn, Flame } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEconomy } from '../context/EconomyContext';
@@ -12,6 +12,7 @@ const navItems: { key: string; label: string; path: string }[] = [
   { key: 'inventory',   label: 'Túi Đồ',        path: '/inventory' },
   { key: 'shop',        label: 'Thương Hội',    path: '/shop' },
   { key: 'auction',     label: 'Đấu Giá',       path: '/auction' },
+  { key: 'leaderboard', label: 'Xếp Hạng',      path: '/leaderboard' },
   { key: 'pavilion',    label: 'Tàng Kinh Các', path: '/pavilion' },
 ];
 

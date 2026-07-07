@@ -350,6 +350,8 @@ export default function AuctionHouse() {
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortOption, setSortOption] = useState('newest');
+  const [searchName, setSearchName] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [bidTarget, setBidTarget] = useState<AuctionListing | null>(null);
   const [showListModal, setShowListModal] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -362,10 +364,10 @@ export default function AuctionHouse() {
 
   const loadListings = useCallback(async () => {
     try {
-      const res = await getAuctionListings({ sort: sortOption });
+      const res = await getAuctionListings({ sort: sortOption, name: searchName || undefined });
       setListings(res.data.listings);
     } catch { showToast('error', 'Không thể tải danh sách đấu giá.'); }
-  }, [sortOption]);
+  }, [sortOption, searchName]);
 
   const loadMyListings = useCallback(async () => {
     try {
@@ -386,7 +388,14 @@ export default function AuctionHouse() {
   }, [loadListings, loadMyListings, fetchBalance]);
 
   useEffect(() => { if (user?.isCharacterCreated) loadAll(); }, [user, loadAll]);
-  useEffect(() => { if (user?.isCharacterCreated) loadListings(); }, [sortOption, loadListings]);
+  useEffect(() => { if (user?.isCharacterCreated) loadListings(); }, [sortOption, searchName, loadListings]);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchName(searchInput), 500);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
 
   const userId = user?._id ?? '';
 
@@ -527,6 +536,25 @@ export default function AuctionHouse() {
         {/* ── Browse Tab ── */}
         {tab === 'browse' && (
           <>
+            {/* Search */}
+            <div className="mb-3 relative">
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tên vật phẩm..."
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                className="w-full bg-surface-container/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-on-background placeholder:text-on-surface-variant/40 outline-none focus:border-primary/40 transition-all"
+              />
+              {searchInput && (
+                <button
+                  onClick={() => { setSearchInput(''); setSearchName(''); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
             {/* Sort */}
             <div className="flex gap-2 mb-5 flex-wrap">
               {[['newest', 'Mới nhất'], ['ending_soon', 'Sắp hết hạn'], ['price_asc', 'Giá tăng dần'], ['price_desc', 'Giá giảm dần']].map(([v, l]) => (
@@ -539,6 +567,7 @@ export default function AuctionHouse() {
                   }}>{l}</button>
               ))}
             </div>
+
 
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

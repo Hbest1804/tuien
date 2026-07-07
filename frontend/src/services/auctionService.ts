@@ -44,6 +44,7 @@ export interface ListItemPayload {
 export const getAuctionListings = (params?: {
   itemType?: string;
   rarity?: string;
+  name?: string;
   sort?: string;
   page?: number;
   limit?: number;

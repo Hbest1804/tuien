@@ -21,6 +21,7 @@ export interface UserData {
 export interface AuthResponse {
   message: string;
   token: string;
+  refreshToken: string;
   user: UserData;
 }
 
@@ -35,3 +36,9 @@ export const getMe = () =>
 
 export const setupCharacter = (gender: 'male' | 'female') =>
   api.post<{ message: string; user: UserData }>('/auth/setup-character', { gender });
+
+export const refreshToken = (token: string) =>
+  api.post<{ token: string; refreshToken: string; user: UserData }>('/auth/refresh', { refreshToken: token });
+
+export const logoutApi = (token?: string) =>
+  api.post<{ message: string }>('/auth/logout', { refreshToken: token });

@@ -1,11 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { getMe, UserData } from '../services/authService';
+import { getMe, logoutApi, UserData } from '../services/authService';
 
 interface AuthContextType {
   user: UserData | null;
   token: string | null;
   isLoading: boolean;
-  login: (token: string, user: UserData) => void;
+  login: (token: string, user: UserData, refreshToken?: string) => void;
   logout: () => void;
   updateUser: (user: UserData) => void;
 }
@@ -26,7 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(res.data.user);
       } catch {
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.removeItem('refreshToken');
         setToken(null);
       } finally {
         setIsLoading(false);
@@ -35,16 +35,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     restore();
   }, []);
 
-  const login = (newToken: string, newUser: UserData) => {
+  const login = (newToken: string, newUser: UserData, newRefreshToken?: string) => {
     localStorage.setItem('token', newToken);
+    if (newRefreshToken) {
+      localStorage.setItem('refreshToken', newRefreshToken);
+    }
     setToken(newToken);
     setUser(newUser);
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setUser(null);
+  const logout = async () => {
+    try {
+      const savedRefreshToken = localStorage.getItem('refreshToken');
+      if (savedRefreshToken) {
+        await logoutApi(savedRefreshToken);
+      }
+    } catch {
+      // Bỏ qua lỗi khi logout
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      setToken(null);
+      setUser(null);
+    }
   };
 
   const updateUser = (newUser: UserData) => {

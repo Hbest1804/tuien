@@ -1,11 +1,13 @@
-import mongoose from 'mongoose';
+import supabase from './supabase.js';
 
 const connectDB = async () => {
   try {
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`✅ MongoDB connected: ${conn.connection.host}`);
+    // Test kết nối Supabase bằng cách query 1 bản ghi từ users
+    const { error } = await supabase.from('users').select('id').limit(1);
+    if (error) throw error;
+    console.log('✅ Supabase connected successfully');
   } catch (error) {
-    console.error(`❌ MongoDB connection error: ${error.message}`);
+    console.error(`❌ Supabase connection error: ${error.message}`);
     process.exit(1);
   }
 };
