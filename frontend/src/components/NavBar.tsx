@@ -1,4 +1,4 @@
-import { Sparkles, Package, Swords, LogOut, Gavel, Store, BookOpen, Trophy, Map, Bell, User, LogIn, Flame } from 'lucide-react';
+import { Sparkles, Package, Swords, LogOut, Gavel, Store, BookOpen, Trophy, Map, Bell, User, LogIn, Flame, Shield } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEconomy } from '../context/EconomyContext';
@@ -93,6 +93,15 @@ export default function NavBar() {
                 <User size={14} className="text-primary" />
                 <span className="font-label-caps text-primary text-[11px] tracking-wider">{user.username}</span>
               </div>
+              {user.role === 'admin' && (
+                <Link
+                  to="/admin"
+                  className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500/20 transition-all duration-300 text-[11px] font-semibold"
+                  title="Admin Panel"
+                >
+                  <Shield size={12} /> Admin
+                </Link>
+              )}
               <button
                 onClick={logout}
                 title="Đăng xuất"

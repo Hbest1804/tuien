@@ -16,6 +16,9 @@ export interface UserData {
   spiritRoot: string | null;
   spiritRootGrade: 'Thiên' | 'Địa' | 'Huyền' | 'Hoàng' | null;
   spiritStones?: number;
+  role?: 'player' | 'admin';
+  isBanned?: boolean;
+  isMuted?: boolean;
 }
 
 export interface AuthResponse {

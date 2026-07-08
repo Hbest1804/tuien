@@ -408,7 +408,7 @@ CREATE OR REPLACE FUNCTION collect_idle_stones(
   p_realm_index INT
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_user users%ROWTYPE;
   v_idle_stones_array INT[] := ARRAY[1, 2, 4, 8, 15];
@@ -460,7 +460,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'pending', v_pending, 'spiritStones', v_user.spirit_stones, 'message', 'Thu thập được ' || v_pending || ' Linh Thạch!');
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: list_auction_item
@@ -478,7 +478,7 @@ CREATE OR REPLACE FUNCTION list_auction_item(
   p_duration_hours INT
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_inventory inventories%ROWTYPE;
   v_items JSONB;
@@ -538,7 +538,7 @@ BEGIN
     'listing', to_jsonb(v_listing)
   );
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: cancel_auction_listing
@@ -548,7 +548,7 @@ CREATE OR REPLACE FUNCTION cancel_auction_listing(
   p_listing_id UUID
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_listing auction_listings%ROWTYPE;
   v_inventory inventories%ROWTYPE;
@@ -608,7 +608,7 @@ BEGIN
     'listing', to_jsonb(v_listing)
   );
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: claim_auction_listing
@@ -618,7 +618,7 @@ CREATE OR REPLACE FUNCTION claim_auction_listing(
   p_listing_id UUID
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_listing auction_listings%ROWTYPE;
   v_user users%ROWTYPE;
@@ -734,7 +734,7 @@ BEGIN
     'listing', to_jsonb(v_listing)
   );
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- Done! All tables and RPCs created successfully.
@@ -749,7 +749,7 @@ CREATE OR REPLACE FUNCTION buy_shop_item(
   p_total_cost INT
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_user users%ROWTYPE;
   v_inventory inventories%ROWTYPE;
@@ -793,7 +793,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'spiritStones', v_user.spirit_stones);
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: sell_shop_item
@@ -805,7 +805,7 @@ CREATE OR REPLACE FUNCTION sell_shop_item(
   p_total_earned INT
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_user users%ROWTYPE;
   v_inventory inventories%ROWTYPE;
@@ -849,7 +849,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'spiritStones', v_user.spirit_stones);
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: exchange_pavilion_item
@@ -860,7 +860,7 @@ CREATE OR REPLACE FUNCTION exchange_pavilion_item(
   p_price INT
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_cult cultivations%ROWTYPE;
   v_inventory inventories%ROWTYPE;
@@ -902,7 +902,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'remainingContribution', v_cult.sect_contribution);
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: claim_dungeon_rewards_tx
@@ -913,7 +913,7 @@ CREATE OR REPLACE FUNCTION claim_dungeon_rewards_tx(
   p_item_drops JSONB
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_user users%ROWTYPE;
   v_inventory inventories%ROWTYPE;
@@ -977,7 +977,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true);
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: commit_breakthrough
@@ -993,7 +993,7 @@ CREATE OR REPLACE FUNCTION commit_breakthrough(
   p_heart_demon_duration_ms BIGINT
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_cult cultivations%ROWTYPE;
   v_inventory inventories%ROWTYPE;
@@ -1085,7 +1085,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true);
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: commit_use_item
@@ -1102,7 +1102,7 @@ CREATE OR REPLACE FUNCTION commit_use_item(
   p_daily_pills_consumed JSONB
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_cult cultivations%ROWTYPE;
   v_inventory inventories%ROWTYPE;
@@ -1195,7 +1195,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true);
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: complete_sect_mission_tx
@@ -1205,7 +1205,7 @@ CREATE OR REPLACE FUNCTION complete_sect_mission_tx(
   p_mission_id VARCHAR
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_cult cultivations%ROWTYPE;
   v_missions JSONB;
@@ -1248,7 +1248,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'message', 'Hoàn thành nhiệm vụ, nhận ' || v_reward || ' Điểm Cống Hiến.');
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- RPC: learn_technique_tx
@@ -1259,7 +1259,7 @@ CREATE OR REPLACE FUNCTION learn_technique_tx(
   p_speed_bonus FLOAT
 ) RETURNS JSONB
 LANGUAGE plpgsql
-AS $BODY
+AS $$
 DECLARE
   v_inventory inventories%ROWTYPE;
   v_items JSONB;
@@ -1305,8 +1305,80 @@ BEGIN
 
   RETURN jsonb_build_object('success', true);
 END;
-$BODY;
+$$;
 
 -- ============================================================
 -- Done! All tables and RPCs created successfully.
+-- ============================================================
+
+-- ============================================================
+-- ADMIN DASHBOARD MIGRATION (gộp chung)
+-- ============================================================
+
+-- ─── 1. Thêm cột Admin vào bảng users ────────────────────────────────────────
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS role      VARCHAR(10) NOT NULL DEFAULT 'player'
+    CHECK (role IN ('player', 'admin')),
+  ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS is_muted  BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE INDEX IF NOT EXISTS idx_users_role ON users (role);
+
+-- ─── 2. Bảng admin_audit_logs ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id     UUID         NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  admin_name   VARCHAR(50)  NOT NULL,
+  action       VARCHAR(100) NOT NULL,
+  target_id    UUID         DEFAULT NULL,
+  target_name  VARCHAR(100) DEFAULT NULL,
+  details      JSONB        NOT NULL DEFAULT '{}',
+  created_at   TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_admin   ON admin_audit_logs (admin_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_target  ON admin_audit_logs (target_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON admin_audit_logs (created_at DESC);
+
+ALTER TABLE admin_audit_logs DISABLE ROW LEVEL SECURITY;
+
+-- ─── 3. Bảng mail_inbox ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS mail_inbox (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id  UUID         NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sender_name   VARCHAR(50)  NOT NULL DEFAULT 'Hệ Thống',
+  subject       VARCHAR(200) NOT NULL,
+  body          TEXT         NOT NULL,
+  attachment    JSONB        DEFAULT NULL,
+  is_read       BOOLEAN      NOT NULL DEFAULT FALSE,
+  is_claimed    BOOLEAN      NOT NULL DEFAULT FALSE,
+  created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_mail_recipient ON mail_inbox (recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_mail_unread    ON mail_inbox (recipient_id, is_read) WHERE is_read = FALSE;
+
+ALTER TABLE mail_inbox DISABLE ROW LEVEL SECURITY;
+
+-- ─── 4. Bảng server_config ────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS server_config (
+  key        VARCHAR(100) PRIMARY KEY,
+  value      JSONB        NOT NULL,
+  updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+  updated_by VARCHAR(50)  DEFAULT NULL
+);
+
+ALTER TABLE server_config DISABLE ROW LEVEL SECURITY;
+
+-- Seed defaults
+INSERT INTO server_config (key, value) VALUES
+  ('global_buff',  '{"enabled": false, "multiplier": 1, "label": "", "expires_at": null}')
+  ON CONFLICT (key) DO NOTHING;
+
+INSERT INTO server_config (key, value) VALUES
+  ('announcement', '{"enabled": false, "message": "", "type": "info"}')
+  ON CONFLICT (key) DO NOTHING;
+
+-- ============================================================
+-- Done! Admin Dashboard schema added.
 -- ============================================================

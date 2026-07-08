@@ -96,6 +96,9 @@ const formatUser = (user) => ({
   spiritRoot: user.spiritRoot,
   spiritRootGrade: user.spiritRootGrade,
   spiritStones: user.spiritStones,
+  role: user.role || 'player',
+  isBanned: user.isBanned || false,
+  isMuted: user.isMuted || false,
 });
 
 // ── POST /api/auth/register ──────────────────────────────────────────────────
@@ -142,6 +145,11 @@ export const loginUser = async (req, res) => {
     const isMatch = await User.comparePassword(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Email hoặc password không đúng' });
+    }
+
+    // Chặn login nếu bị ban
+    if (user.isBanned) {
+      return res.status(403).json({ message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin để được hỗ trợ.' });
     }
 
     const accessToken = generateAccessToken(user.id);

@@ -8,6 +8,7 @@ import leaderboardRoutes from './leaderboardRoutes.js';
 import pavilionRoutes from './pavilionRoutes.js';
 import dungeonRoutes from './dungeonRoutes.js';
 import sectRoutes from './sectRoutes.js';
+import adminRoutes from './adminRoutes.js';
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/leaderboard', leaderboardRoutes);
 router.use('/pavilion', pavilionRoutes);
 router.use('/dungeons', dungeonRoutes);
 router.use('/sect', sectRoutes);
+router.use('/admin', adminRoutes);
 
 export default router;

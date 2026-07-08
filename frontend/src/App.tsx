@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, ReactNode } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import MobileNav from './components/MobileNav';
@@ -15,6 +15,7 @@ import Sect from './components/Sect';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CharacterSetupModal from './components/CharacterSetupModal';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import { useAuth } from './context/AuthContext';
 import { Sword, CloudLightning, Mountain, ChevronDown, Star, Zap } from 'lucide-react';
 import './index.css';
@@ -24,6 +25,11 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/admin/*" element={
+        <AdminGuard>
+          <AdminDashboard />
+        </AdminGuard>
+      } />
       <Route path="/*" element={
         <GlobalCharacterGuard>
           <MainLayout />
@@ -31,6 +37,19 @@ export default function App() {
       } />
     </Routes>
   );
+}
+
+// ── Admin Route Guard ───────────────────────────────────────────────────────────────────────
+function AdminGuard({ children }: { children: ReactNode }) {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return (
+    <div className="min-h-screen bg-[#0a0b0d] flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full border-2 border-[#f2ca50]/30 border-t-[#f2ca50] animate-spin" />
+    </div>
+  );
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin') return <Navigate to="/" replace />;
+  return <>{children}</>;
 }
 
 // ── Global Route Guard ────────────────────────────────────────────────────────
