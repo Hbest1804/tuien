@@ -8,11 +8,11 @@
 
 | Table | Mô tả |
 |-------|-------|
-| `users` | Thông tin tài khoản + nhân vật |
+| `users` | Thông tin tài khoản + nhân vật (role, ban, mute, reset_otp) |
 | `cultivations` | Dữ liệu tu luyện, cảnh giới, tông môn, nhiệm vụ tông môn, bí cảnh |
 | `inventories` | Túi đồ, trang bị, buff tốc độ |
 | `auction_listings` | Phiên đấu giá |
-| `refresh_tokens` | JWT refresh token (server-side) |
+| `refresh_tokens` | JWT refresh token (server-side rotation) |
 
 ---
 
@@ -26,6 +26,12 @@
 | `POST` | `/logout` | Thu hồi refresh token | ❌ |
 | `GET`  | `/me` | Lấy thông tin user hiện tại | ✅ |
 | `POST` | `/setup-character` | Tạo nhân vật, random Linh Căn & phẩm cấp | ✅ |
+| `POST` | `/change-password` | Đổi mật khẩu (nhập MK cũ + MK mới), revoke toàn bộ refresh token | ✅ |
+| `POST` | `/forgot-password` | Gửi OTP 6 số qua email (rate limit: 3 lần/giờ) | ❌ |
+| `POST` | `/verify-otp` | Xác thực OTP → nhận `resetToken` tạm thời (5 phút) | ❌ |
+| `POST` | `/reset-password` | Đặt lại mật khẩu bằng `resetToken` | ❌ |
+
+> **Rate Limiting Auth:** `POST /login`, `/register`, `/forgot-password` giới hạn **5 request / 15 phút / IP**. OTP endpoints: **3 request / giờ / IP**.
 
 ### Linh Căn (Spirit Root) — Random khi tạo nhân vật
 
@@ -35,6 +41,14 @@
 | 🔵 Huyền  | ×1.5 | ~25% |
 | 🟣 Địa   | ×2.0 | ~12% |
 | ⭐ Thiên  | ×3.0 | ~3%  |
+
+---
+
+## 👤 Hồ Sơ Người Chơi — `/api/users`
+
+| Method | Endpoint | Mô tả | Auth |
+|--------|----------|-------|------|
+| `GET`  | `/:username` | Xem hồ sơ công khai của người chơi khác (cảnh giới, linh căn, tông môn) | ❌ |
 
 ---
 
@@ -52,7 +66,7 @@
 ### Cảnh giới (Realms)
 
 | # | Cảnh giới | EXP cần | Tỷ lệ đột phá | Lôi Kiếp |
-|---|-----------|---------|--------------|---------|
+|---|-----------|---------|--------------|---------
 | 0 | Luyện Khí | 1,000 | 90% | — |
 | 1 | Trúc Cơ | 5,000 | 75% | 500 dmg |
 | 2 | Kim Đan | 20,000 | 50% | 2,000 dmg |
@@ -99,7 +113,7 @@
 ### Loại vật phẩm (Item Types)
 
 | Loại | SubType | Tác dụng |
-|------|---------|---------|
+|------|---------|---------
 | `PILL` | `EXP` | Cộng thẳng EXP vào đan điền |
 | `PILL` | `SPEED_BUFF` | Tăng tốc tu luyện có thời hạn (vd: ×2 trong 2h) |
 | `PILL` | `LIFESPAN` | Hồi phục thọ nguyên |
@@ -139,7 +153,7 @@
 
 | Method | Endpoint | Mô tả | Auth |
 |--------|----------|-------|------|
-| `GET`  | `/` | Danh sách phiên đang active (filter + phân trang) | ✅ |
+| `GET`  | `/` | Danh sách phiên đang active (filter `?name=`, `?itemType=`, `?rarity=`, `?sort=`, phân trang) | ✅ |
 | `GET`  | `/my` | Phiên của tôi (đang bán + đang thắng thầu) | ✅ |
 | `POST` | `/list` | Đăng bán vật phẩm (12h / 24h / 48h) | ✅ |
 | `POST` | `/bid` | Đặt giá thầu (tối thiểu +5%) | ✅ |
@@ -230,63 +244,56 @@
 
 ---
 
+## 🛡️ Admin Dashboard — `/api/admin` *(Protected: Admin only)*
+
+| Method | Endpoint | Mô tả |
+|--------|----------|-------|
+| `GET`  | `/dashboard` | Thống kê tổng quan (CCU, users mới, Linh Thạch lưu thông) |
+| `GET`  | `/users` | Danh sách người chơi (tìm kiếm, filter, phân trang) |
+| `GET`  | `/users/:id` | Chi tiết một người chơi |
+| `POST` | `/users/:id/ban` | Ban tài khoản |
+| `POST` | `/users/:id/unban` | Unban tài khoản |
+| `POST` | `/users/:id/mute` | Mute (cấm chat) |
+| `POST` | `/users/:id/unmute` | Unmute |
+| `POST` | `/users/:id/grant-resources` | Tặng/trừ Linh Thạch hoặc vật phẩm |
+| `POST` | `/users/:id/adjust-stats` | Điều chỉnh EXP, Cảnh giới, Thọ nguyên, Linh Căn |
+| `GET`  | `/sects` | Danh sách tông môn |
+| `DELETE` | `/sects/:sectName` | Xóa tông môn |
+| `PATCH`  | `/sects/:sectName/rename` | Đổi tên tông môn |
+| `GET`  | `/auctions` | Danh sách đấu giá (admin view) |
+| `DELETE` | `/auctions/:id` | Xóa listing vi phạm |
+| `GET`  | `/shop-config` | Cấu hình shop hiện tại |
+| `PATCH`  | `/shop-config` | Cập nhật giá / bật-tắt vật phẩm shop |
+| `GET`  | `/server-config` | Cấu hình server (global buff, announcement) |
+| `PATCH`  | `/server-config/global-buff` | Bật/tắt Global Buff (x2/x3 tốc độ) |
+| `PATCH`  | `/server-config/announcement` | Đặt banner thông báo server |
+| `POST` | `/mail/send` | Gửi thư/quà cho một hoặc toàn bộ người chơi |
+| `GET`  | `/audit-logs` | Lịch sử hành động của Admin |
+| `GET`  | `/transactions` | Lịch sử giao dịch toàn server |
+| `GET`  | `/cheat-alerts` | Cảnh báo gian lận tự động |
+
+---
+
 ## ⚠️ Chức năng còn thiếu (TODO)
 
-### 🔴 Quan trọng — Cần làm sớm
+### 🟢 Đã hoàn thành (Giai đoạn 1)
+- [x] **Luyện Đan (Alchemy)** — Kết hợp nguyên liệu → chế tạo đan dược
+- [x] **Chỉ số nhân vật** — Hệ thống HP, ATK, DEF từ trang bị
+- [x] **Chiến đấu PvE** — Đánh quái mô phỏng lượt (turn-based) tại Đấu Trường
+- [x] **Nhiệm vụ chính & Hàng ngày** — Hệ thống phần thưởng và theo dõi tiến độ
+- [x] **Thành tựu (Achievements)** — Mở khóa danh hiệu
+- [x] **Mất căn cơ** — Tổn thương Nguyên Anh khi đột phá thất bại
+- [x] **Thông báo real-time & Chat** — Tích hợp WebSocket (Thông báo hệ thống, Chat Thế giới)
+- [x] **Lịch sử giao dịch** — Theo dõi mua bán, đấu giá
 
-- [ ] **Đổi mật khẩu** (`POST /api/auth/change-password`) — User nhập mật khẩu cũ + mới
-- [ ] **Quên mật khẩu / Reset qua email** — Gửi link reset, xác thực OTP
-- [ ] **Xem hồ sơ người chơi khác** (`GET /api/users/:username`) — Cảnh giới, linh căn, tông môn
-- [x] **Refresh token rotation** — Frontend tự động gọi `/refresh` khi 401, queue request chờ, rotate token — đã có tại `axios.ts`
-
-### 🟠 Gameplay — Cần để hoàn thiện trải nghiệm
-
-- [ ] **Luyện Đan (Alchemy)** — Kết hợp nguyên liệu → chế tạo đan dược (recipe system)
-- [ ] **Chỉ số nhân vật** — HP, ATK, DEF từ trang bị (vũ khí/giáp có `atkBonus`/`defBonus` nhưng chưa dùng)
-- [ ] **Chiến đấu PvE** — Đánh quái, tính sát thương dựa trên chỉ số
-- [ ] **Hệ thống nhiệm vụ chính** — Hướng dẫn tân thủ, mở khóa tính năng theo tiến trình
-- [ ] **Nhiệm vụ hàng ngày độc lập** — Đăng nhập, tu luyện X giờ, mua/bán, đặt thầu...
-- [ ] **Thành tựu (Achievements)** — Mở khóa danh hiệu hiển thị trên nhân vật
-- [ ] **Mất căn cơ khi thất bại** — Cảnh giới cao (Nguyên Anh+) hỏng Linh Căn tạm thời
-
-### 🟡 UX & Kỹ thuật
-
-- [ ] **Thông báo real-time** — Bị vượt thầu, đấu giá kết thúc, buff hết hạn (WebSocket / SSE)
-- [ ] **Lịch sử giao dịch** — Lịch sử mua bán shop + đấu giá
-- [x] **Search theo tên vật phẩm tại Đấu giá hội** — Backend đã hỗ trợ `?name=...` (regex filter) tại `auctionController.js`
-- [ ] **Xóa refresh token hết hạn tự động** — Cron job hoặc pg_cron trong Supabase
-- [ ] **Rate limiting** — Chống spam API (express-rate-limit)
-
-### 🟢 Hệ thống Admin Dashboard (Dài hạn)
-
-**1. Nền tảng phân quyền**
-- [ ] **Trường `role`** — Thêm `role: 'player' | 'admin'` vào bảng `users`
-- [ ] **Middleware `isAdmin`** — Xác thực phân quyền, bảo vệ route `/api/admin/*`
-- [ ] **Admin UI** — Layout dashboard riêng biệt trên frontend
-
-**2. Quản lý Người chơi (User Management)**
-- [ ] **Danh sách người chơi** — Xem thông tin, tìm kiếm, phân trang
-- [ ] **Ban / Unban tài khoản** — Thêm `is_banned`, chặn login nếu bị ban
-- [ ] **Tặng/Trừ tài nguyên** — Thêm/bớt Linh Thạch hoặc vật phẩm trực tiếp
-- [ ] **Điều chỉnh chỉ số** — Sửa EXP, Cảnh giới, Thọ nguyên, Linh căn khi cần thiết
-- [ ] **Mute (Cấm chat)** — Chặn người chơi gửi tin nhắn (khi có hệ thống chat)
-
-**3. Quản lý Nội dung Game (Content Management)**
-- [ ] **Quản lý Vật phẩm (Items)** — Di chuyển data từ file JS sang DB, thêm/sửa/xóa vật phẩm
-- [ ] **Quản lý Tông môn** — Xem danh sách, xóa hoặc sửa tên tông môn vi phạm
-- [ ] **Quản lý Đấu giá hội** — Can thiệp xóa listing vi phạm, hoàn tiền thủ công
-- [ ] **Quản lý Shop** — Điều chỉnh giá cả, bật/tắt bán vật phẩm
-
-**4. Quản lý Sự kiện & Hệ thống (Events & Config)**
-- [ ] **Global Buff** — X2/X3 tốc độ tu luyện hoặc sự kiện toàn server
-- [ ] **Hệ thống Thư (Mail/Inbox)** — Gửi thông báo hoặc quà đền bù cho người chơi
-- [ ] **Thông báo Server (Announcement)** — Hiển thị banner bảo trì, sự kiện
-
-**5. Thống kê & Báo cáo (Analytics)**
-- [ ] **Dashboard tổng quan** — Thống kê CCU, đăng ký mới, lượng Linh Thạch lưu thông
-- [ ] **Audit Log (Action Logs)** — Ghi log mọi hành động của Admin để theo dõi
-- [ ] **Cheat Detection** — Tự động cảnh báo khi có giao dịch hoặc lượng EXP tăng bất thường
-- [ ] **Lịch sử giao dịch toàn server** — Theo dõi luồng tiền tệ trong game
+### 🟠 Kế hoạch sắp tới (Giai đoạn 2)
+- [ ] **Bí Cảnh (Dungeon Exploration)** — Thám hiểm bí cảnh nhiều tầng, sự kiện ngẫu nhiên (Roguelike), đánh Boss rơi đồ Hoàng Kim.
+- [ ] **Chiến đấu PvP** — Tỉ thí giữa người chơi với nhau (Lôi Đài) có tính điểm Rank.
+- [ ] **Nâng cấp Tông Môn** — Tông chủ có thể dùng tài nguyên nâng cấp kiến trúc tông môn (Tụ Linh Trận, Luyện Đan Phòng).
+- [ ] **Tông Môn Chiến** — Đại chiến giữa các Tông Môn tranh giành Linh Mạch.
+- [ ] **Luyện Khí (Blacksmith)** — Chế tạo và khảm nạm Pháp Bảo, Vũ Khí.
+- [ ] **Đệ tử / Đạo Lữ** — Thu nhận đệ tử hoặc kết đôi đạo lữ để cùng song tu tăng tốc độ.
+- [ ] **Hệ thống VIP / Pay-to-win (Optional)** — Cửa hàng Tiên Ngọc dành cho người chơi muốn đốt cháy giai đoạn.
 
 ---
 
@@ -297,8 +304,8 @@
 ```bash
 cd backend
 npm install
-# Điền SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY vào .env
-# Chạy supabase_schema.sql trong Supabase Dashboard > SQL Editor
+# Điền các biến môi trường vào .env (xem mục bên dưới)
+# Chạy SQL migration trong Supabase Dashboard > SQL Editor
 npm run dev      # http://localhost:5000
 ```
 
@@ -321,6 +328,23 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...   # Service Role key (không phải anon key!)
 
 JWT_SECRET=your_super_secret_key
 JWT_ACCESS_EXPIRES_IN=15m
+
+# Admin mặc định (tự tạo khi server khởi động lần đầu)
+ADMIN_EMAIL=admin@tutien.com
+ADMIN_PASSWORD=Admin@123456
+
+# Email (dùng cho Quên mật khẩu / OTP)
+GMAIL_USER=your_email@gmail.com
+GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
+```
+
+### SQL Migration (chạy trong Supabase SQL Editor)
+
+```sql
+-- Thêm cột OTP reset mật khẩu (nếu chưa có)
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(6),
+  ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMPTZ;
 ```
 
 ---
@@ -330,22 +354,33 @@ JWT_ACCESS_EXPIRES_IN=15m
 ```
 tuien/
 ├── backend/
-│   ├── supabase_schema.sql      # Chạy lần đầu trên Supabase
-│   ├── src/
-│   │   ├── config/
-│   │   │   ├── db.js            # Test kết nối Supabase
-│   │   │   └── supabase.js      # Supabase client singleton
-│   │   ├── models/              # Supabase query helpers
-│   │   ├── controllers/         # Business logic
-│   │   ├── routes/              # Express routes
-│   │   ├── middlewares/
-│   │   │   └── authMiddleware.js
-│   │   └── data/
-│   │       ├── items.js         # Dữ liệu vật phẩm (hardcoded)
-│   │       └── dungeons.js      # Dữ liệu bí cảnh (hardcoded)
+│   ├── supabase.sql             # Schema DB đầy đủ (chạy lần đầu trên Supabase)
+│   └── src/
+│       ├── config/
+│       │   ├── db.js            # Test kết nối Supabase
+│       │   ├── supabase.js      # Supabase client singleton
+│       │   ├── emailService.js  # Nodemailer (Gmail App Password)
+│       │   ├── cronJobs.js      # Cron 3AM: dọn refresh token hết hạn
+│       │   └── seedAdmin.js     # Tự tạo tài khoản admin lần đầu
+│       ├── models/              # Supabase query helpers
+│       ├── controllers/         # Business logic
+│       ├── routes/              # Express routes
+│       ├── middlewares/
+│       │   ├── authMiddleware.js
+│       │   ├── adminMiddleware.js
+│       │   └── rateLimiter.js   # Rate limiting (general / auth / otp)
+│       └── data/
+│           ├── items.js         # Dữ liệu vật phẩm (hardcoded)
+│           └── dungeons.js      # Dữ liệu bí cảnh (hardcoded)
 └── frontend/
     └── src/
         ├── components/          # React components
+        │   ├── ChangePasswordModal.tsx
+        │   └── ForgotPasswordModal.tsx
+        ├── pages/
+        │   ├── PublicProfilePage.tsx  # /player/:username
+        │   └── admin/
+        │       └── AdminDashboard.tsx
         ├── services/            # API service layer
         └── App.tsx
 ```

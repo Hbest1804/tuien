@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Zap, Star, Mail, Lock } from 'lucide-react';
 import { login as apiLogin } from '../services/authService';
 import { useAuth } from '../context/AuthContext';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -127,15 +129,31 @@ export default function LoginPage() {
           {/* Divider */}
           <div className="mystical-divider my-6" />
 
-          {/* Link */}
-          <p className="text-center font-body-md text-on-surface-variant text-sm">
-            Chưa có linh căn?{' '}
-            <Link to="/register" className="text-primary hover:text-primary-fixed-dim font-label-caps tracking-wider transition-colors">
-              Nhập Môn →
-            </Link>
-          </p>
+          {/* Links */}
+          <div className="text-center space-y-3">
+            <button
+              onClick={() => setShowForgot(true)}
+              className="text-sm text-on-surface-variant hover:text-primary transition-colors font-body-md"
+            >
+              Quên mật khẩu?
+            </button>
+            <p className="font-body-md text-on-surface-variant text-sm">
+              Chưa có linh căn?{' '}
+              <Link to="/register" className="text-primary hover:text-primary-fixed-dim font-label-caps tracking-wider transition-colors">
+                Nhập Môn →
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgot && (
+        <ForgotPasswordModal
+          onClose={() => setShowForgot(false)}
+          onSuccess={() => setShowForgot(false)}
+        />
+      )}
     </div>
   );
 }

@@ -19,6 +19,8 @@ export const mapUser = (row) => {
     role: row.role || 'player',
     isBanned: row.is_banned || false,
     isMuted: row.is_muted || false,
+    resetOtp: row.reset_otp || null,
+    resetOtpExpiresAt: row.reset_otp_expires_at ? new Date(row.reset_otp_expires_at) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -208,6 +210,42 @@ export const User = {
       .single();
     if (error) throw error;
     return mapUser(data);
+  },
+
+  /**
+   * Admin update — cập nhật role, ban, mute, spiritStones, v.v.
+   */
+  /**
+   * Cập nhật mật khẩu đã hash
+   */
+  async updatePassword(id, hashedPassword) {
+    const { error } = await supabase
+      .from('users')
+      .update({ password: hashedPassword })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  /**
+   * Lưu OTP reset mật khẩu (6 số, hết hạn sau 10 phút)
+   */
+  async saveResetOtp(id, otp, expiresAt) {
+    const { error } = await supabase
+      .from('users')
+      .update({ reset_otp: otp, reset_otp_expires_at: expiresAt })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  /**
+   * Xóa OTP sau khi đã dùng hoặc hết hạn
+   */
+  async clearResetOtp(id) {
+    const { error } = await supabase
+      .from('users')
+      .update({ reset_otp: null, reset_otp_expires_at: null })
+      .eq('id', id);
+    if (error) throw error;
   },
 
   /**

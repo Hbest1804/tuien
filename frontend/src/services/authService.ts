@@ -45,3 +45,15 @@ export const refreshToken = (token: string) =>
 
 export const logoutApi = (token?: string) =>
   api.post<{ message: string }>('/auth/logout', { refreshToken: token });
+
+export const changePassword = (oldPassword: string, newPassword: string) =>
+  api.post<{ message: string }>('/auth/change-password', { oldPassword, newPassword });
+
+export const forgotPassword = (email: string) =>
+  api.post<{ message: string }>('/auth/forgot-password', { email });
+
+export const verifyOtp = (email: string, otp: string) =>
+  api.post<{ message: string; resetToken: string }>('/auth/verify-otp', { email, otp });
+
+export const resetPassword = (resetToken: string, newPassword: string) =>
+  api.post<{ message: string }>('/auth/reset-password', { resetToken, newPassword });

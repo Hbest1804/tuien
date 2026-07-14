@@ -10,6 +10,17 @@ import Cultivation, {
   PRACTICAL_INFINITY_LIFESPAN,
 } from '../models/Cultivation.js';
 import supabase from '../config/supabase.js';
+import { checkAndUnlock } from '../models/Achievement.js';
+import { updateDailyQuestProgress } from './dailyQuestController.js';
+import { updateMainQuestProgress } from './mainQuestController.js';
+import { broadcast } from '../config/wsServer.js';
+
+// ─── Tính chỉ số chiến đấu từ cảnh giới + trang bị ───────────────────────────
+const calcCharacterStats = (realmIndex, equippedStats = {}) => ({
+  hp:  (realmIndex + 1) * 100 + (equippedStats.defBonus || 0) * 2,
+  atk: (realmIndex + 1) * 10  + (equippedStats.atkBonus || 0),
+  def: (realmIndex + 1) * 5   + (equippedStats.defBonus || 0),
+});
 
 // ─── Helper: lấy hoặc tạo cultivation record ──────────────────────────────────
 const getOrCreateCultivation = async (userId) => {
@@ -45,6 +56,15 @@ const formatCultivation = (cult, spiritRootGrade, inventory, speedMultiplier) =>
   const lifespanMax = rawLifespanMax === Infinity ? null : rawLifespanMax;
   const currentLifespan = cult.computeCurrentLifespan();
 
+  // Chỉ số chiến đấu
+  const equippedStats = inventory ? inventory.computeEquippedStats(ITEMS) : {};
+  const stats = calcCharacterStats(cult.realmIndex, equippedStats);
+
+  // Kiểm tra buff mất căn cơ
+  const spiritRootDamaged = inventory?.activeBuffs?.some(
+    b => b.buffType === 'SPIRIT_ROOT_DAMAGED' && new Date(b.expiresAt) > new Date()
+  ) || false;
+
   return {
     isTraining: cult.isTraining,
     trainingStartedAt: cult.trainingStartedAt,
@@ -73,6 +93,8 @@ const formatCultivation = (cult, spiritRootGrade, inventory, speedMultiplier) =>
     yearsWaiting,
     lifespan: currentLifespan,
     lifespanMax,
+    stats,          // { hp, atk, def }
+    spiritRootDamaged,
     createdAt: cult.createdAt,
     lastStoppedAt: cult.lastStoppedAt,
   };
@@ -363,6 +385,24 @@ export const breakthrough = async (req, res) => {
         }
         inventory.markModified('activeBuffs');
       }
+
+      // ── Mất căn cơ: Nguyên Anh+ (realmIndex >= 3) thất bại có 20% hỏng Linh Căn tạm thời
+      const currentRealmIdx = cult.realmIndex - (success ? 1 : 0);
+      if (currentRealmIdx >= 3 && Math.random() < 0.20) {
+        message += ` ⚠️ Nguyên Anh bị tổn thương! Căn cơ suy giảm trong 24h.`;
+        const spiritDmgExpiry = new Date(Date.now() + 24 * 3600 * 1000);
+        const existing = inventory.activeBuffs.find(b => b.buffType === 'SPIRIT_ROOT_DAMAGED');
+        if (existing) {
+          existing.expiresAt = spiritDmgExpiry;
+        } else {
+          inventory.activeBuffs.push({
+            buffType: 'SPIRIT_ROOT_DAMAGED',
+            multiplier: 0.75,  // Giảm nhân tố Linh Căn xuống 75%
+            expiresAt: spiritDmgExpiry,
+          });
+        }
+        inventory.markModified('activeBuffs');
+      }
     }
 
     cult.breakthroughReadyAt = null;
@@ -391,6 +431,18 @@ export const breakthrough = async (req, res) => {
     // Refresh objects from DB to format correctly
     cult = await Cultivation.findOne({ userId: req.user.id });
     inventory = await Inventory.findOne({ userId: req.user.id });
+
+    // ── Achievements + Daily Quest triggers ───────────────────────────────
+    await updateDailyQuestProgress(req.user.id, 'breakthrough_attempt');
+    if (success) {
+      const newAchs = await checkAndUnlock(req.user.id, 'breakthrough_success');
+      const realmAchs = await checkAndUnlock(req.user.id, `realm_${cult.realmIndex}`);
+      const allNewAchs = [...newAchs, ...realmAchs];
+      if (allNewAchs.length > 0) {
+        broadcast(`notify:${req.user.id}`, { type: 'achievement', achievements: allNewAchs });
+      }
+      await updateMainQuestProgress(req.user.id, 'breakthrough_success', { cultivation: cult });
+    }
 
     res.json({
       message,
@@ -437,6 +489,13 @@ export const joinSect = async (req, res) => {
 
     const speedMultiplier = inventory ? inventory.getSpeedBuffMultiplier() : 1.0;
     const newSpeed = cult.computeSpeed(user.spiritRootGrade, speedMultiplier);
+
+    // Achievements + quests
+    const newAchs = await checkAndUnlock(req.user.id, 'join_sect');
+    if (newAchs.length > 0) broadcast(`notify:${req.user.id}`, { type: 'achievement', achievements: newAchs });
+    await updateDailyQuestProgress(req.user.id, 'join_sect');
+    await updateMainQuestProgress(req.user.id, 'join_sect', { cultivation: cult });
+
     res.json({
       message: `🏯 Gia nhập ${cult.sectName} thành công! Tốc độ tu luyện tăng lên ${newSpeed.toFixed(3)} EXP/giây!`,
       cultivation: formatCultivation(cult, user.spiritRootGrade, inventory, speedMultiplier),

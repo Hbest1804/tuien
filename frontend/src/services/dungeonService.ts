@@ -18,6 +18,9 @@ export interface Dungeon {
   type: string;
   color: string;
   danger: number;
+  floors: number;
+  bossData: { name: string; hp: number; atk: number; def: number; desc: string } | null;
+  legendaryDrops: { itemId: string; quantity: number; chance: number }[];
 }
 
 export interface DungeonStatusResponse {
@@ -25,28 +28,13 @@ export interface DungeonStatusResponse {
   isExploring: boolean;
   currentDungeonId: string | null;
   exploreStartedAt: string | null;
-}
-
-export interface StartExplorationResponse {
-  message: string;
-  isExploring: boolean;
-  currentDungeonId: string;
-  exploreStartedAt: string;
-}
-
-export interface ClaimRewardsResponse {
-  message: string;
-  rewards: {
-    spiritStones: number;
-    items: { itemId: string; quantity: number }[];
-  };
-  isExploring: boolean;
+  currentFloor: number;
+  floorEvents: any[];
 }
 
 export const getDungeonStatus = () => api.get<DungeonStatusResponse>('/dungeons');
-
-export const startExploration = (dungeonId: string) => 
-  api.post<StartExplorationResponse>('/dungeons/start', { dungeonId });
-
-export const claimDungeonRewards = () => 
-  api.post<ClaimRewardsResponse>('/dungeons/claim');
+export const startExploration = (dungeonId: string) => api.post('/dungeons/start', { dungeonId });
+export const advanceFloor = () => api.post('/dungeons/advance-floor');
+export const resolveFloorEvent = () => api.post('/dungeons/resolve-event');
+export const fightBoss = () => api.post('/dungeons/fight-boss');
+export const claimDungeonRewards = () => api.post('/dungeons/claim');

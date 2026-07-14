@@ -1,6 +1,11 @@
 import AuctionListing from '../models/AuctionListing.js';
 import { ITEMS } from '../data/items.js';
 import supabase from '../config/supabase.js';
+import { logTransaction } from '../models/TransactionLog.js';
+import { checkAndUnlock } from '../models/Achievement.js';
+import { updateDailyQuestProgress } from './dailyQuestController.js';
+import { updateMainQuestProgress } from './mainQuestController.js';
+import { broadcast } from '../config/wsServer.js';
 
 const AUCTION_FEE_RATE = 0.05;
 const MIN_BID_INCREMENT = 0.05;
@@ -118,12 +123,17 @@ export const listItem = async (req, res) => {
       return res.status(data.status || 400).json({ message: data.message });
     }
 
+    // Achievements
+    const newAchs = await checkAndUnlock(user.id, 'auction_list');
+    if (newAchs.length > 0) broadcast(`notify:${user.id}`, { type: 'achievement', achievements: newAchs });
+    await updateDailyQuestProgress(user.id, 'sell_item');
+
     res.json({
       message: data.message,
       listing: data.listing,
     });
   } catch (err) {
-    console.error('Lỗi listItem:', err);
+    console.error('Lời listItem:', err);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -156,13 +166,34 @@ export const placeBid = async (req, res) => {
       return res.status(data.status || 400).json({ message: data.message });
     }
 
+    // Notify người đằt thầu cũ bị vượt qua
+    if (data.prev_bidder_id && data.prev_bidder_id !== user.id) {
+      broadcast(`notify:${data.prev_bidder_id}`, {
+        type: 'outbid',
+        message: `Bạn đã bị vượt thầu! ${user.username} đặt ${bidAmount.toLocaleString()} Linh Thạch cho [${data.listing?.itemName || '?'}].`,
+        listingId,
+      });
+    }
+    // Achievements + daily quests
+    const newAchs = await checkAndUnlock(user.id, 'auction_bid');
+    if (newAchs.length > 0) broadcast(`notify:${user.id}`, { type: 'achievement', achievements: newAchs });
+    await updateDailyQuestProgress(user.id, 'auction_bid');
+    // Transaction log
+    await logTransaction(user.id, {
+      type: 'auction_bid',
+      itemName: data.listing?.itemName,
+      quantity: 1,
+      spiritStonesDelta: -bidAmount,
+      detail: { listingId, bidAmount },
+    });
+
     res.json({
       message: data.message,
       spiritStones: data.spiritStones,
       listing: data.listing,
     });
   } catch (err) {
-    console.error('Lỗi placeBid:', err);
+    console.error('Lời placeBid:', err);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
