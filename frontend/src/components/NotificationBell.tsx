@@ -59,7 +59,7 @@ export const NotificationBell = ({ notifications, unreadCount, markAllRead, toas
               borderRadius: '0.75rem',
               maxWidth: '300px',
               boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-              animation: 'slideIn 0.3s ease',
+              animation: 'slide-in-right 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
               pointerEvents: 'auto',
             }}
           >

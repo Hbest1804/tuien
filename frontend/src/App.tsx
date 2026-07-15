@@ -88,7 +88,7 @@ function GlobalCharacterGuard({ children }: { children: ReactNode }) {
 
 function MainLayout() {
   const { user } = useAuth();
-  const { notifications, toasts, unreadCount, markAllRead, send, subscribe, sendChat, wsRef } = useNotifications();
+  const { notifications, toasts, unreadCount, markAllRead, send, subscribe, sendChat, wsRef, connectionKey } = useNotifications();
 
   return (
     <div className="bg-background text-on-background min-h-screen relative overflow-x-hidden flex flex-col text-body-md font-body-md">
@@ -138,6 +138,7 @@ function MainLayout() {
           sendChat={sendChat}
           subscribe={subscribe}
           wsRef={wsRef}
+          connectionKey={connectionKey}
           username={user?.username}
           sectName={undefined}
         />

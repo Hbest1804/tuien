@@ -268,7 +268,7 @@ export function PvPArena() {
             <h3 className="font-semibold text-on-background">📜 Lịch Sử Trận Đấu</h3>
           </div>
           <div className="divide-y divide-primary/10">
-            {status?.history.slice().reverse().map((h: any, i: number) => (
+            {(status?.history || []).slice().reverse().map((h: any, i: number) => (
               <div key={i} className="flex items-center px-4 py-3">
                 <div className="text-lg mr-3">{h.won ? '🏆' : '💀'}</div>
                 <div className="flex-1">

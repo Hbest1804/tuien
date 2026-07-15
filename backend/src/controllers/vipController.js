@@ -98,19 +98,16 @@ export const spendJade = async (req, res) => {
     const jadeItem = JADE_ITEMS[jadeItemId];
     if (!jadeItem) return res.status(400).json({ message: 'Vật phẩm Tiên Ngọc không tồn tại.' });
 
-    const { data: userRow } = await supabase
-      .from('users')
-      .select('jade_coins')
-      .eq('id', req.user.id)
-      .maybeSingle();
-
-    const currentJade = userRow?.jade_coins || 0;
-    if (currentJade < jadeItem.jadeCost) {
-      return res.status(400).json({ message: `Không đủ Tiên Ngọc! Cần ${jadeItem.jadeCost}, có ${currentJade}.` });
+    // Deduct jade atomically to prevent double-spending race conditions
+    const { data: deductResult, error: deductError } = await supabase.rpc('adjust_jade_coins', {
+      p_user_id: req.user.id,
+      p_delta: -jadeItem.jadeCost,
+    });
+    if (deductError) throw deductError;
+    if (!deductResult?.success) {
+      return res.status(400).json({ message: `Không đủ Tiên Ngọc! Cần ${jadeItem.jadeCost}, có ${deductResult?.current_balance ?? 0}.` });
     }
-
-    const newJade = currentJade - jadeItem.jadeCost;
-    await supabase.from('users').update({ jade_coins: newJade }).eq('id', req.user.id);
+    const newJade = deductResult.new_balance;
 
     // Give item
     if (jadeItem.itemId) {

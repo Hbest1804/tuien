@@ -112,7 +112,8 @@ export const initWebSocket = (httpServer) => {
       for (const channel of subscribedChannels) {
         unsubscribe(channel, ws);
       }
-      if (userId) {
+      // Chỉ xóa nếu đây là kết nối đang được lưu (tránh xóa tab khác)
+      if (userId && userConnections.get(userId) === ws) {
         userConnections.delete(userId);
       }
     });

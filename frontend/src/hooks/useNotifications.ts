@@ -28,7 +28,7 @@ export const useNotifications = () => {
     }, 5000);
   }, []);
 
-  const { send, subscribe, sendChat, wsRef } = useWebSocket((data) => {
+  const { send, subscribe, sendChat, wsRef, connectionKey } = useWebSocket((data) => {
     if (data.type === 'outbid') {
       addNotification({ type: 'outbid', message: data.message });
     } else if (data.type === 'achievement') {
@@ -59,6 +59,7 @@ export const useNotifications = () => {
     subscribe,
     sendChat,
     wsRef,
+    connectionKey,
     addNotification,
   };
 };

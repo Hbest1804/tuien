@@ -12,7 +12,7 @@ import {
   resetPassword,
 } from '../controllers/authController.js';
 import protect from '../middlewares/authMiddleware.js';
-import { authLimiter, otpLimiter } from '../middlewares/rateLimiter.js';
+import { authLimiter, otpLimiter, otpVerifyLimiter } from '../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
@@ -24,7 +24,7 @@ router.post('/logout', logoutUser);                    // Thu hồi refresh toke
 
 // ── Quên mật khẩu / Reset qua OTP ─────────────────────────────────────────
 router.post('/forgot-password', otpLimiter, forgotPassword);    // Gửi OTP qua email
-router.post('/verify-otp', otpLimiter, verifyOtp);              // Xác thực OTP → nhận resetToken
+router.post('/verify-otp', otpVerifyLimiter, verifyOtp);         // Xác thực OTP → nhận resetToken (giới hạn riêng: 10/hr)
 router.post('/reset-password', resetPassword);                   // Đặt lại mật khẩu với resetToken
 
 // ── Protected routes (cần đăng nhập) ──────────────────────────────────────

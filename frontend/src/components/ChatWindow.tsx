@@ -13,11 +13,12 @@ interface ChatWindowProps {
   sendChat: (channel: string, content: string) => void;
   subscribe: (channel: string) => void;
   wsRef: React.MutableRefObject<WebSocket | null>;
+  connectionKey: number;   // increments on each WS reconnect
   username?: string;
   sectName?: string;
 }
 
-export const ChatWindow = ({ sendChat, subscribe, wsRef, username, sectName }: ChatWindowProps) => {
+export const ChatWindow = ({ sendChat, subscribe, wsRef, connectionKey, username, sectName }: ChatWindowProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeChannel, setActiveChannel] = useState<'world' | string>('world');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -68,7 +69,7 @@ export const ChatWindow = ({ sendChat, subscribe, wsRef, username, sectName }: C
     };
     ws.addEventListener('message', handleMessage);
     return () => { ws.removeEventListener('message', handleMessage); };
-  }, [wsRef, activeChannel, isOpen]);
+  }, [wsRef, connectionKey, activeChannel, isOpen]);
 
   // Auto-scroll
   useEffect(() => {

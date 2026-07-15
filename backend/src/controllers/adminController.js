@@ -46,12 +46,9 @@ export const getDashboardStats = async (req, res) => {
       User.countRecent(30),
     ]);
 
-    // Tổng Linh Thạch lưu thông
-    const { data: stonesData } = await supabase
-      .from('users')
-      .select('spirit_stones')
-      .not('spirit_stones', 'is', null);
-    const totalStones = (stonesData || []).reduce((sum, u) => sum + (u.spirit_stones || 0), 0);
+    // Tổng Linh Thạch lưu thông — tính trực tiếp trong DB, tránh OOM
+    const { data: stonesAgg } = await supabase.rpc('sum_spirit_stones');
+    const totalStones = stonesAgg ?? 0;
 
     // Số user bị ban
     const { count: bannedCount } = await supabase
@@ -572,24 +569,21 @@ export const sendMail = async (req, res) => {
     if (!subject || !body) return res.status(400).json({ message: 'Tiêu đề và nội dung không được để trống.' });
 
     if (broadcast) {
-      // Lấy tất cả user IDs
-      const { data: allUsers } = await supabase.from('users').select('id');
-      const mails = (allUsers || []).map(u => ({
-        recipient_id: u.id,
-        sender_name: `Admin (${req.user.username})`,
-        subject,
-        body,
-        attachment: attachment || null,
-      }));
+      // Gửi broadcast qua RPC — INSERT INTO ... SELECT trong DB, tránh load toàn bộ users vào Node.js
+      const { error: mailErr } = await supabase.rpc('send_broadcast_mail', {
+        p_sender_name: `Admin (${req.user.username})`,
+        p_subject: subject,
+        p_body: body,
+        p_attachment: attachment || null,
+      });
+      if (mailErr) throw mailErr;
 
-      // Gửi theo batch (Supabase limit insert)
-      const BATCH = 500;
-      for (let i = 0; i < mails.length; i += BATCH) {
-        await supabase.from('mail_inbox').insert(mails.slice(i, i + BATCH));
-      }
+      const { count: userCount } = await supabase
+        .from('users')
+        .select('*', { count: 'exact', head: true });
 
       await writeAuditLog(req.user, 'SEND_MAIL_BROADCAST', null, 'all_users', { subject, hasAttachment: !!attachment });
-      res.json({ message: `Đã gửi thư tới ${mails.length} người chơi.` });
+      res.json({ message: `Đã gửi thư tới ${userCount ?? 'toàn bộ'} người chơi.` });
     } else {
       if (!recipientId) return res.status(400).json({ message: 'Thiếu recipientId.' });
       const target = await User.findById(recipientId);

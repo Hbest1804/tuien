@@ -34,7 +34,7 @@ export const authLimiter = rateLimit({
 });
 
 /**
- * Rate limiter cho OTP — rất nghiêm ngặt
+ * Rate limiter cho OTP request (forgot-password) — rất nghiêm ngặt
  * Giới hạn: 3 request / 60 phút / IP
  */
 export const otpLimiter = rateLimit({
@@ -44,5 +44,19 @@ export const otpLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     message: 'Quá nhiều yêu cầu OTP. Vui lòng thử lại sau 1 giờ.',
+  },
+});
+
+/**
+ * Rate limiter riêng cho verify-otp — thưa lơn hơn để tránh khóa do nhập sai
+ * Giới hạn: 10 request / 60 phút / IP
+ */
+export const otpVerifyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 60 phút
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    message: 'Quá nhiều lần xác thực OTP. Vui lòng thử lại sau 1 giờ.',
   },
 });

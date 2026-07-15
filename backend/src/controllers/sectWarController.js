@@ -124,49 +124,18 @@ export const attackLinhMach = async (req, res) => {
     const lm = LINH_MACH_LIST.find(l => l.id === linghMachId);
     if (!lm) return res.status(400).json({ message: 'Linh Mạch không tồn tại.' });
 
-    // Get active war
-    const { data: war } = await supabase
-      .from('sect_wars')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Process attack atomically in DB to prevent concurrent overwrites
+    const { data: attackResult, error: attackErr } = await supabase.rpc('attack_linh_mach', {
+      p_war_id:       war.id,
+      p_linh_mach_id: linghMachId,
+      p_sect_name:    cult.sectName,
+      p_attacker:     req.user.username,
+      p_attack_power: attackPower,
+      p_max_hp:       lm.maxHp,
+    });
+    if (attackErr) throw attackErr;
 
-    if (!war) return res.status(400).json({ message: 'Chưa có Tông Môn Chiến nào.' });
-
-    const endTime = new Date(war.created_at).getTime() + WAR_DURATION_MS;
-    if (Date.now() > endTime) return res.status(400).json({ message: 'Tông Môn Chiến đã kết thúc.' });
-
-    const states = war.linh_mach_states || {};
-    const lmState = states[linghMachId] || { currentHp: lm.maxHp, controlledBy: null, attackLog: [] };
-
-    // Attack
-    const damage = Math.floor(attackPower * (0.8 + Math.random() * 0.4)); // ±20% variance
-    lmState.currentHp = Math.max(0, lmState.currentHp - damage);
-
-    if (lmState.currentHp <= 0) {
-      lmState.controlledBy = cult.sectName;
-      lmState.currentHp = lm.maxHp; // Reset for next capture
-    }
-
-    lmState.attackLog = [...(lmState.attackLog || []).slice(-20), {
-      at: new Date().toISOString(),
-      attacker: req.user.username,
-      sect: cult.sectName,
-      damage,
-      captured: lmState.controlledBy === cult.sectName && damage >= lmState.currentHp + damage,
-    }];
-
-    states[linghMachId] = lmState;
-
-    // Update sect scores
-    const sectScores = war.sect_scores || {};
-    sectScores[cult.sectName] = (sectScores[cult.sectName] || 0) + damage;
-
-    await supabase
-      .from('sect_wars')
-      .update({ linh_mach_states: states, sect_scores: sectScores })
-      .eq('id', war.id);
+    const { damage, captured, linh_mach_state: lmState } = attackResult;
 
     // Deduct contribution
     cult.sectContribution = Math.max(0, (cult.sectContribution || 0) - attackPower);
@@ -181,9 +150,9 @@ export const attackLinhMach = async (req, res) => {
     });
 
     res.json({
-      message: `⚔️ Tấn công ${lm.name}! Gây ${damage} sát thương!${lmState.controlledBy === cult.sectName ? ` 🏴 ${cult.sectName} chiếm được Linh Mạch!` : ''}`,
+      message: `⚔️ Tấn công ${lm.name}! Gây ${damage} sát thương!${captured ? ` 🏴 ${cult.sectName} chiếm được Linh Mạch!` : ''}`,
       damage,
-      captured: lmState.controlledBy === cult.sectName,
+      captured,
       linghMachState: lmState,
       remainingContribution: cult.sectContribution,
     });

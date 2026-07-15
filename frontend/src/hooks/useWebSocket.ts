@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 type WsMessageHandler = (data: any) => void;
 
@@ -7,6 +7,8 @@ export const useWebSocket = (onMessage: WsMessageHandler) => {
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handlersRef = useRef(onMessage);
   handlersRef.current = onMessage;
+  // Incrementing key so consumers can detect reconnections via useEffect deps
+  const [connectionKey, setConnectionKey] = useState(0);
 
   const connect = useCallback(() => {
     const token = localStorage.getItem('token');
@@ -22,6 +24,8 @@ export const useWebSocket = (onMessage: WsMessageHandler) => {
     ws.onopen = () => {
       // Xác thực sau khi kết nối
       ws.send(JSON.stringify({ type: 'auth', token }));
+      // Notify consumers that a new connection is live
+      setConnectionKey(k => k + 1);
     };
 
     ws.onmessage = (event) => {
@@ -63,5 +67,5 @@ export const useWebSocket = (onMessage: WsMessageHandler) => {
     send({ type: 'chat', channel, content });
   }, [send]);
 
-  return { send, subscribe, sendChat, wsRef };
+  return { send, subscribe, sendChat, wsRef, connectionKey };
 };

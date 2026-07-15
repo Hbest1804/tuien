@@ -187,25 +187,19 @@ export const challengePlayer = async (req, res) => {
     const myHistory = [...(myPvp?.history || []).slice(-49), battleRecord];
     const targetHistory = [...(targetPvp?.history || []).slice(-49), targetRecord];
 
-    // Upsert both records
-    await Promise.all([
-      supabase.from('pvp_records').upsert({
-        user_id: req.user.id,
-        rating: myNewRating,
-        wins: (myPvp?.wins || 0) + (challengerWon ? 1 : 0),
-        losses: (myPvp?.losses || 0) + (challengerWon ? 0 : 1),
-        history: myHistory,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' }),
-      supabase.from('pvp_records').upsert({
-        user_id: targetUser.id,
-        rating: targetNewRating,
-        wins: (targetPvp?.wins || 0) + (!challengerWon ? 1 : 0),
-        losses: (targetPvp?.losses || 0) + (!challengerWon ? 0 : 1),
-        history: targetHistory,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' }),
-    ]);
+    // Update both records atomically via RPC to prevent race conditions
+    const { error: pvpErr } = await supabase.rpc('commit_pvp_result', {
+      p_challenger_id:     req.user.id,
+      p_defender_id:       targetUser.id,
+      p_challenger_won:    challengerWon,
+      p_challenger_rating: myNewRating,
+      p_defender_rating:   targetNewRating,
+      p_challenger_rating_change: myRatingChange,
+      p_defender_rating_change:   targetRatingChange,
+      p_challenger_record: battleRecord,
+      p_defender_record:   targetRecord,
+    });
+    if (pvpErr) throw pvpErr;
 
     // Notify target via WebSocket
     broadcast(`notify:${targetUser.id}`, {
