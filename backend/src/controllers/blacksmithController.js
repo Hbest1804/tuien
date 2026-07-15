@@ -136,6 +136,15 @@ export const enchantItem = async (req, res) => {
       return res.status(400).json({ message: `Không có ${targetItemDef.name} trong túi đồ!` });
     }
 
+    // Apply enchant (store in enchants JSONB field)
+    const enchants = inventory.enchants || {};
+    const currentEnchants = enchants[targetItemId] || [];
+
+    // Max 3 enchants per item — check BEFORE deducting materials
+    if (currentEnchants.length >= 3) {
+      return res.status(400).json({ message: 'Pháp Bảo đã đạt tối đa 3 ngọc khảm!' });
+    }
+
     // Check gem materials
     for (const mat of gem.craftMaterials) {
       const slot = items.find(i => i.itemId === mat.itemId);
@@ -153,15 +162,8 @@ export const enchantItem = async (req, res) => {
       slot.quantity -= mat.quantity;
     }
 
-    // Apply enchant (store in enchants JSONB field)
-    const enchants = inventory.enchants || {};
     if (!enchants[targetItemId]) enchants[targetItemId] = [];
     enchants[targetItemId].push({ gemId, ...gem.bonus, appliedAt: new Date().toISOString() });
-
-    // Max 3 enchants per item
-    if (enchants[targetItemId].length > 3) {
-      return res.status(400).json({ message: 'Pháp Bảo đã đạt tối đa 3 ngọc khảm!' });
-    }
 
     inventory.items = items.filter(i => i.quantity > 0);
     inventory.enchants = enchants;

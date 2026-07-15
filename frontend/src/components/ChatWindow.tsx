@@ -51,9 +51,7 @@ export const ChatWindow = ({ sendChat, subscribe, wsRef, username, sectName }: C
     const ws = wsRef.current;
     if (!ws) return;
 
-    const originalOnMessage = ws.onmessage;
-    ws.onmessage = (event) => {
-      if (originalOnMessage) originalOnMessage.call(ws, event);
+    const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
         if (data.type === 'chat_message') {
@@ -68,7 +66,8 @@ export const ChatWindow = ({ sendChat, subscribe, wsRef, username, sectName }: C
         }
       } catch {}
     };
-    return () => { ws.onmessage = originalOnMessage; };
+    ws.addEventListener('message', handleMessage);
+    return () => { ws.removeEventListener('message', handleMessage); };
   }, [wsRef, activeChannel, isOpen]);
 
   // Auto-scroll

@@ -402,6 +402,7 @@ export const breakthrough = async (req, res) => {
           });
         }
         inventory.markModified('activeBuffs');
+        await Inventory.save(inventory);
       }
     }
 

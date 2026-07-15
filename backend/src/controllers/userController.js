@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import supabase from '../config/supabase.js';
+import { REALMS } from '../models/Cultivation.js';
 
 // ─── GET /api/users/:username ─────────────────────────────────────────────────
 export const getPublicProfile = async (req, res) => {
@@ -14,22 +15,16 @@ export const getPublicProfile = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy người chơi này' });
     }
 
-    // Lấy thông tin cảnh giới (cultivation)
+    // Lấy thông tin cảnh giới và tông môn từ cultivations
     const { data: cultivationData } = await supabase
       .from('cultivations')
-      .select('realm, realm_level, total_exp')
+      .select('realm_index, exp_accumulated, sect_name')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    // Lấy tông môn (sect membership)
-    const { data: sectData } = await supabase
-      .from('sect_members')
-      .select('sects(name, level)')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    const sectName = sectData?.sects?.name || null;
-    const sectLevel = sectData?.sects?.level || null;
+    const sectName = cultivationData?.sect_name || null;
+    const realmIndex = cultivationData?.realm_index ?? null;
+    const realmName = realmIndex !== null ? (REALMS[realmIndex]?.name || null) : null;
 
     // Trả về profile công khai (không bao gồm email, password, tokens)
     res.json({
@@ -39,11 +34,11 @@ export const getPublicProfile = async (req, res) => {
         spiritRoot: user.spiritRoot,
         spiritRootGrade: user.spiritRootGrade,
         isCharacterCreated: user.isCharacterCreated,
-        realm: cultivationData?.realm || null,
-        realmLevel: cultivationData?.realm_level || null,
-        totalExp: cultivationData?.total_exp || 0,
+        realm: realmName,
+        realmLevel: null,
+        totalExp: cultivationData?.exp_accumulated || 0,
         sectName,
-        sectLevel,
+        sectLevel: null,
         createdAt: user.createdAt,
       },
     });

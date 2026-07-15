@@ -446,16 +446,11 @@ export const deleteAuction = async (req, res) => {
 
     // Hoàn tiền cho bidder hiện tại nếu có
     if (refund && listing.bidder_id && listing.current_bid > 0) {
-      await supabase
-        .from('users')
-        .update({ spirit_stones: supabase.raw(`spirit_stones + ${listing.current_bid}`) })
-        .eq('id', listing.bidder_id);
-
-      // Fallback dùng RPC approach nếu raw không supported
-      const { data: bidder } = await supabase.from('users').select('spirit_stones').eq('id', listing.bidder_id).maybeSingle();
-      if (bidder) {
-        await supabase.from('users').update({ spirit_stones: (bidder.spirit_stones || 0) + listing.current_bid }).eq('id', listing.bidder_id);
-      }
+      const { error: rpcErr } = await supabase.rpc('adjust_spirit_stones', {
+        p_user_id: listing.bidder_id,
+        p_delta: listing.current_bid,
+      });
+      if (rpcErr) throw rpcErr;
     }
 
     // Trả vật phẩm về cho seller

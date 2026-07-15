@@ -67,20 +67,15 @@ ALTER TABLE pvp_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sect_wars   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sects       ENABLE ROW LEVEL SECURITY;
 
--- pvp_records: chỉ server (service_role) có thể write, user đọc record của mình
+-- pvp_records: chỉ server (service_role) có thể write — anon chỉ được đọc
+-- (service_role bypass RLS hoàn toàn, không cần INSERT/UPDATE policy)
 CREATE POLICY IF NOT EXISTS "pvp_records_select" ON pvp_records FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "pvp_records_insert" ON pvp_records FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "pvp_records_update" ON pvp_records FOR UPDATE USING (true);
 
--- sect_wars: public read, server write
+-- sect_wars: public read only — server write qua service_role
 CREATE POLICY IF NOT EXISTS "sect_wars_select" ON sect_wars FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "sect_wars_insert" ON sect_wars FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "sect_wars_update" ON sect_wars FOR UPDATE USING (true);
 
--- sects: public read, server write
+-- sects: public read only — server write qua service_role
 CREATE POLICY IF NOT EXISTS "sects_select" ON sects FOR SELECT USING (true);
-CREATE POLICY IF NOT EXISTS "sects_insert" ON sects FOR INSERT WITH CHECK (true);
-CREATE POLICY IF NOT EXISTS "sects_update" ON sects FOR UPDATE USING (true);
 
 -- ── 8. Function: adjust_spirit_stones (nếu chưa có) ─────────────
 CREATE OR REPLACE FUNCTION adjust_spirit_stones(p_user_id UUID, p_delta INTEGER)
