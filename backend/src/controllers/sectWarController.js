@@ -124,6 +124,19 @@ export const attackLinhMach = async (req, res) => {
     const lm = LINH_MACH_LIST.find(l => l.id === linghMachId);
     if (!lm) return res.status(400).json({ message: 'Linh Mạch không tồn tại.' });
 
+    // Fetch active war first (needed for war.id and expiry check)
+    const { data: war } = await supabase
+      .from('sect_wars')
+      .select('id, created_at')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!war) return res.status(400).json({ message: 'Chưa có Tông Môn Chiến nào.' });
+
+    const endTime = new Date(war.created_at).getTime() + WAR_DURATION_MS;
+    if (Date.now() > endTime) return res.status(400).json({ message: 'Tông Môn Chiến đã kết thúc.' });
+
     // Process attack atomically in DB to prevent concurrent overwrites
     const { data: attackResult, error: attackErr } = await supabase.rpc('attack_linh_mach', {
       p_war_id:       war.id,

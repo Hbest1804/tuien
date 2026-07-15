@@ -353,8 +353,8 @@ export const deleteSect = async (req, res) => {
     const sectName = decodeURIComponent(req.params.sectName);
     const { reason = '' } = req.body;
 
-    // Kick tất cả thành viên
-    const { error } = await supabase
+    // 1. Kick tất cả thành viên khỏi cultivations
+    const { error: kickErr } = await supabase
       .from('cultivations')
       .update({
         sect_name: null,
@@ -366,7 +366,15 @@ export const deleteSect = async (req, res) => {
       })
       .eq('sect_name', sectName);
 
-    if (error) throw error;
+    if (kickErr) throw kickErr;
+
+    // 2. Xóa record tông môn khỏi bảng sects (tránh ghost record khóa UNIQUE)
+    const { error: sectErr } = await supabase
+      .from('sects')
+      .delete()
+      .eq('name', sectName);
+
+    if (sectErr) throw sectErr;
 
     await writeAuditLog(req.user, 'DELETE_SECT', null, sectName, { reason });
     res.json({ message: `Đã giải tán tông môn "${sectName}".` });
@@ -383,6 +391,15 @@ export const renameSect = async (req, res) => {
     const { newName, reason = '' } = req.body;
     if (!newName) return res.status(400).json({ message: 'Tên mới không được để trống.' });
 
+    // 1. Cập nhật bảng sects trước — giữ UNIQUE constraint khỏng bị vi phạm
+    const { error: sectErr } = await supabase
+      .from('sects')
+      .update({ name: newName, updated_at: new Date().toISOString() })
+      .eq('name', oldName);
+
+    if (sectErr) throw sectErr;
+
+    // 2. Cập nhật tất cả thành viên trong cultivations
     const { error } = await supabase
       .from('cultivations')
       .update({ sect_name: newName, updated_at: new Date().toISOString() })
