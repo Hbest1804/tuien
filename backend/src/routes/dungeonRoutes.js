@@ -3,7 +3,7 @@ import protect from '../middlewares/authMiddleware.js';
 import {
   getDungeonStatus,
   startExploration,
-  claimDungeonRewards,
+  retreatDungeon,
   advanceFloor,
   resolveFloorEvent,
   fightBoss,
@@ -16,6 +16,6 @@ router.post('/start', protect, startExploration);
 router.post('/advance-floor', protect, advanceFloor);
 router.post('/resolve-event', protect, resolveFloorEvent);
 router.post('/fight-boss', protect, fightBoss);
-router.post('/claim', protect, claimDungeonRewards);
+router.post('/retreat', protect, retreatDungeon); // Thoát bí cảnh giữa chừng (không thưởng)
 
 export default router;

@@ -1,16 +1,29 @@
 import Cultivation from '../models/Cultivation.js';
+import Inventory from '../models/Inventory.js';
 import { DUNGEONS, FLOOR_EVENTS } from '../data/dungeons.js';
 import { ITEMS } from '../data/items.js';
 import { REALMS } from '../models/Cultivation.js';
 import supabase from '../config/supabase.js';
 
-// ─── Tính chỉ số combat player ────────────────────────────────────────────────
-const calcPlayerStats = (realmIndex) => {
+// ─── Tính chỉ số combat player (bao gồm trang bị) ────────────────────────────
+const calcPlayerStats = async (userId, realmIndex) => {
   const base = realmIndex + 1;
+  let atkBonus = 0;
+  let defBonus = 0;
+
+  try {
+    const inventory = await Inventory.findOne({ userId });
+    if (inventory) {
+      const equipped = inventory.computeEquippedStats(ITEMS);
+      atkBonus = equipped.atkBonus || 0;
+      defBonus = equipped.defBonus || 0;
+    }
+  } catch (_) { /* nếu lỗi vẫn dùng stats cơ bản */ }
+
   return {
-    maxHp: base * 100,
-    atk: base * 10,
-    def: base * 5,
+    maxHp: base * 100 + defBonus * 2,
+    atk:   base * 10  + atkBonus,
+    def:   base * 5   + defBonus,
   };
 };
 
@@ -234,7 +247,7 @@ export const fightBoss = async (req, res) => {
       return res.status(400).json({ message: `Phải đến tầng ${dungeon.floors} mới gặp Boss!` });
     }
 
-    const playerStats = calcPlayerStats(cult.realmIndex);
+    const playerStats = await calcPlayerStats(req.user.id, cult.realmIndex);
     const boss = dungeon.bossData;
     const result = simulateBoss(playerStats, boss);
 
@@ -303,83 +316,26 @@ export const fightBoss = async (req, res) => {
   }
 };
 
-// ─── POST /api/dungeons/claim ─────────────────────────────────────────────────
-export const claimDungeonRewards = async (req, res) => {
+// ─── POST /api/dungeons/retreat ───────────────────────────────────────────────
+// Thoát bí cảnh giữa chừng (không thưởng) — thay thế cho /claim cũ
+export const retreatDungeon = async (req, res) => {
   try {
     const cult = await Cultivation.findOne({ userId: req.user.id });
-    if (!cult || !cult.isExploring || !cult.currentDungeonId || !cult.exploreStartedAt) {
+    if (!cult || !cult.isExploring) {
       return res.status(400).json({ message: 'Bạn không đang thám hiểm bí cảnh nào.' });
     }
 
-    const dungeon = DUNGEONS[cult.currentDungeonId];
-    if (!dungeon) {
-      cult.isExploring = false;
-      cult.currentDungeonId = null;
-      cult.exploreStartedAt = null;
-      cult.currentFloor = null;
-      cult.floorEvents = [];
-      await Cultivation.save(cult);
-      return res.status(400).json({ message: 'Bí cảnh không hợp lệ, đã tự động thoát.' });
-    }
+    cult.isExploring = false;
+    cult.currentDungeonId = null;
+    cult.exploreStartedAt = null;
+    cult.currentFloor = null;
+    cult.floorEvents = [];
+    await Cultivation.save(cult);
 
-    const now = new Date();
-    const elapsedHours = (now.getTime() - new Date(cult.exploreStartedAt).getTime()) / (1000 * 60 * 60);
-
-    if (elapsedHours < 0.02) {
-      cult.isExploring = false;
-      cult.currentDungeonId = null;
-      cult.exploreStartedAt = null;
-      cult.currentFloor = null;
-      cult.floorEvents = [];
-      await Cultivation.save(cult);
-      return res.json({ message: 'Đã thoát bí cảnh sớm, chưa có thu hoạch gì.', isExploring: false });
-    }
-
-    const spiritStonesGained = Math.floor(dungeon.spiritStonesPerHour * elapsedHours);
-    const itemDrops = [];
-
-    for (const drop of dungeon.drops) {
-      const expectedDrops = drop.dropRate * elapsedHours;
-      const guaranteedCount = Math.floor(expectedDrops);
-      const fractionalChance = expectedDrops - guaranteedCount;
-      let actualCount = guaranteedCount;
-      if (Math.random() < fractionalChance) actualCount += 1;
-      if (actualCount > 0) {
-        itemDrops.push({ itemId: drop.itemId, quantity: actualCount });
-      }
-    }
-
-    const { data, error } = await supabase.rpc('claim_dungeon_rewards_tx', {
-      p_user_id: req.user.id,
-      p_spirit_stones: spiritStonesGained,
-      p_item_drops: itemDrops
-    });
-
-    if (error) {
-      console.error('Lỗi RPC claim_dungeon_rewards_tx:', error);
-      return res.status(500).json({ message: 'Lỗi server khi nhận thưởng.' });
-    }
-
-    if (!data || !data.success) {
-      return res.status(400).json({ message: data ? data.message : 'Lỗi không xác định khi nhận thưởng.' });
-    }
-
-    // Reset dungeon state (RPC đã xử lý, nhưng clear các fields mới)
-    const { error: upErr } = await supabase
-      .from('cultivations')
-      .update({ current_floor: null, floor_events: [] })
-      .eq('user_id', req.user.id);
-    if (upErr) console.error('Lỗi clear floor data:', upErr);
-
-    let message = `Thám hiểm kết thúc! Thu được ${spiritStonesGained} Linh Thạch.`;
-    if (itemDrops.length > 0) {
-      const itemNames = itemDrops.map(d => `${d.quantity}x ${ITEMS[d.itemId]?.name || d.itemId}`).join(', ');
-      message += ` Bỏ túi: ${itemNames}.`;
-    }
-
-    res.json({ message, rewards: { spiritStones: spiritStonesGained, items: itemDrops }, isExploring: false });
+    res.json({ message: 'Đã rút lui khỏi bí cảnh. Không có phần thưởng.', isExploring: false });
   } catch (err) {
-    console.error('Lỗi nhận thưởng bí cảnh:', err);
+    console.error('Lỗi rút lui bí cảnh:', err);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
+

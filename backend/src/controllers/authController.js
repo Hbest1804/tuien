@@ -316,8 +316,8 @@ export const forgotPassword = async (req, res) => {
       return res.status(200).json({ message: 'Nếu email tồn tại, bạn sẽ nhận được mã OTP trong vài phút.' });
     }
 
-    // Tạo OTP 6 số
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Tạo OTP 6 số (dùng crypto để đảm bảo tính ngẫu nhiên an toàn)
+    const otp = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 phút
 
     await User.saveResetOtp(user.id, otp, expiresAt);

@@ -274,26 +274,55 @@
 
 ---
 
-## ⚠️ Chức năng còn thiếu (TODO)
-
-### 🟢 Đã hoàn thành (Giai đoạn 1)
-- [x] **Luyện Đan (Alchemy)** — Kết hợp nguyên liệu → chế tạo đan dược
-- [x] **Chỉ số nhân vật** — Hệ thống HP, ATK, DEF từ trang bị
-- [x] **Chiến đấu PvE** — Đánh quái mô phỏng lượt (turn-based) tại Đấu Trường
-- [x] **Nhiệm vụ chính & Hàng ngày** — Hệ thống phần thưởng và theo dõi tiến độ
-- [x] **Thành tựu (Achievements)** — Mở khóa danh hiệu
+### ✅ Đã hoàn thành (Giai đoạn 1 — Core)
+- [x] Auth đầy đủ (đăng ký, đăng nhập, refresh token, OTP quên mật khẩu, đổi mật khẩu)
+- [x] Tu Luyện — EXP, đột phá, thọ nguyên, tâm ma, linh căn
+- [x] Túi đồ — dùng đan dược, trang bị, học công pháp
+- [x] Kinh tế — Linh Thạch idle, Thương Hội, mua/bán NPC
+- [x] Đấu Giá Hội — đăng bán, bid, buyout, claim
+- [x] Tông Môn — gia nhập, rời, nhiệm vụ tông môn, Tàng Kinh Các
+- [x] Bí Cảnh (Idle Dungeon) — 5 bí cảnh, nhận thưởng Linh Thạch + rớt đồ
+- [x] Bảng Xếp Hạng — top cảnh giới, top Linh Thạch
+- [x] Admin Dashboard — quản lý người chơi, tông môn, đấu giá, cấu hình server
+- [x] Thành tựu (Achievements)
+- [x] Lịch sử giao dịch
+- [x] Thông báo real-time & Chat WorldChannel qua WebSocket
+- [x] **Chiến đấu PvE** — Turn-based tại Đấu Trường với chỉ số HP/ATK/DEF
+- [x] **Nhiệm vụ chính & Hàng ngày** — Tracking tiến độ, phần thưởng
 - [x] **Mất căn cơ** — Tổn thương Nguyên Anh khi đột phá thất bại
-- [x] **Thông báo real-time & Chat** — Tích hợp WebSocket (Thông báo hệ thống, Chat Thế giới)
-- [x] **Lịch sử giao dịch** — Theo dõi mua bán, đấu giá
 
-### 🟠 Kế hoạch sắp tới (Giai đoạn 2)
-- [ ] **Bí Cảnh (Dungeon Exploration)** — Thám hiểm bí cảnh nhiều tầng, sự kiện ngẫu nhiên (Roguelike), đánh Boss rơi đồ Hoàng Kim.
-- [ ] **Chiến đấu PvP** — Tỉ thí giữa người chơi với nhau (Lôi Đài) có tính điểm Rank.
-- [ ] **Nâng cấp Tông Môn** — Tông chủ có thể dùng tài nguyên nâng cấp kiến trúc tông môn (Tụ Linh Trận, Luyện Đan Phòng).
-- [ ] **Tông Môn Chiến** — Đại chiến giữa các Tông Môn tranh giành Linh Mạch.
-- [ ] **Luyện Khí (Blacksmith)** — Chế tạo và khảm nạm Pháp Bảo, Vũ Khí.
-- [ ] **Đệ tử / Đạo Lữ** — Thu nhận đệ tử hoặc kết đôi đạo lữ để cùng song tu tăng tốc độ.
-- [ ] **Hệ thống VIP / Pay-to-win (Optional)** — Cửa hàng Tiên Ngọc dành cho người chơi muốn đốt cháy giai đoạn.
+### ✅ Đã hoàn thành (Giai đoạn 2 — Advanced)
+- [x] **Luyện Đan (Alchemy)** — Công thức, tỷ lệ thành công theo cảnh giới
+- [x] **Luyện Khí (Blacksmith)** — Chế tạo vũ khí + khảm ngọc (enchant) vào Pháp Bảo
+- [x] **Chiến đấu PvP (Lôi Đài)** — Mô phỏng tự động + hệ thống ELO rating
+- [x] **Nâng cấp Tông Môn** — 4 kiến trúc (Tụ Linh Trận, Luyện Đan Phòng, Thiên Vọng Các, Linh Vực)
+- [x] **Tông Môn Chiến** — Tranh giành 4 Linh Mạch, bảng điểm theo tông môn
+- [x] **Đệ tử / Đạo Lữ** — Thu nhận đệ tử (tối đa 5), kết Đạo Lữ song tu (+10% EXP)
+- [x] **Hệ thống VIP + Jade Shop** — 3 gói VIP, Tiên Ngọc đổi đặc phẩm
+
+---
+
+## 🔧 Còn Thiếu / Cần Hoàn Thiện
+
+### 🔴 Cấp thiết — Database Migration chưa đồng bộ:
+- [ ] **Bảng `pvp_records`** — chưa có trong `supabase.sql` chính
+- [ ] **Bảng `sect_wars`** — chưa có trong `supabase.sql` chính
+- [ ] **Bảng `sects`** (cho kiến trúc tông môn) — chưa có trong schema chính
+- [ ] **Cột `jade_coins`, `vip_level`, `vip_expiry_at`** trong bảng `users`
+- [ ] **Cột `disciples`, `master_id`, `partner_id`** trong bảng `cultivations`
+- [ ] **Stored procedures** `commit_pvp_result` và `attack_linh_mach` — cần tạo trong Supabase
+
+### 🟡 Logic chưa hoàn chỉnh:
+- [ ] **Sect War rewards** — `settleWar()` chưa phát thưởng thực tế cho tông môn chiến thắng
+- [ ] **Dungeon Roguelike** — Bí cảnh hiện chỉ là idle timer, chưa có nhiều tầng, sự kiện ngẫu nhiên
+- [ ] **Boss System** — chưa có Boss rớt đồ Hoàng Kim
+- [ ] **Admin cheat-alerts** — endpoint khai báo trong README nhưng chưa có logic phát hiện thực sự
+- [ ] **VIP payment gateway** — `purchaseJade` hiện là MOCK, chưa tích hợp Momo/VNPay
+
+### 🟢 Tùy chọn:
+- [ ] **Linh Căn reroll** — vật phẩm đặc biệt để random lại Linh Căn
+- [ ] **Guild Hall rankings** — Xếp hạng tông môn tổng hợp
+- [ ] **Seasonal events** — Sự kiện giới hạn thời gian
 
 ---
 
@@ -331,7 +360,7 @@ JWT_ACCESS_EXPIRES_IN=15m
 
 # Admin mặc định (tự tạo khi server khởi động lần đầu)
 ADMIN_EMAIL=admin@tutien.com
-ADMIN_PASSWORD=Admin@123456
+ADMIN_PASSWORD=your_strong_secret_password_here
 
 # Email (dùng cho Quên mật khẩu / OTP)
 GMAIL_USER=your_email@gmail.com
@@ -340,12 +369,27 @@ GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx
 
 ### SQL Migration (chạy trong Supabase SQL Editor)
 
-```sql
--- Thêm cột OTP reset mật khẩu (nếu chưa có)
-ALTER TABLE users
-  ADD COLUMN IF NOT EXISTS reset_otp VARCHAR(6),
-  ADD COLUMN IF NOT EXISTS reset_otp_expires_at TIMESTAMPTZ;
+Chỉ cần **1 file duy nhất** — gộp toàn bộ Phase 1 + Phase 2:
+
+```bash
+# File: backend/supabase.sql
+# Mở Supabase Dashboard > SQL Editor > paste toàn bộ nội dung > Run
 ```
+
+> ✅ File dùng `IF NOT EXISTS` / `CREATE OR REPLACE` — an toàn khi chạy lại nhiều lần trên database đã có sẵn.
+
+**Verify sau khi chạy:**
+```sql
+-- Kiểm tra tất cả bảng đã tạo
+SELECT table_name FROM information_schema.tables
+WHERE table_schema = 'public' ORDER BY table_name;
+
+-- Kiểm tra tất cả stored procedures
+SELECT routine_name FROM information_schema.routines
+WHERE routine_schema = 'public' ORDER BY routine_name;
+```
+
+
 
 ---
 
@@ -354,33 +398,61 @@ ALTER TABLE users
 ```
 tuien/
 ├── backend/
-│   ├── supabase.sql             # Schema DB đầy đủ (chạy lần đầu trên Supabase)
+│   ├── supabase.sql             # Schema DB giai đoạn 1 (chạy lần đầu trên Supabase)
+│   ├── migrations/
+│   │   └── phase2_migration.sql # Schema bổ sung: pvp_records, sect_wars, sects, v.v.
 │   └── src/
 │       ├── config/
 │       │   ├── db.js            # Test kết nối Supabase
 │       │   ├── supabase.js      # Supabase client singleton
+│       │   ├── wsServer.js      # WebSocket server (broadcast helper)
 │       │   ├── emailService.js  # Nodemailer (Gmail App Password)
 │       │   ├── cronJobs.js      # Cron 3AM: dọn refresh token hết hạn
 │       │   └── seedAdmin.js     # Tự tạo tài khoản admin lần đầu
 │       ├── models/              # Supabase query helpers
-│       ├── controllers/         # Business logic
-│       ├── routes/              # Express routes
+│       │   ├── User.js
+│       │   ├── Cultivation.js
+│       │   ├── Inventory.js
+│       │   ├── AuctionListing.js
+│       │   ├── Achievement.js
+│       │   ├── RefreshToken.js
+│       │   └── TransactionLog.js
+│       ├── controllers/         # Business logic (23 controllers)
+│       ├── routes/              # Express routes (22 route files)
 │       ├── middlewares/
 │       │   ├── authMiddleware.js
 │       │   ├── adminMiddleware.js
 │       │   └── rateLimiter.js   # Rate limiting (general / auth / otp)
 │       └── data/
 │           ├── items.js         # Dữ liệu vật phẩm (hardcoded)
-│           └── dungeons.js      # Dữ liệu bí cảnh (hardcoded)
+│           ├── dungeons.js      # Dữ liệu bí cảnh (hardcoded)
+│           ├── recipes.js       # Công thức luyện đan
+│           └── blacksmithRecipes.js  # Công thức rèn luyện + đá khảm
 └── frontend/
     └── src/
-        ├── components/          # React components
-        │   ├── ChangePasswordModal.tsx
-        │   └── ForgotPasswordModal.tsx
+        ├── components/          # 38 React components
+        │   ├── Cultivation.tsx / CultivationCard.tsx
+        │   ├── Inventory.tsx
+        │   ├── Shop.tsx / AuctionHouse.tsx
+        │   ├── Sect.tsx / SectWar.tsx
+        │   ├── AlchemyLab.tsx / Blacksmith.tsx
+        │   ├── CombatArena.tsx / PvPArena.tsx
+        │   ├── DungeonExplorer.tsx
+        │   ├── DisciplePanel.tsx
+        │   ├── JadeShop.tsx
+        │   ├── ChatWindow.tsx / NotificationBell.tsx
+        │   ├── Achievements.tsx / Leaderboard.tsx
+        │   ├── DailyQuests.tsx / MainQuestPanel.tsx
+        │   ├── CharacterSetupModal.tsx / BreakthroughModal.tsx
+        │   ├── ChangePasswordModal.tsx / ForgotPasswordModal.tsx
+        │   └── NavBar.tsx / Footer.tsx / WorldMap.tsx / ...
         ├── pages/
+        │   ├── LoginPage.tsx
+        │   ├── RegisterPage.tsx
         │   ├── PublicProfilePage.tsx  # /player/:username
         │   └── admin/
         │       └── AdminDashboard.tsx
-        ├── services/            # API service layer
+        ├── services/            # 21 API service layer files
         └── App.tsx
 ```
+
