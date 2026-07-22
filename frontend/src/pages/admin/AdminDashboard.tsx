@@ -6,6 +6,9 @@ import {
   grantResources, adjustStats, getAdminSects, deleteAdminSect, renameAdminSect,
   getAdminAuctions, deleteAdminAuction, getServerConfig, setGlobalBuff,
   setAnnouncement, sendMail, getAuditLogs, getTransactions, getCheatAlerts,
+  getRecipesConfig, updateRecipesConfig, resetRecipeConfig,
+  getDungeonsConfig, updateDungeonsConfig, resetDungeonConfig,
+  createAdminSect,
   type AdminUser, type DashboardStats, type AuditLog, type CheatAlert,
 } from '../../services/adminService';
 import {
@@ -13,13 +16,14 @@ import {
   Gavel, ShoppingBag, Megaphone, Mail, BarChart3, AlertTriangle,
   History, ChevronRight, Search, RefreshCw, X, Check, LogOut,
   TrendingUp, Zap, Star, Globe, ChevronLeft, ChevronDown, MessageSquareOff,
-  MessageSquare, Eye, EyeOff, Send, Trophy, Flame, Crown, ScrollText
+  MessageSquare, Eye, EyeOff, Send, Trophy, Flame, Crown, ScrollText,
+  FlaskConical, Map, Plus, RotateCcw, Edit3, ChevronUp, Swords
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Tab =
   | 'dashboard' | 'users' | 'banned' | 'resources' | 'stats'
-  | 'sects' | 'auctions' | 'shop'
+  | 'sects' | 'auctions' | 'shop' | 'recipes' | 'dungeons'
   | 'events' | 'mail' | 'audit' | 'transactions' | 'cheat';
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
@@ -166,6 +170,20 @@ export default function AdminDashboard() {
   // Cheat alerts
   const [alerts, setAlerts] = useState<CheatAlert[]>([]);
 
+  // Recipes config state
+  const [recipesOverrides, setRecipesOverrides] = useState<Record<string, Record<string, unknown>>>({});
+  const [editRecipeModal, setEditRecipeModal] = useState<string | null>(null); // recipeId
+  const [editRecipeForm, setEditRecipeForm] = useState<Record<string, unknown>>({});
+
+  // Dungeons config state
+  const [dungeonsOverrides, setDungeonsOverrides] = useState<Record<string, Record<string, unknown>>>({});
+  const [editDungeonModal, setEditDungeonModal] = useState<string | null>(null); // dungeonId
+  const [editDungeonForm, setEditDungeonForm] = useState<Record<string, unknown>>({});
+
+  // Create sect modal
+  const [createSectModal, setCreateSectModal] = useState(false);
+  const [createSectForm, setCreateSectForm] = useState({ name: '', description: '', maxMembers: 50 });
+
   // Grant form
   const [grantForm, setGrantForm] = useState({ spiritStones: 0, itemId: '', itemQuantity: 1, reason: '' });
   // Stats form
@@ -223,6 +241,20 @@ export default function AdminDashboard() {
     catch { toast('Lỗi tải cảnh báo', 'error'); }
   }, []);
 
+  const loadRecipesConfig = useCallback(async () => {
+    try {
+      const res = await getRecipesConfig();
+      setRecipesOverrides((res.data.overrides || {}) as Record<string, Record<string, unknown>>);
+    } catch { toast('Lỗi tải đan phương', 'error'); }
+  }, []);
+
+  const loadDungeonsConfig = useCallback(async () => {
+    try {
+      const res = await getDungeonsConfig();
+      setDungeonsOverrides((res.data.overrides || {}) as Record<string, Record<string, unknown>>);
+    } catch { toast('Lỗi tải bí cảnh', 'error'); }
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'dashboard') loadDashboard();
     if (activeTab === 'users' || activeTab === 'banned' || activeTab === 'resources' || activeTab === 'stats') loadUsers();
@@ -231,7 +263,9 @@ export default function AdminDashboard() {
     if (activeTab === 'audit') loadAuditLogs();
     if (activeTab === 'transactions') loadTransactions();
     if (activeTab === 'cheat') loadCheatAlerts();
-  }, [activeTab, loadDashboard, loadUsers, loadSects, loadAuctions, loadAuditLogs, loadTransactions, loadCheatAlerts]);
+    if (activeTab === 'recipes') loadRecipesConfig();
+    if (activeTab === 'dungeons') loadDungeonsConfig();
+  }, [activeTab, loadDashboard, loadUsers, loadSects, loadAuctions, loadAuditLogs, loadTransactions, loadCheatAlerts, loadRecipesConfig, loadDungeonsConfig]);
 
   useEffect(() => { if (activeTab === 'users' || activeTab === 'banned') loadUsers(); }, [userSearch, userPage, userFilter]);
   useEffect(() => { if (activeTab === 'auctions') loadAuctions(); }, [auctionFilter, auctionPage]);
@@ -277,6 +311,8 @@ export default function AdminDashboard() {
       items: [
         { id: 'sects' as Tab, icon: Building2, label: 'Tông Môn' },
         { id: 'auctions' as Tab, icon: Gavel, label: 'Đấu Giá' },
+        { id: 'recipes' as Tab, icon: FlaskConical, label: 'Đan Phương' },
+        { id: 'dungeons' as Tab, icon: Map, label: 'Bí Cảnh' },
       ]
     },
     {
@@ -594,8 +630,17 @@ export default function AdminDashboard() {
 
   const renderSects = () => (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <button onClick={loadSects} className="p-2 rounded-xl border border-white/10 text-gray-400 hover:text-white transition-all"><RefreshCw size={14} /></button>
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-400">Quản lý {sects.length} tông môn trong game</div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => { setCreateSectModal(true); setCreateSectForm({ name: '', description: '', maxMembers: 50 }); }}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f2ca50]/20 border border-[#f2ca50]/40 text-[#f2ca50] text-xs font-semibold hover:bg-[#f2ca50]/30 transition-all"
+          >
+            <Plus size={13} /> Tạo Tông Môn
+          </button>
+          <button onClick={loadSects} className="p-2 rounded-xl border border-white/10 text-gray-400 hover:text-white transition-all"><RefreshCw size={14} /></button>
+        </div>
       </div>
       <div className="bg-[#141518] border border-white/5 rounded-2xl overflow-hidden">
         <table className="w-full text-sm">
@@ -640,6 +685,418 @@ export default function AdminDashboard() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal tạo tông môn */}
+      {createSectModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-[#1a1b1e] border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-9 h-9 rounded-xl bg-[#f2ca50]/15 border border-[#f2ca50]/30 flex items-center justify-center">
+                <Building2 size={16} className="text-[#f2ca50]" />
+              </div>
+              <h3 className="text-white font-bold text-lg">Tạo Tông Môn Mới</h3>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Tên Tông Môn <span className="text-red-400">*</span></label>
+                <input
+                  type="text" placeholder="Thiên Kiếm Tông..."
+                  value={createSectForm.name}
+                  onChange={e => setCreateSectForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#f2ca50]/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Mô Tả (tuỳ chọn)</label>
+                <textarea
+                  rows={2} placeholder="Mô tả về tông môn..."
+                  value={createSectForm.description}
+                  onChange={e => setCreateSectForm(f => ({ ...f, description: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none resize-none focus:border-[#f2ca50]/50"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Số Thành Viên Tối Đa</label>
+                <input
+                  type="number" min={5} max={500}
+                  value={createSectForm.maxMembers}
+                  onChange={e => setCreateSectForm(f => ({ ...f, maxMembers: Number(e.target.value) }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#f2ca50]/50"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 justify-end mt-6">
+              <button onClick={() => setCreateSectModal(false)} className="px-5 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white text-sm">Hủy</button>
+              <button onClick={async () => {
+                if (!createSectForm.name.trim()) return toast('Vui lòng nhập tên tông môn', 'error');
+                setLoading(true);
+                try {
+                  const res = await createAdminSect(createSectForm);
+                  toast(res.data.message, 'success');
+                  setCreateSectModal(false);
+                  loadSects();
+                } catch (e: unknown) {
+                  const err = e as { response?: { data?: { message?: string } } };
+                  toast(err?.response?.data?.message || 'Lỗi tạo tông môn', 'error');
+                } finally { setLoading(false); }
+              }} className="px-5 py-2 rounded-lg bg-[#f2ca50]/20 border border-[#f2ca50]/40 text-[#f2ca50] text-sm font-semibold hover:bg-[#f2ca50]/30 transition-all flex items-center gap-2">
+                <Plus size={14} /> Tạo Tông Môn
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+
+  // ─── Data static cho đan phương (default values) ─────────────────────────────
+  const RECIPES_DEFAULT: Record<string, { name: string; realmRequired: number; successRate: number; ingredients: { itemId: string; quantity: number }[]; output: { itemId: string; quantity: number } }> = {
+    'recipe_tu_khi':    { name: 'Luyện Tụ Khí Đan',           realmRequired: 0, successRate: 0.9,  ingredients: [{ itemId: 'mat_huyet_linh_thao', quantity: 3 }],                                                          output: { itemId: 'pill_tu_khi_dan', quantity: 1 } },
+    'recipe_truc_co':   { name: 'Luyện Trúc Cơ Đan',          realmRequired: 1, successRate: 0.75, ingredients: [{ itemId: 'mat_kim_dan_thao', quantity: 2 }, { itemId: 'mat_huyet_linh_thao', quantity: 1 }],              output: { itemId: 'pill_truc_co_dan', quantity: 1 } },
+    'recipe_tay_tuy':   { name: 'Luyện Tẩy Tủy Đan',          realmRequired: 0, successRate: 0.8,  ingredients: [{ itemId: 'mat_huyet_linh_thao', quantity: 2 }, { itemId: 'mat_kim_dan_thao', quantity: 1 }],              output: { itemId: 'pill_tay_tuy_dan', quantity: 1 } },
+    'recipe_linh_khi':  { name: 'Luyện Linh Khí Đan',         realmRequired: 1, successRate: 0.6,  ingredients: [{ itemId: 'mat_kim_dan_thao', quantity: 2 }, { itemId: 'mat_nguyen_anh_thach', quantity: 1 }],             output: { itemId: 'pill_linh_khi_dan', quantity: 1 } },
+    'recipe_pha_canh':  { name: 'Luyện Phá Cảnh Đan',         realmRequired: 1, successRate: 0.7,  ingredients: [{ itemId: 'mat_kim_dan_thao', quantity: 3 }, { itemId: 'mat_huyet_linh_thao', quantity: 2 }],              output: { itemId: 'pill_pha_canh_dan', quantity: 1 } },
+    'recipe_thien_dieu':{ name: 'Luyện Thiên Diệu Đan',       realmRequired: 2, successRate: 0.5,  ingredients: [{ itemId: 'mat_nguyen_anh_thach', quantity: 2 }, { itemId: 'mat_kim_dan_thao', quantity: 3 }],             output: { itemId: 'pill_thien_dieu_dan', quantity: 1 } },
+    'recipe_tho_nguyen':{ name: 'Luyện Thọ Nguyên Quả',       realmRequired: 2, successRate: 0.55, ingredients: [{ itemId: 'mat_nguyen_anh_thach', quantity: 1 }, { itemId: 'mat_hoa_than_tinh', quantity: 1 }],            output: { itemId: 'pill_tho_nguyen_qua', quantity: 1 } },
+    'recipe_kim_dan_thượng': { name: 'Luyện Kim Đan (Thượng Phẩm)', realmRequired: 3, successRate: 0.4, ingredients: [{ itemId: 'mat_hoa_than_tinh', quantity: 2 }, { itemId: 'mat_nguyen_anh_thach', quantity: 3 }],      output: { itemId: 'pill_kim_dan', quantity: 1 } },
+  };
+
+  const REALM_LABELS = ['Luyện Khí', 'Trúc Cơ', 'Kim Đan', 'Nguyên Anh', 'Hóa Thần'];
+
+  const renderRecipes = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-400 bg-[#f2ca50]/5 border border-[#f2ca50]/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+          <FlaskConical size={14} className="text-[#f2ca50]" />
+          Chỉnh thuộc tính đan phương — override sẽ ghi đè mặc định. Bấm <span className="text-[#f2ca50] font-semibold">Reset</span> để về mặc định.
+        </div>
+        <button onClick={loadRecipesConfig} className="p-2 rounded-xl border border-white/10 text-gray-400 hover:text-white transition-all"><RefreshCw size={14} /></button>
+      </div>
+
+      <div className="grid gap-3">
+        {Object.entries(RECIPES_DEFAULT).map(([recipeId, def]) => {
+          const override = recipesOverrides[recipeId] || {};
+          const current = { ...def, ...override };
+          const hasOverride = Object.keys(override).length > 0;
+          return (
+            <div key={recipeId} className={`bg-[#141518] border rounded-2xl p-5 transition-all ${hasOverride ? 'border-[#f2ca50]/30' : 'border-white/5'}`}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#f2ca50]/10 border border-[#f2ca50]/20 flex items-center justify-center text-sm">⚗️</div>
+                  <div>
+                    <div className="text-white font-medium text-sm">{current.name}</div>
+                    <div className="text-gray-500 text-xs">{recipeId}</div>
+                  </div>
+                  {hasOverride && <span className="px-2 py-0.5 rounded-full bg-[#f2ca50]/15 border border-[#f2ca50]/30 text-[#f2ca50] text-[10px] font-semibold">Override</span>}
+                </div>
+                <div className="flex gap-2">
+                  {hasOverride && (
+                    <button onClick={() => confirmAction('Reset Đan Phương', `Reset "${def.name}" về mặc định?`, async () => {
+                      const res = await resetRecipeConfig(recipeId);
+                      toast(res.data.message, 'success');
+                      loadRecipesConfig();
+                    })} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white text-xs transition-all">
+                      <RotateCcw size={11} /> Reset
+                    </button>
+                  )}
+                  <button onClick={() => {
+                    setEditRecipeModal(recipeId);
+                    setEditRecipeForm({
+                      successRate: (override.successRate ?? def.successRate) as number,
+                      realmRequired: (override.realmRequired ?? def.realmRequired) as number,
+                    });
+                  }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#f2ca50]/10 border border-[#f2ca50]/20 text-[#f2ca50] hover:bg-[#f2ca50]/20 text-xs transition-all">
+                    <Edit3 size={11} /> Chỉnh Sửa
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3 text-xs">
+                <div className="bg-white/3 rounded-xl px-3 py-2">
+                  <div className="text-gray-500 mb-0.5">Tỷ Lệ Thành Công</div>
+                  <div className={`font-bold ${hasOverride && override.successRate !== undefined ? 'text-[#f2ca50]' : 'text-white'}`}>
+                    {Math.round((current.successRate as number) * 100)}%
+                  </div>
+                </div>
+                <div className="bg-white/3 rounded-xl px-3 py-2">
+                  <div className="text-gray-500 mb-0.5">Yêu Cầu Cảnh Giới</div>
+                  <div className={`font-bold ${hasOverride && override.realmRequired !== undefined ? 'text-[#f2ca50]' : 'text-white'}`}>
+                    {REALM_LABELS[(current.realmRequired as number)] || `Cảnh ${current.realmRequired}`}
+                  </div>
+                </div>
+                <div className="bg-white/3 rounded-xl px-3 py-2">
+                  <div className="text-gray-500 mb-0.5">Nguyên Liệu</div>
+                  <div className="text-white font-bold">{(current.ingredients as unknown[]).length} loại</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Edit Recipe Modal */}
+      {editRecipeModal && (() => {
+        const def = RECIPES_DEFAULT[editRecipeModal];
+        if (!def) return null;
+        return (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="bg-[#1a1b1e] border border-white/10 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-[#f2ca50]/15 border border-[#f2ca50]/30 flex items-center justify-center text-base">⚗️</div>
+                <div>
+                  <h3 className="text-white font-bold text-lg">Chỉnh Đan Phương</h3>
+                  <div className="text-gray-500 text-xs">{def.name}</div>
+                </div>
+              </div>
+              <div className="space-y-4 text-sm">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Tỷ Lệ Thành Công (0–1, vd: 0.75 = 75%)</label>
+                  <input
+                    type="number" step="0.01" min={0} max={1}
+                    value={editRecipeForm.successRate as number}
+                    onChange={e => setEditRecipeForm(f => ({ ...f, successRate: Number(e.target.value) }))}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-[#f2ca50]/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Yêu Cầu Cảnh Giới (0=Luyện Khí … 4=Hóa Thần)</label>
+                  <select
+                    value={editRecipeForm.realmRequired as number}
+                    onChange={e => setEditRecipeForm(f => ({ ...f, realmRequired: Number(e.target.value) }))}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-[#f2ca50]/50"
+                  >
+                    {REALM_LABELS.map((r, i) => <option key={i} value={i}>{i} — {r}</option>)}
+                  </select>
+                </div>
+                <div className="bg-white/3 rounded-xl p-3 text-xs text-gray-400">
+                  <div className="font-semibold text-gray-300 mb-2">Nguyên Liệu (không thay đổi được)</div>
+                  {def.ingredients.map(ing => (
+                    <div key={ing.itemId} className="flex justify-between py-0.5">
+                      <span>{ing.itemId}</span><span className="text-white">x{ing.quantity}</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-white/5 mt-2 pt-2 flex justify-between">
+                    <span>Output:</span><span className="text-[#f2ca50]">{def.output.itemId} x{def.output.quantity}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 justify-end mt-6">
+                <button onClick={() => setEditRecipeModal(null)} className="px-5 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white text-sm">Hủy</button>
+                <button onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const res = await updateRecipesConfig(editRecipeModal, editRecipeForm);
+                    toast(res.data.message, 'success');
+                    setEditRecipeModal(null);
+                    loadRecipesConfig();
+                  } catch { toast('Lỗi cập nhật', 'error'); } finally { setLoading(false); }
+                }} className="px-5 py-2 rounded-lg bg-[#f2ca50]/20 border border-[#f2ca50]/40 text-[#f2ca50] text-sm font-semibold hover:bg-[#f2ca50]/30 transition-all">
+                  Lưu Thay Đổi
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+
+  // ─── Data static cho bí cảnh (default values) ────────────────────────────────
+  const DUNGEONS_DEFAULT: Record<string, { name: string; requiredRealmIndex: number; spiritStonesPerHour: number; floors: number; danger: number; bossData: { name: string; hp: number; atk: number; def: number } | null }> = {
+    'dung_thu_thach_coc':   { name: 'Thử Thách Cốc',      requiredRealmIndex: 0, spiritStonesPerHour: 500,   floors: 5,  danger: 10, bossData: { name: 'Thạch Tinh Quái',            hp: 800,   atk: 30,   def: 10  } },
+    'dung_thuy_tinh_dong':  { name: 'Thủy Tinh Động',     requiredRealmIndex: 1, spiritStonesPerHour: 1500,  floors: 7,  danger: 30, bossData: { name: 'Thủy Long Vương',            hp: 3000,  atk: 100,  def: 50  } },
+    'dung_van_co_cam_dia':  { name: 'Vạn Cổ Cấm Địa',    requiredRealmIndex: 2, spiritStonesPerHour: 5000,  floors: 10, danger: 95, bossData: { name: 'Vạn Cổ Ma Thần',            hp: 12000, atk: 400,  def: 200 } },
+    'dung_thien_cung_di_tich': { name: 'Thiên Cung Di Tích', requiredRealmIndex: 3, spiritStonesPerHour: 20000, floors: 10, danger: 99, bossData: { name: 'Thiên Cung Thủ Hộ Thần', hp: 50000, atk: 1500, def: 800 } },
+  };
+
+  const DANGER_COLOR = (d: number) => d >= 90 ? 'text-red-400' : d >= 50 ? 'text-yellow-400' : 'text-green-400';
+
+  const renderDungeons = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-400 bg-blue-500/5 border border-blue-500/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+          <Map size={14} className="text-blue-400" />
+          Thiết lập thuộc tính bí cảnh — chỉnh boss, linh thạch/h, yêu cầu cảnh giới. Override sẽ ghi đè mặc định.
+        </div>
+        <button onClick={loadDungeonsConfig} className="p-2 rounded-xl border border-white/10 text-gray-400 hover:text-white transition-all"><RefreshCw size={14} /></button>
+      </div>
+
+      <div className="grid gap-3">
+        {Object.entries(DUNGEONS_DEFAULT).map(([dungeonId, def]) => {
+          const override = dungeonsOverrides[dungeonId] || {};
+          const hasOverride = Object.keys(override).length > 0;
+          const curStones = (override.spiritStonesPerHour ?? def.spiritStonesPerHour) as number;
+          const curRealm = (override.requiredRealmIndex ?? def.requiredRealmIndex) as number;
+          const curDanger = (override.danger ?? def.danger) as number;
+          const bossOverride = (override.bossData || {}) as Partial<{ name: string; hp: number; atk: number; def: number }>;
+          const curBoss = def.bossData ? { ...def.bossData, ...bossOverride } : null;
+
+          return (
+            <div key={dungeonId} className={`bg-[#141518] border rounded-2xl p-5 transition-all ${hasOverride ? 'border-blue-500/30' : 'border-white/5'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-sm">🗺️</div>
+                  <div>
+                    <div className="text-white font-medium text-sm">{def.name}</div>
+                    <div className="text-gray-500 text-xs">{dungeonId}</div>
+                  </div>
+                  {hasOverride && <span className="px-2 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 text-[10px] font-semibold">Override</span>}
+                </div>
+                <div className="flex gap-2">
+                  {hasOverride && (
+                    <button onClick={() => confirmAction('Reset Bí Cảnh', `Reset "${def.name}" về mặc định?`, async () => {
+                      const res = await resetDungeonConfig(dungeonId);
+                      toast(res.data.message, 'success');
+                      loadDungeonsConfig();
+                    })} className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-white/10 text-gray-400 hover:text-white text-xs transition-all">
+                      <RotateCcw size={11} /> Reset
+                    </button>
+                  )}
+                  <button onClick={() => {
+                    setEditDungeonModal(dungeonId);
+                    setEditDungeonForm({
+                      spiritStonesPerHour: curStones,
+                      requiredRealmIndex: curRealm,
+                      danger: curDanger,
+                      bossHp: curBoss?.hp ?? 0,
+                      bossAtk: curBoss?.atk ?? 0,
+                      bossDef: curBoss?.def ?? 0,
+                      bossName: curBoss?.name ?? '',
+                    });
+                  }} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 text-xs transition-all">
+                    <Edit3 size={11} /> Chỉnh Sửa
+                  </button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div className="bg-white/3 rounded-xl px-3 py-2">
+                  <div className="text-gray-500 mb-0.5">Linh Thạch/h</div>
+                  <div className={`font-bold ${hasOverride && override.spiritStonesPerHour !== undefined ? 'text-blue-400' : 'text-white'}`}>{curStones.toLocaleString()} 💎</div>
+                </div>
+                <div className="bg-white/3 rounded-xl px-3 py-2">
+                  <div className="text-gray-500 mb-0.5">Cảnh Giới Yêu Cầu</div>
+                  <div className={`font-bold ${hasOverride && override.requiredRealmIndex !== undefined ? 'text-blue-400' : 'text-white'}`}>{REALM_LABELS[curRealm]}</div>
+                </div>
+                <div className="bg-white/3 rounded-xl px-3 py-2">
+                  <div className="text-gray-500 mb-0.5">Độ Nguy Hiểm</div>
+                  <div className={`font-bold ${DANGER_COLOR(curDanger)}`}>{curDanger}%</div>
+                </div>
+                {curBoss && (
+                  <div className="bg-white/3 rounded-xl px-3 py-2">
+                    <div className="text-gray-500 mb-0.5">Boss HP</div>
+                    <div className={`font-bold ${hasOverride && bossOverride.hp !== undefined ? 'text-blue-400' : 'text-white'}`}>{curBoss.hp.toLocaleString()}</div>
+                  </div>
+                )}
+              </div>
+              {curBoss && (
+                <div className="mt-3 flex items-center gap-4 text-xs text-gray-400">
+                  <span className="flex items-center gap-1"><Swords size={11} />Boss: <span className="text-white ml-1">{curBoss.name}</span></span>
+                  <span>ATK: <span className={hasOverride && bossOverride.atk !== undefined ? 'text-blue-400 font-bold' : 'text-white font-bold'}>{curBoss.atk}</span></span>
+                  <span>DEF: <span className={hasOverride && bossOverride.def !== undefined ? 'text-blue-400 font-bold' : 'text-white font-bold'}>{curBoss.def}</span></span>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Edit Dungeon Modal */}
+      {editDungeonModal && (() => {
+        const def = DUNGEONS_DEFAULT[editDungeonModal];
+        if (!def) return null;
+        return (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="bg-[#1a1b1e] border border-white/10 rounded-2xl p-8 max-w-lg w-full mx-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-base">🗺️</div>
+                <div>
+                  <h3 className="text-white font-bold text-lg">Thiết Lập Bí Cảnh</h3>
+                  <div className="text-gray-500 text-xs">{def.name}</div>
+                </div>
+              </div>
+              <div className="space-y-4 text-sm">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Linh Thạch/Giờ</label>
+                    <input type="number" min={0} value={editDungeonForm.spiritStonesPerHour as number}
+                      onChange={e => setEditDungeonForm(f => ({ ...f, spiritStonesPerHour: Number(e.target.value) }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500/50" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Yêu Cầu Cảnh Giới</label>
+                    <select value={editDungeonForm.requiredRealmIndex as number}
+                      onChange={e => setEditDungeonForm(f => ({ ...f, requiredRealmIndex: Number(e.target.value) }))}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500/50">
+                      {REALM_LABELS.map((r, i) => <option key={i} value={i}>{i} — {r}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Độ Nguy Hiểm (0–100)</label>
+                  <input type="number" min={0} max={100} value={editDungeonForm.danger as number}
+                    onChange={e => setEditDungeonForm(f => ({ ...f, danger: Number(e.target.value) }))}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500/50" />
+                </div>
+                {def.bossData && (
+                  <>
+                    <div className="border-t border-white/5 pt-4">
+                      <div className="text-white font-semibold text-sm mb-3 flex items-center gap-2"><Swords size={14} className="text-red-400" /> Thuộc Tính Boss</div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Tên Boss</label>
+                        <input type="text" value={editDungeonForm.bossName as string}
+                          onChange={e => setEditDungeonForm(f => ({ ...f, bossName: e.target.value }))}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500/50 mb-3" />
+                      </div>
+                      <div className="grid grid-cols-3 gap-3">
+                        {[
+                          { label: 'HP', key: 'bossHp' },
+                          { label: 'ATK', key: 'bossAtk' },
+                          { label: 'DEF', key: 'bossDef' },
+                        ].map(f => (
+                          <div key={f.key}>
+                            <label className="text-xs text-gray-400 mb-1 block">{f.label}</label>
+                            <input type="number" min={0} value={editDungeonForm[f.key] as number}
+                              onChange={e => setEditDungeonForm(frm => ({ ...frm, [f.key]: Number(e.target.value) }))}
+                              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-blue-500/50" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-3 justify-end mt-6">
+                <button onClick={() => setEditDungeonModal(null)} className="px-5 py-2 rounded-lg border border-white/10 text-gray-400 hover:text-white text-sm">Hủy</button>
+                <button onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const updates: Record<string, unknown> = {
+                      spiritStonesPerHour: editDungeonForm.spiritStonesPerHour,
+                      requiredRealmIndex: editDungeonForm.requiredRealmIndex,
+                      danger: editDungeonForm.danger,
+                    };
+                    if (def.bossData) {
+                      updates.bossData = {
+                        ...def.bossData,
+                        name: editDungeonForm.bossName,
+                        hp: editDungeonForm.bossHp,
+                        atk: editDungeonForm.bossAtk,
+                        def: editDungeonForm.bossDef,
+                      };
+                    }
+                    const res = await updateDungeonsConfig(editDungeonModal, updates);
+                    toast(res.data.message, 'success');
+                    setEditDungeonModal(null);
+                    loadDungeonsConfig();
+                  } catch { toast('Lỗi cập nhật', 'error'); } finally { setLoading(false); }
+                }} className="px-5 py-2 rounded-lg bg-blue-500/20 border border-blue-500/40 text-blue-400 text-sm font-semibold hover:bg-blue-500/30 transition-all">
+                  Lưu Thay Đổi
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 
@@ -960,6 +1417,8 @@ export default function AdminDashboard() {
     sects: renderSects(),
     auctions: renderAuctions(),
     shop: <div className="text-gray-400 p-8 text-center">Shop Config — Coming soon (đang phát triển thêm)</div>,
+    recipes: renderRecipes(),
+    dungeons: renderDungeons(),
     events: renderEvents(),
     mail: renderMail(),
     audit: renderAuditLogs(),
@@ -971,6 +1430,7 @@ export default function AdminDashboard() {
     dashboard: 'Dashboard', users: 'Danh Sách Người Chơi', banned: 'Ban / Mute',
     resources: 'Tặng Tài Nguyên', stats: 'Điều Chỉnh Chỉ Số',
     sects: 'Quản Lý Tông Môn', auctions: 'Quản Lý Đấu Giá', shop: 'Cấu Hình Shop',
+    recipes: 'Quản Lý Đan Phương', dungeons: 'Thiết Lập Bí Cảnh',
     events: 'Sự Kiện & Global Buff', mail: 'Hệ Thống Thư',
     audit: 'Audit Log', transactions: 'Lịch Sử Giao Dịch', cheat: 'Cheat Detection',
   };

@@ -5,13 +5,15 @@ import {
   getDashboardStats,
   getUsers, getUserDetail, banUser, unbanUser, muteUser, unmuteUser,
   grantResources, adjustStats,
-  getSects, deleteSect, renameSect,
+  getSects, deleteSect, renameSect, createSect,
   getAuctions, deleteAuction,
   getShopConfig, updateShopConfig,
   getServerConfig, setGlobalBuff, setAnnouncement, sendMail,
   getAuditLogs,
   getTransactionHistory,
   getCheatAlerts,
+  getRecipesConfig, updateRecipesConfig, resetRecipeConfig,
+  getDungeonsConfig, updateDungeonsConfig, resetDungeonConfig,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -34,6 +36,7 @@ router.post('/users/:id/adjust-stats', adjustStats);
 
 // ── Sects ─────────────────────────────────────────────────────────────────────
 router.get('/sects', getSects);
+router.post('/sects/create', createSect);
 router.delete('/sects/:sectName', deleteSect);
 router.patch('/sects/:sectName/rename', renameSect);
 
@@ -52,6 +55,16 @@ router.patch('/server-config/announcement', setAnnouncement);
 
 // ── Mail ──────────────────────────────────────────────────────────────────────
 router.post('/mail/send', sendMail);
+
+// ── Recipes Config (Đan Phương) ───────────────────────────────────────────────
+router.get('/recipes-config', getRecipesConfig);
+router.patch('/recipes-config', updateRecipesConfig);
+router.delete('/recipes-config/:recipeId', resetRecipeConfig);
+
+// ── Dungeons Config (Bí Cảnh) ─────────────────────────────────────────────────
+router.get('/dungeons-config', getDungeonsConfig);
+router.patch('/dungeons-config', updateDungeonsConfig);
+router.delete('/dungeons-config/:dungeonId', resetDungeonConfig);
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
 router.get('/audit-logs', getAuditLogs);

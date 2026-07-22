@@ -759,3 +759,145 @@ export const getCheatAlerts = async (req, res) => {
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RECIPES CONFIG (ĐAN PHƯƠNG)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/admin/recipes-config
+export const getRecipesConfig = async (req, res) => {
+  try {
+    const overrides = await getConfig('recipe_overrides');
+    res.json({ overrides: overrides || {} });
+  } catch (err) {
+    console.error('Lỗi getRecipesConfig:', err);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// PATCH /api/admin/recipes-config
+export const updateRecipesConfig = async (req, res) => {
+  try {
+    const { recipeId, updates } = req.body;
+    if (!recipeId || !updates) return res.status(400).json({ message: 'Thiếu recipeId hoặc updates.' });
+
+    // Đọc overrides hiện tại
+    const current = (await getConfig('recipe_overrides')) || {};
+    current[recipeId] = { ...(current[recipeId] || {}), ...updates };
+
+    await setConfig('recipe_overrides', current, req.user.username);
+    await writeAuditLog(req.user, 'UPDATE_RECIPE_CONFIG', null, recipeId, { updates });
+
+    res.json({ message: `Đã cập nhật đan phương "${recipeId}".`, overrides: current });
+  } catch (err) {
+    console.error('Lỗi updateRecipesConfig:', err);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// DELETE /api/admin/recipes-config/:recipeId  (reset override về default)
+export const resetRecipeConfig = async (req, res) => {
+  try {
+    const { recipeId } = req.params;
+    const current = (await getConfig('recipe_overrides')) || {};
+    delete current[recipeId];
+
+    await setConfig('recipe_overrides', current, req.user.username);
+    await writeAuditLog(req.user, 'RESET_RECIPE_CONFIG', null, recipeId, {});
+
+    res.json({ message: `Đã reset đan phương "${recipeId}" về mặc định.`, overrides: current });
+  } catch (err) {
+    console.error('Lỗi resetRecipeConfig:', err);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DUNGEONS CONFIG (BÍ CẢNH)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// GET /api/admin/dungeons-config
+export const getDungeonsConfig = async (req, res) => {
+  try {
+    const overrides = await getConfig('dungeon_overrides');
+    res.json({ overrides: overrides || {} });
+  } catch (err) {
+    console.error('Lỗi getDungeonsConfig:', err);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// PATCH /api/admin/dungeons-config
+export const updateDungeonsConfig = async (req, res) => {
+  try {
+    const { dungeonId, updates } = req.body;
+    if (!dungeonId || !updates) return res.status(400).json({ message: 'Thiếu dungeonId hoặc updates.' });
+
+    const current = (await getConfig('dungeon_overrides')) || {};
+    current[dungeonId] = { ...(current[dungeonId] || {}), ...updates };
+
+    await setConfig('dungeon_overrides', current, req.user.username);
+    await writeAuditLog(req.user, 'UPDATE_DUNGEON_CONFIG', null, dungeonId, { updates });
+
+    res.json({ message: `Đã cập nhật bí cảnh "${dungeonId}".`, overrides: current });
+  } catch (err) {
+    console.error('Lỗi updateDungeonsConfig:', err);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// DELETE /api/admin/dungeons-config/:dungeonId (reset override)
+export const resetDungeonConfig = async (req, res) => {
+  try {
+    const { dungeonId } = req.params;
+    const current = (await getConfig('dungeon_overrides')) || {};
+    delete current[dungeonId];
+
+    await setConfig('dungeon_overrides', current, req.user.username);
+    await writeAuditLog(req.user, 'RESET_DUNGEON_CONFIG', null, dungeonId, {});
+
+    res.json({ message: `Đã reset bí cảnh "${dungeonId}" về mặc định.`, overrides: current });
+  } catch (err) {
+    console.error('Lỗi resetDungeonConfig:', err);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CREATE SECT (TẠO TÔNG MÔN)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// POST /api/admin/sects/create
+export const createSect = async (req, res) => {
+  try {
+    const { name, description = '', maxMembers = 50 } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ message: 'Tên tông môn không được để trống.' });
+    const trimmedName = name.trim();
+
+    // Kiểm tra tên đã tồn tại chưa
+    const { data: existing } = await supabase
+      .from('sects')
+      .select('name')
+      .eq('name', trimmedName)
+      .maybeSingle();
+
+    if (existing) return res.status(409).json({ message: `Tông môn "${trimmedName}" đã tồn tại.` });
+
+    // Tạo tông môn mới (không có tông chủ - admin tạo, sau đó chỉ định người chơi làm tông chủ)
+    const { error } = await supabase.from('sects').insert({
+      name: trimmedName,
+      description,
+      max_members: Number(maxMembers),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+
+    if (error) throw error;
+
+    await writeAuditLog(req.user, 'CREATE_SECT', null, trimmedName, { description, maxMembers });
+    res.status(201).json({ message: `Đã tạo tông môn "${trimmedName}".` });
+  } catch (err) {
+    console.error('Lỗi createSect:', err);
+    res.status(500).json({ message: err.message || 'Lỗi server' });
+  }
+};

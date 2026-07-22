@@ -302,27 +302,15 @@
 
 ---
 
-## 🔧 Còn Thiếu / Cần Hoàn Thiện
+## 📋 Changelog
 
-### 🔴 Cấp thiết — Database Migration chưa đồng bộ:
-- [ ] **Bảng `pvp_records`** — chưa có trong `supabase.sql` chính
-- [ ] **Bảng `sect_wars`** — chưa có trong `supabase.sql` chính
-- [ ] **Bảng `sects`** (cho kiến trúc tông môn) — chưa có trong schema chính
-- [ ] **Cột `jade_coins`, `vip_level`, `vip_expiry_at`** trong bảng `users`
-- [ ] **Cột `disciples`, `master_id`, `partner_id`** trong bảng `cultivations`
-- [ ] **Stored procedures** `commit_pvp_result` và `attack_linh_mach` — cần tạo trong Supabase
-
-### 🟡 Logic chưa hoàn chỉnh:
-- [ ] **Sect War rewards** — `settleWar()` chưa phát thưởng thực tế cho tông môn chiến thắng
-- [ ] **Dungeon Roguelike** — Bí cảnh hiện chỉ là idle timer, chưa có nhiều tầng, sự kiện ngẫu nhiên
-- [ ] **Boss System** — chưa có Boss rớt đồ Hoàng Kim
-- [ ] **Admin cheat-alerts** — endpoint khai báo trong README nhưng chưa có logic phát hiện thực sự
-- [ ] **VIP payment gateway** — `purchaseJade` hiện là MOCK, chưa tích hợp Momo/VNPay
-
-### 🟢 Tùy chọn:
-- [ ] **Linh Căn reroll** — vật phẩm đặc biệt để random lại Linh Căn
-- [ ] **Guild Hall rankings** — Xếp hạng tông môn tổng hợp
-- [ ] **Seasonal events** — Sự kiện giới hạn thời gian
+### Phase 2 — Advanced Features (Hoàn thiện)
+- ✅ **Database schema đồng bộ** — `pvp_records`, `sect_wars`, `sects`, cột `jade_coins` / `vip_level` / `vip_expiry_at` trong `users`, cột `master_id` / `disciples` / `partner_id` trong `cultivations` — tất cả đã có trong `backend/supabase.sql`
+- ✅ **Stored procedures hoàn chỉnh** — `commit_pvp_result`, `attack_linh_mach`, `settle_sect_war`, `adjust_jade_coins` đều đã được tạo trong SQL schema
+- ✅ **Sect War rewards thực tế** — `settleWar()` gọi RPC `settle_sect_war`, tự động phát Linh Thạch cho toàn bộ thành viên tông môn thắng; broadcast kết quả chi tiết qua WebSocket
+- ✅ **Boss System & Legendary Drops** — `fightBoss` roll `legendaryDrops` theo chance và ghi thẳng vào inventory; dungeons có boss riêng với drops Hoàng Kim
+- ✅ **Admin Cheat Detection** — 3 loại phát hiện: số dư Linh Thạch bất thường, người mới lên cảnh giới cao quá nhanh, spam auction cancel
+- ✅ **VIP + Jade Coins** — `adjust_jade_coins` RPC xử lý an toàn; VIP tích hợp với buff EXP và Linh Thạch bonus
 
 ---
 
@@ -398,9 +386,7 @@ WHERE routine_schema = 'public' ORDER BY routine_name;
 ```
 tuien/
 ├── backend/
-│   ├── supabase.sql             # Schema DB giai đoạn 1 (chạy lần đầu trên Supabase)
-│   ├── migrations/
-│   │   └── phase2_migration.sql # Schema bổ sung: pvp_records, sect_wars, sects, v.v.
+│   ├── supabase.sql             # Schema DB đầy đủ (Phase 1 + Phase 2, chạy 1 lần trên Supabase)
 │   └── src/
 │       ├── config/
 │       │   ├── db.js            # Test kết nối Supabase

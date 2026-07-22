@@ -119,3 +119,27 @@ export const getTransactions = (params: { page?: number; limit?: number }) =>
 
 export const getCheatAlerts = () =>
   api.get<{ alerts: CheatAlert[]; total: number }>('/admin/cheat-alerts');
+
+// ─── Recipes Config (Đan Phương) ─────────────────────────────────────────────
+export const getRecipesConfig = () =>
+  api.get<{ overrides: Record<string, unknown> }>('/admin/recipes-config');
+
+export const updateRecipesConfig = (recipeId: string, updates: Record<string, unknown>) =>
+  api.patch<{ message: string; overrides: Record<string, unknown> }>('/admin/recipes-config', { recipeId, updates });
+
+export const resetRecipeConfig = (recipeId: string) =>
+  api.delete<{ message: string; overrides: Record<string, unknown> }>(`/admin/recipes-config/${encodeURIComponent(recipeId)}`);
+
+// ─── Dungeons Config (Bí Cảnh) ───────────────────────────────────────────────
+export const getDungeonsConfig = () =>
+  api.get<{ overrides: Record<string, unknown> }>('/admin/dungeons-config');
+
+export const updateDungeonsConfig = (dungeonId: string, updates: Record<string, unknown>) =>
+  api.patch<{ message: string; overrides: Record<string, unknown> }>('/admin/dungeons-config', { dungeonId, updates });
+
+export const resetDungeonConfig = (dungeonId: string) =>
+  api.delete<{ message: string; overrides: Record<string, unknown> }>(`/admin/dungeons-config/${encodeURIComponent(dungeonId)}`);
+
+// ─── Create Sect (Tạo Tông Môn) ──────────────────────────────────────────────
+export const createAdminSect = (data: { name: string; description?: string; maxMembers?: number }) =>
+  api.post<{ message: string }>('/admin/sects/create', data);

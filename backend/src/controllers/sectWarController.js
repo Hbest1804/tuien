@@ -216,8 +216,24 @@ export const getSectWarLeaderboard = async (req, res) => {
 // ─── Helper: settle war ────────────────────────────────────────────────────────
 const settleWar = async (warId) => {
   try {
-    await supabase.from('sect_wars').update({ settled: true }).eq('id', warId);
-    broadcast('global', { type: 'sect_war_ended' });
+    // Gọi RPC settle_sect_war — tính winner theo số Linh Mạch kiểm soát
+    // và phát thưởng spirit_stones cho toàn bộ thành viên tông môn thắng
+    const { data: result, error } = await supabase.rpc('settle_sect_war', { p_war_id: warId });
+    if (error) throw error;
+
+    const { winnerSect, linhMachWon, rewardPerMember } = result || {};
+
+    broadcast('global', {
+      type: 'sect_war_ended',
+      winnerSect: winnerSect || null,
+      linhMachWon: linhMachWon || 0,
+      rewardPerMember: rewardPerMember || 0,
+      message: winnerSect
+        ? `⚔️ Tông Môn Chiến kết thúc! ${winnerSect} chiến thắng với ${linhMachWon} Linh Mạch. Mỗi thành viên nhận ${rewardPerMember} Linh Thạch!`
+        : '⚔️ Tông Môn Chiến kết thúc! Không có tông môn nào chiếm được Linh Mạch.',
+    });
+
+    console.log(`[SectWar] Settled war ${warId}. Winner: ${winnerSect}, reward: ${rewardPerMember}/member`);
   } catch (err) {
     console.error('settleWar error:', err);
   }
