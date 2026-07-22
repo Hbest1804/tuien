@@ -3,6 +3,11 @@ import Inventory from '../models/Inventory.js';
 import Cultivation from '../models/Cultivation.js';
 import { ITEMS, ITEM_TYPES } from '../data/items.js';
 import supabase from '../config/supabase.js';
+import { logTransaction, getHistory } from '../models/TransactionLog.js';
+import { checkAndUnlock } from '../models/Achievement.js';
+import { updateDailyQuestProgress } from './dailyQuestController.js';
+import { updateMainQuestProgress } from './mainQuestController.js';
+import { broadcast } from '../config/wsServer.js';
 
 // ─── Hằng số ──────────────────────────────────────────────────────────────────
 const IDLE_STONES_PER_MINUTE = [1, 2, 4, 8, 15];
@@ -172,6 +177,20 @@ export const buyShopItem = async (req, res) => {
       return res.status(400).json({ message: data.message });
     }
 
+    // Log giao dịch + Achievements + Daily Quests
+    await logTransaction(user.id, {
+      type: 'shop_buy',
+      itemId,
+      itemName: itemData.name,
+      quantity,
+      spiritStonesDelta: -totalCost,
+      detail: { price: shopMeta.price },
+    });
+    const newAchs = await checkAndUnlock(user.id, 'shop_buy');
+    if (newAchs.length > 0) broadcast(`notify:${user.id}`, { type: 'achievement', achievements: newAchs });
+    await updateDailyQuestProgress(user.id, 'shop_buy');
+    await updateMainQuestProgress(user.id, 'shop_buy', { boughtFromShop: true });
+
     res.json({ message: `Mua ${quantity} ${itemData.name} thành công! Đã dùng ${totalCost} Linh Thạch.`, spiritStones: data.spiritStones });
   } catch (err) {
     console.error('Lỗi buyShopItem:', err);
@@ -216,9 +235,37 @@ export const sellShopItem = async (req, res) => {
       return res.status(400).json({ message: data.message });
     }
 
+    // Log giao dịch + Daily Quest
+    await logTransaction(user.id, {
+      type: 'shop_sell',
+      itemId,
+      itemName: itemData.name,
+      quantity,
+      spiritStonesDelta: totalEarned,
+      detail: { sellPrice },
+    });
+    await updateDailyQuestProgress(user.id, 'sell_item');
+
     res.json({ message: `Bán ${quantity} ${itemData.name} thành công! Nhận được ${totalEarned} Linh Thạch.`, spiritStones: data.spiritStones });
   } catch (err) {
     console.error('Lỗi sellShopItem:', err);
+    res.status(500).json({ message: 'Lỗi server' });
+  }
+};
+
+// ── GET /economy/history ────────────────────────────────────────────────────
+export const getTransactionHistory = async (req, res) => {
+  try {
+    const user = req.user;
+    if (!user?.isCharacterCreated) {
+      return res.status(403).json({ message: 'Chưa tạo nhân vật' });
+    }
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const type = req.query.type || null;
+    const result = await getHistory(user.id, { page, type });
+    res.json(result);
+  } catch (err) {
+    console.error('getTransactionHistory error:', err);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };

@@ -16,6 +16,11 @@ export const mapUser = (row) => {
     isCharacterCreated: row.is_character_created,
     spiritStones: row.spirit_stones,
     lastStoneCollectedAt: row.last_stone_collected_at,
+    role: row.role || 'player',
+    isBanned: row.is_banned || false,
+    isMuted: row.is_muted || false,
+    resetOtp: row.reset_otp || null,
+    resetOtpExpiresAt: row.reset_otp_expires_at ? new Date(row.reset_otp_expires_at) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -143,6 +148,49 @@ export const User = {
   },
 
   /**
+   * Tìm nhiều users với search, filter, phân trang cho Admin
+   */
+  async findMany({ search = '', isBanned, page = 1, limit = 20 } = {}) {
+    const offset = (page - 1) * limit;
+    let query = supabase.from('users').select('*', { count: 'exact' });
+
+    if (search) {
+      query = query.or(`username.ilike.%${search}%,email.ilike.%${search}%`);
+    }
+    if (isBanned !== undefined) {
+      query = query.eq('is_banned', isBanned);
+    }
+
+    query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+    return { users: (data || []).map(mapUser), total: count || 0 };
+  },
+
+  /**
+   * Đếm tổng số users
+   */
+  async countAll() {
+    const { count, error } = await supabase.from('users').select('*', { count: 'exact', head: true });
+    if (error) throw error;
+    return count || 0;
+  },
+
+  /**
+   * Đếm users mới trong N ngày gần nhất
+   */
+  async countRecent(days = 7) {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const { count, error } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', since);
+    if (error) throw error;
+    return count || 0;
+  },
+
+  /**
    * Lưu trực tiếp (dùng sau khi update spiritStones)
    */
   async save(userObj) {
@@ -158,6 +206,65 @@ export const User = {
       .from('users')
       .update(dbUpdates)
       .eq('id', userObj.id || userObj._id)
+      .select('*')
+      .single();
+    if (error) throw error;
+    return mapUser(data);
+  },
+
+  /**
+   * Admin update — cập nhật role, ban, mute, spiritStones, v.v.
+   */
+  /**
+   * Cập nhật mật khẩu đã hash
+   */
+  async updatePassword(id, hashedPassword) {
+    const { error } = await supabase
+      .from('users')
+      .update({ password: hashedPassword })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  /**
+   * Lưu OTP reset mật khẩu (6 số, hết hạn sau 10 phút)
+   */
+  async saveResetOtp(id, otp, expiresAt) {
+    const { error } = await supabase
+      .from('users')
+      .update({ reset_otp: otp, reset_otp_expires_at: expiresAt })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  /**
+   * Xóa OTP sau khi đã dùng hoặc hết hạn
+   */
+  async clearResetOtp(id) {
+    const { error } = await supabase
+      .from('users')
+      .update({ reset_otp: null, reset_otp_expires_at: null })
+      .eq('id', id);
+    if (error) throw error;
+  },
+
+  /**
+   * Admin update — cập nhật role, ban, mute, spiritStones, v.v.
+   */
+  async adminUpdate(id, updates) {
+    const dbUpdates = {};
+    if (updates.role !== undefined)          dbUpdates.role = updates.role;
+    if (updates.isBanned !== undefined)      dbUpdates.is_banned = updates.isBanned;
+    if (updates.isMuted !== undefined)       dbUpdates.is_muted = updates.isMuted;
+    if (updates.spiritStones !== undefined)  dbUpdates.spirit_stones = updates.spiritStones;
+    if (updates.gender !== undefined)        dbUpdates.gender = updates.gender;
+    if (updates.spiritRoot !== undefined)    dbUpdates.spirit_root = updates.spiritRoot;
+    if (updates.spiritRootGrade !== undefined) dbUpdates.spirit_root_grade = updates.spiritRootGrade;
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(dbUpdates)
+      .eq('id', id)
       .select('*')
       .single();
     if (error) throw error;

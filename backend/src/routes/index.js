@@ -8,6 +8,18 @@ import leaderboardRoutes from './leaderboardRoutes.js';
 import pavilionRoutes from './pavilionRoutes.js';
 import dungeonRoutes from './dungeonRoutes.js';
 import sectRoutes from './sectRoutes.js';
+import adminRoutes from './adminRoutes.js';
+import userRoutes from './userRoutes.js';
+import achievementRoutes from './achievementRoutes.js';
+import alchemyRoutes from './alchemyRoutes.js';
+import combatRoutes from './combatRoutes.js';
+import questRoutes from './questRoutes.js';
+import chatRoutes from './chatRoutes.js';
+import pvpRoutes from './pvpRoutes.js';
+import sectWarRoutes from './sectWarRoutes.js';
+import blacksmithRoutes from './blacksmithRoutes.js';
+import discipleRoutes from './discipleRoutes.js';
+import vipRoutes from './vipRoutes.js';
 
 const router = express.Router();
 
@@ -20,5 +32,17 @@ router.use('/leaderboard', leaderboardRoutes);
 router.use('/pavilion', pavilionRoutes);
 router.use('/dungeons', dungeonRoutes);
 router.use('/sect', sectRoutes);
+router.use('/admin', adminRoutes);
+router.use('/users', userRoutes);
+router.use('/achievements', achievementRoutes);
+router.use('/alchemy', alchemyRoutes);
+router.use('/combat', combatRoutes);
+router.use('/quests', questRoutes);
+router.use('/chat', chatRoutes);
+router.use('/pvp', pvpRoutes);
+router.use('/sect-war', sectWarRoutes);
+router.use('/blacksmith', blacksmithRoutes);
+router.use('/disciple', discipleRoutes);
+router.use('/vip', vipRoutes);
 
 export default router;

@@ -59,6 +59,39 @@ export const RefreshToken = {
       .eq('id', tokenObj.id || tokenObj._id);
     if (error) throw error;
   },
+
+  /**
+   * Thu hồi tất cả refresh tokens của một user (khi đổi mật khẩu)
+   */
+  async revokeAllForUser(userId) {
+    const { error } = await supabase
+      .from('refresh_tokens')
+      .update({ is_revoked: true })
+      .eq('user_id', userId)
+      .eq('is_revoked', false);
+    if (error) throw error;
+  },
+
+  /**
+   * Xóa tất cả tokens hết hạn và đã bị revoke (dùng cho cron job)
+   */
+  async deleteExpired() {
+    const now = new Date().toISOString();
+    // Xóa tokens hết hạn
+    const { error: e1 } = await supabase
+      .from('refresh_tokens')
+      .delete()
+      .lt('expires_at', now);
+    if (e1) throw e1;
+    // Xóa tokens đã revoke quá 24 giờ
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { error: e2 } = await supabase
+      .from('refresh_tokens')
+      .delete()
+      .eq('is_revoked', true)
+      .lt('created_at', cutoff);
+    if (e2) throw e2;
+  },
 };
 
 export default RefreshToken;

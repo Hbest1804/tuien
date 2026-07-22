@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import RefreshToken from '../models/RefreshToken.js';
+import { sendResetOtpEmail } from '../config/emailService.js';
 
 // Danh sách linh căn và tỷ lệ random
 const SPIRIT_ROOTS = [
@@ -96,6 +98,9 @@ const formatUser = (user) => ({
   spiritRoot: user.spiritRoot,
   spiritRootGrade: user.spiritRootGrade,
   spiritStones: user.spiritStones,
+  role: user.role || 'player',
+  isBanned: user.isBanned || false,
+  isMuted: user.isMuted || false,
 });
 
 // ── POST /api/auth/register ──────────────────────────────────────────────────
@@ -142,6 +147,11 @@ export const loginUser = async (req, res) => {
     const isMatch = await User.comparePassword(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Email hoặc password không đúng' });
+    }
+
+    // Chặn login nếu bị ban
+    if (user.isBanned) {
+      return res.status(403).json({ message: 'Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin để được hỗ trợ.' });
     }
 
     const accessToken = generateAccessToken(user.id);
@@ -251,6 +261,145 @@ export const getMe = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
     res.status(200).json({ user: formatUser(user) });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// ── POST /api/auth/change-password ───────────────────────────────────────────
+export const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: 'Vui lòng nhập mật khẩu cũ và mật khẩu mới' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Mật khẩu mới phải có ít nhất 6 ký tự' });
+    }
+
+    // Lấy user với password (findById không omit password)
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    // Xác thực mật khẩu cũ
+    const isMatch = await User.comparePassword(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Mật khẩu cũ không đúng' });
+    }
+
+    // Hash mật khẩu mới
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await User.updatePassword(req.user.id, hashedPassword);
+
+    // Revoke tất cả refresh tokens cũ (bảo mật: buộc đăng nhập lại trên các thiết bị khác)
+    await RefreshToken.revokeAllForUser(req.user.id);
+
+    res.json({ message: 'Đổi mật khẩu thành công. Vui lòng đăng nhập lại.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// ── POST /api/auth/forgot-password ──────────────────────────────────────────
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Vui lòng nhập email' });
+    }
+
+    // Luôn trả 200 dù email tồn tại hay không (tránh enum attack)
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(200).json({ message: 'Nếu email tồn tại, bạn sẽ nhận được mã OTP trong vài phút.' });
+    }
+
+    // Tạo OTP 6 số (dùng crypto để đảm bảo tính ngẫu nhiên an toàn)
+    const otp = crypto.randomInt(100000, 1000000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 phút
+
+    await User.saveResetOtp(user.id, otp, expiresAt);
+
+    // Gửi email (không await để trả response nhanh hơn)
+    sendResetOtpEmail(user.email, otp).catch((err) =>
+      console.error('[forgotPassword] Lỗi gửi email:', err.message)
+    );
+
+    res.status(200).json({ message: 'Nếu email tồn tại, bạn sẽ nhận được mã OTP trong vài phút.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// ── POST /api/auth/verify-otp ───────────────────────────────────────────────
+export const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Vui lòng nhập email và mã OTP' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user || !user.resetOtp) {
+      return res.status(400).json({ message: 'Mã OTP không hợp lệ hoặc đã hết hạn' });
+    }
+
+    // Kiểm tra OTP khớp và chưa hết hạn
+    if (user.resetOtp !== otp.toString()) {
+      return res.status(400).json({ message: 'Mã OTP không đúng' });
+    }
+    if (new Date() > user.resetOtpExpiresAt) {
+      await User.clearResetOtp(user.id);
+      return res.status(400).json({ message: 'Mã OTP đã hết hạn. Vui lòng yêu cầu mã mới.' });
+    }
+
+    // Tạo reset token tạm thời (5 phút)
+    const resetToken = jwt.sign(
+      { id: user.id, purpose: 'password_reset' },
+      process.env.JWT_SECRET,
+      { expiresIn: '5m' }
+    );
+
+    // Xóa OTP đã dùng
+    await User.clearResetOtp(user.id);
+
+    res.json({ message: 'Xác thực OTP thành công', resetToken });
+  } catch (error) {
+    res.status(500).json({ message: 'Lỗi server', error: error.message });
+  }
+};
+
+// ── POST /api/auth/reset-password ─────────────────────────────────────────────
+export const resetPassword = async (req, res) => {
+  try {
+    const { resetToken, newPassword } = req.body;
+    if (!resetToken || !newPassword) {
+      return res.status(400).json({ message: 'Thiếu thông tin' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự' });
+    }
+
+    // Xác thực reset token
+    let decoded;
+    try {
+      decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+    } catch {
+      return res.status(400).json({ message: 'Token không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu lại.' });
+    }
+
+    if (decoded.purpose !== 'password_reset') {
+      return res.status(400).json({ message: 'Token không hợp lệ' });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await User.updatePassword(decoded.id, hashedPassword);
+    // Revoke tất cả refresh tokens cũ
+    await RefreshToken.revokeAllForUser(decoded.id);
+
+    res.json({ message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.' });
   } catch (error) {
     res.status(500).json({ message: 'Lỗi server', error: error.message });
   }

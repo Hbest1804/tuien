@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, ReactNode } from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import NavBar from './components/NavBar';
 import Footer from './components/Footer';
 import MobileNav from './components/MobileNav';
@@ -15,7 +15,24 @@ import Sect from './components/Sect';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import CharacterSetupModal from './components/CharacterSetupModal';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import PublicProfilePage from './pages/PublicProfilePage';
+import { AlchemyLab } from './components/AlchemyLab';
+import { CombatArena } from './components/CombatArena';
+import { Achievements } from './components/Achievements';
+import { DailyQuests } from './components/DailyQuests';
+import { MainQuestPanel } from './components/MainQuestPanel';
+import { TransactionHistory } from './components/TransactionHistory';
+import { ChatWindow } from './components/ChatWindow';
+import { NotificationBell } from './components/NotificationBell';
+import { useNotifications } from './hooks/useNotifications';
 import { useAuth } from './context/AuthContext';
+import { DungeonExplorer } from './components/DungeonExplorer';
+import { PvPArena } from './components/PvPArena';
+import { SectWar } from './components/SectWar';
+import { Blacksmith } from './components/Blacksmith';
+import { DisciplePanel } from './components/DisciplePanel';
+import { JadeShop } from './components/JadeShop';
 import { Sword, CloudLightning, Mountain, ChevronDown, Star, Zap } from 'lucide-react';
 import './index.css';
 
@@ -24,6 +41,12 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/player/:username" element={<PublicProfilePage />} />
+      <Route path="/admin/*" element={
+        <AdminGuard>
+          <AdminDashboard />
+        </AdminGuard>
+      } />
       <Route path="/*" element={
         <GlobalCharacterGuard>
           <MainLayout />
@@ -31,6 +54,19 @@ export default function App() {
       } />
     </Routes>
   );
+}
+
+// ── Admin Route Guard ───────────────────────────────────────────────────────────────────────
+function AdminGuard({ children }: { children: ReactNode }) {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return (
+    <div className="min-h-screen bg-[#0a0b0d] flex items-center justify-center">
+      <div className="w-10 h-10 rounded-full border-2 border-[#f2ca50]/30 border-t-[#f2ca50] animate-spin" />
+    </div>
+  );
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'admin') return <Navigate to="/" replace />;
+  return <>{children}</>;
 }
 
 // ── Global Route Guard ────────────────────────────────────────────────────────
@@ -51,10 +87,22 @@ function GlobalCharacterGuard({ children }: { children: ReactNode }) {
 }
 
 function MainLayout() {
+  const { user } = useAuth();
+  const { notifications, toasts, unreadCount, markAllRead, send, subscribe, sendChat, wsRef, connectionKey } = useNotifications();
+
   return (
     <div className="bg-background text-on-background min-h-screen relative overflow-x-hidden flex flex-col text-body-md font-body-md">
       <div className="fixed inset-0 ink-wash-overlay z-0 pointer-events-none"></div>
-      <NavBar />
+      <NavBar
+        notificationBell={
+          <NotificationBell
+            notifications={notifications}
+            unreadCount={unreadCount}
+            markAllRead={markAllRead}
+            toasts={toasts}
+          />
+        }
+      />
       <main className="relative z-10 pt-24 min-h-screen flex flex-col flex-grow">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -67,10 +115,34 @@ function MainLayout() {
           <Route path="/auction" element={<AuctionHouse />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/sect" element={<Sect />} />
+          <Route path="/alchemy" element={<AlchemyLab />} />
+          <Route path="/combat" element={<CombatArena />} />
+          <Route path="/achievements" element={<Achievements />} />
+          <Route path="/quests" element={<DailyQuests />} />
+          <Route path="/main-quests" element={<MainQuestPanel />} />
+          <Route path="/transactions" element={<TransactionHistory />} />
+          {/* ── Giai đoạn 2 ── */}
+          <Route path="/dungeon-explore" element={<DungeonExplorer />} />
+          <Route path="/pvp" element={<PvPArena />} />
+          <Route path="/sect-war" element={<SectWar />} />
+          <Route path="/blacksmith" element={<Blacksmith />} />
+          <Route path="/disciples" element={<DisciplePanel />} />
+          <Route path="/jade-shop" element={<JadeShop />} />
         </Routes>
       </main>
       <Footer />
       <MobileNav />
+      {/* Floating Chat - chỉ hiện khi đã tạo nhân vật */}
+      {user?.isCharacterCreated && (
+        <ChatWindow
+          sendChat={sendChat}
+          subscribe={subscribe}
+          wsRef={wsRef}
+          connectionKey={connectionKey}
+          username={user?.username}
+          sectName={undefined}
+        />
+      )}
     </div>
   );
 }

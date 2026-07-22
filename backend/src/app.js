@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import routes from './routes/index.js';
+import { generalLimiter } from './middlewares/rateLimiter.js';
 
 const app = express();
 
@@ -23,7 +24,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ── Routes ──
-app.use('/api', routes);
+app.use('/api', generalLimiter, routes);
 
 // ── Health check ──
 app.get('/', (req, res) => {

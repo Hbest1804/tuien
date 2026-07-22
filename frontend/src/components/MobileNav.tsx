@@ -11,7 +11,7 @@ export default function MobileNav() {
     { label: 'Tu Luyện', to: '/cultivation', icon: <Sparkles size={20} /> },
     { label: 'Túi Đồ', to: '/inventory', icon: <Package size={20} /> },
     { label: 'Tông Môn', to: '/sect', icon: <Swords size={20} /> },
-    { label: 'Tàng Kinh', to: '/pavilion', icon: <BookOpen size={20} /> },
+    { label: 'Chiến Đấu', to: '/combat', icon: <Swords size={20} /> },
     { label: 'Thương Hội', to: '/shop', icon: <Store size={20} /> },
   ];
 

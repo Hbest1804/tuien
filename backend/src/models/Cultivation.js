@@ -56,6 +56,12 @@ export const mapCultivation = (row) => {
     isExploring: row.is_exploring,
     currentDungeonId: row.current_dungeon_id,
     exploreStartedAt: row.explore_started_at ? new Date(row.explore_started_at) : null,
+    // ─── Giai đoạn 2 fields ───────────────────────────────────────────────
+    currentFloor: row.current_floor || null,
+    floorEvents: row.floor_events || [],
+    masterId: row.master_id || null,
+    disciples: row.disciples || [],
+    partnerId: row.partner_id || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -224,7 +230,15 @@ export const Cultivation = {
       is_exploring:           cult.isExploring,
       current_dungeon_id:     cult.currentDungeonId,
       explore_started_at:     cult.exploreStartedAt,
+      // ─── Giai đoạn 2 fields ─────────────────────────────────────────────
+      current_floor:          cult.currentFloor !== undefined ? cult.currentFloor : undefined,
+      floor_events:           cult.floorEvents !== undefined ? cult.floorEvents : undefined,
+      master_id:              cult.masterId !== undefined ? cult.masterId : undefined,
+      disciples:              cult.disciples !== undefined ? cult.disciples : undefined,
+      partner_id:             cult.partnerId !== undefined ? cult.partnerId : undefined,
     };
+    // Remove undefined keys
+    Object.keys(dbUpdates).forEach(k => dbUpdates[k] === undefined && delete dbUpdates[k]);
     const { error } = await supabase
       .from('cultivations')
       .update(dbUpdates)

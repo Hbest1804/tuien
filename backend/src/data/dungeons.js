@@ -7,7 +7,9 @@ export const DUNGEONS = {
     recommendedRealmIndex: 0,
     spiritStonesPerHour: 0,
     drops: [],
-    // UI Metadata
+    floors: 0,
+    bossData: null,
+    legendaryDrops: [],
     top: '30%', left: '40%',
     type: 'sect',
     color: 'primary',
@@ -17,14 +19,26 @@ export const DUNGEONS = {
     id: 'dung_thu_thach_coc',
     name: 'Thử Thách Cốc',
     description: 'Bí cảnh dành cho người mới bước chân vào con đường tu tiên. Nơi đây có linh thảo cấp thấp và yêu thú yếu ớt.',
-    requiredRealmIndex: 0, // Luyện Khí
+    requiredRealmIndex: 0,
     recommendedRealmIndex: 0,
-    spiritStonesPerHour: 500, // 500 linh thạch / giờ
+    spiritStonesPerHour: 500,
     drops: [
-      { itemId: 'mat_huyet_linh_thao', dropRate: 0.5 }, // 50% rớt 1 cái mỗi giờ
-      { itemId: 'pill_tu_khi_dan', dropRate: 0.1 },     // 10% rớt 1 đan mỗi giờ
+      { itemId: 'mat_huyet_linh_thao', dropRate: 0.5 },
+      { itemId: 'pill_tu_khi_dan', dropRate: 0.1 },
     ],
-    // UI Metadata
+    floors: 5,
+    bossData: {
+      name: 'Thạch Tinh Quái',
+      hp: 800,
+      atk: 30,
+      def: 10,
+      desc: 'Yêu quái cai quản Thử Thách Cốc. Bị đánh bại sẽ rơi hoàng kim pháp bảo.',
+    },
+    legendaryDrops: [
+      { itemId: 'pill_tu_khi_dan', quantity: 5, chance: 0.6 },
+      { itemId: 'pill_truc_co_dan', quantity: 1, chance: 0.15 },
+      { itemId: 'weapon_moc_kiem', quantity: 1, chance: 0.25 },
+    ],
     top: '70%', left: '25%',
     type: 'vein',
     color: 'secondary',
@@ -34,15 +48,28 @@ export const DUNGEONS = {
     id: 'dung_thuy_tinh_dong',
     name: 'Thủy Tinh Động',
     description: 'Hang động ẩm ướt tràn ngập linh khí. Rất nguy hiểm đối với tu sĩ dưới Trúc Cơ.',
-    requiredRealmIndex: 1, // Trúc Cơ
+    requiredRealmIndex: 1,
     recommendedRealmIndex: 1,
     spiritStonesPerHour: 1500,
     drops: [
       { itemId: 'mat_kim_dan_thao', dropRate: 0.4 },
       { itemId: 'pill_truc_co_dan', dropRate: 0.1 },
-      { itemId: 'weapon_huyen_thiet_kiem', dropRate: 0.01 }, // 1% rớt vũ khí
+      { itemId: 'weapon_huyen_thiet_kiem', dropRate: 0.01 },
     ],
-    // UI Metadata
+    floors: 7,
+    bossData: {
+      name: 'Thủy Long Vương',
+      hp: 3000,
+      atk: 100,
+      def: 50,
+      desc: 'Linh Long thống trị Thủy Tinh Động ngàn năm. Sức mạnh phi thường.',
+    },
+    legendaryDrops: [
+      { itemId: 'mat_kim_dan_thao', quantity: 5, chance: 0.5 },
+      { itemId: 'pill_tay_tuy_dan', quantity: 1, chance: 0.2 },
+      { itemId: 'armor_tho_vu_giac', quantity: 1, chance: 0.3 },
+      { itemId: 'weapon_huyen_thiet_kiem', quantity: 1, chance: 0.08 },
+    ],
     top: '20%', left: '75%',
     type: 'vein',
     color: 'secondary',
@@ -52,7 +79,7 @@ export const DUNGEONS = {
     id: 'dung_van_co_cam_dia',
     name: 'Vạn Cổ Cấm Địa',
     description: 'Vùng đất chết chóc chôn vùi vô số đại năng. Chỉ có kẻ mạnh thực sự mới dám bước vào.',
-    requiredRealmIndex: 2, // Kim Đan
+    requiredRealmIndex: 2,
     recommendedRealmIndex: 2,
     spiritStonesPerHour: 5000,
     drops: [
@@ -61,7 +88,20 @@ export const DUNGEONS = {
       { itemId: 'pill_tho_nguyen_qua', dropRate: 0.02 },
       { itemId: 'artifact_huyen_vu_khien', dropRate: 0.01 },
     ],
-    // UI Metadata
+    floors: 10,
+    bossData: {
+      name: 'Vạn Cổ Ma Thần',
+      hp: 12000,
+      atk: 400,
+      def: 200,
+      desc: 'Thực thể Ma Đạo phong ấn từ cổ đại. Giải phong hắn là điên rồ — nhưng phần thưởng xứng đáng.',
+    },
+    legendaryDrops: [
+      { itemId: 'mat_nguyen_anh_thach', quantity: 3, chance: 0.5 },
+      { itemId: 'pill_thien_dieu_dan', quantity: 1, chance: 0.15 },
+      { itemId: 'artifact_huyen_vu_khien', quantity: 1, chance: 0.1 },
+      { itemId: 'pill_linh_khi_dan', quantity: 2, chance: 0.25 },
+    ],
     top: '60%', left: '70%',
     type: 'forbidden',
     color: 'error',
@@ -71,19 +111,93 @@ export const DUNGEONS = {
     id: 'dung_thien_cung_di_tich',
     name: 'Thiên Cung Di Tích',
     description: 'Di tích còn sót lại của Tiên Giới thượng cổ. Nguy hiểm ngập tràn nhưng cơ ngộ vô tận.',
-    requiredRealmIndex: 3, // Nguyên Anh
-    recommendedRealmIndex: 4, // Hóa Thần
+    requiredRealmIndex: 3,
+    recommendedRealmIndex: 4,
     spiritStonesPerHour: 20000,
     drops: [
       { itemId: 'mat_hoa_than_tinh', dropRate: 0.2 },
       { itemId: 'pill_thien_dieu_dan', dropRate: 0.05 },
       { itemId: 'weapon_tuyet_han_kiem', dropRate: 0.02 },
-      { itemId: 'tech_cuu_long_quyet', dropRate: 0.005 }, // 0.5% rớt siêu công pháp
+      { itemId: 'tech_cuu_long_quyet', dropRate: 0.005 },
     ],
-    // UI Metadata
+    floors: 10,
+    bossData: {
+      name: 'Thiên Cung Thủ Hộ Thần',
+      hp: 50000,
+      atk: 1500,
+      def: 800,
+      desc: 'Thần Tướng của Thiên Đình được lưu lại để bảo vệ di tích. Thực lực vô song.',
+    },
+    legendaryDrops: [
+      { itemId: 'mat_hoa_than_tinh', quantity: 5, chance: 0.4 },
+      { itemId: 'tech_cuu_long_quyet', quantity: 1, chance: 0.05 },
+      { itemId: 'weapon_tuyet_han_kiem', quantity: 1, chance: 0.12 },
+      { itemId: 'pill_thien_dieu_dan', quantity: 2, chance: 0.3 },
+      { itemId: 'tech_thien_long_quyet', quantity: 1, chance: 0.2 },
+    ],
     top: '15%', left: '15%',
     type: 'forbidden',
     color: 'error',
     danger: 99,
   }
 };
+
+// Sự kiện ngẫu nhiên khi thám hiểm mỗi tầng
+export const FLOOR_EVENTS = [
+  {
+    id: 'treasure',
+    type: 'treasure',
+    title: 'Kho Báu Cổ Đại',
+    desc: 'Phát hiện một kho báu bị bỏ quên từ lâu! Bên trong chứa Linh Thạch và đồ vật quý.',
+    icon: '💰',
+    reward: { spiritStones: 500, expBonus: 200 },
+  },
+  {
+    id: 'ambush',
+    type: 'ambush',
+    title: 'Yêu Thú Phục Kích',
+    desc: 'Một bầy yêu thú bất ngờ tấn công! Chiến thắng để tiến lên tầng tiếp theo.',
+    icon: '⚔️',
+    choices: ['Chiến đấu', 'Rút lui'],
+  },
+  {
+    id: 'mystery_merchant',
+    type: 'merchant',
+    title: 'Thương Nhân Bí Ẩn',
+    desc: 'Một lão thương nhân kỳ lạ xuất hiện, chào bán đồ với giá hời.',
+    icon: '🧙',
+    reward: { spiritStones: -300, item: 'pill_tu_khi_dan', quantity: 3 },
+  },
+  {
+    id: 'spirit_spring',
+    type: 'blessing',
+    title: 'Linh Tuyền',
+    desc: 'Tìm thấy suối nước linh khí! Ngâm mình vào hấp thu linh khí tăng tốc tu luyện.',
+    icon: '💧',
+    reward: { expBonus: 1000 },
+  },
+  {
+    id: 'trap',
+    type: 'trap',
+    title: 'Cơ Quan Bẫy',
+    desc: 'Vô tình kích hoạt cơ quan cổ đại! Bị thương nhưng vẫn tiếp tục được.',
+    icon: '⚠️',
+    penalty: { spiritStones: -200 },
+  },
+  {
+    id: 'ancient_inscription',
+    type: 'enlightenment',
+    title: 'Cổ Đại Ngộ Đạo',
+    desc: 'Phát hiện khắc văn bí ẩn, chứa ngộ đạo của tiền nhân! EXP tăng vọt.',
+    icon: '📜',
+    reward: { expBonus: 2000 },
+  },
+  {
+    id: 'elite_monster',
+    type: 'elite',
+    title: 'Yêu Thú Tinh Anh',
+    desc: 'Một yêu thú tinh anh xuất hiện chặn đường! Đánh bại để nhận thưởng hậu hĩ.',
+    icon: '👹',
+    reward: { spiritStones: 800, expBonus: 500 },
+  },
+];
